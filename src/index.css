@@ -92,13 +92,33 @@
     text-shadow: 0 0 10px currentColor;
   }
 
-  @keyframes dart-fly {
+  @keyframes dart-throw {
     0% {
-      transform: translateY(80px) scale(0.3);
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    30% {
+      transform: translateY(-120px) scale(0.7);
+      opacity: 0.9;
+    }
+    60% {
+      transform: translateY(-250px) scale(0.3);
+      opacity: 0.6;
+    }
+    80% {
+      transform: translateY(-300px) scale(0.15);
+      opacity: 0.3;
+    }
+    100% {
+      transform: translateY(-320px) scale(0.1);
       opacity: 0;
     }
-    40% {
-      opacity: 1;
+  }
+
+  @keyframes dart-return {
+    0% {
+      transform: translateY(-320px) scale(0.1);
+      opacity: 0;
     }
     100% {
       transform: translateY(0) scale(1);
@@ -111,11 +131,12 @@
     100% { opacity: 0; }
   }
 
-  .animate-dart-fly {
-    animation: dart-fly 0.35s cubic-bezier(0.2, 0, 0.1, 1) forwards;
+  .animate-dart-throw {
+    animation: dart-throw 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+               dart-return 0.4s cubic-bezier(0, 0, 0.2, 1) 0.8s forwards;
   }
 
   .animate-dart-fade {
-    animation: dart-fade 0.6s ease-out 0.2s forwards;
+    animation: dart-fade 0.8s ease-out 0.2s forwards;
   }
 }

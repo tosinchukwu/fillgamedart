@@ -56,27 +56,14 @@ const Index = () => {
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-muted-foreground uppercase tracking-widest font-mono-game">Player 1</label>
-                <Input
-                  value={p1Name}
-                  onChange={(e) => setP1Name(e.target.value)}
-                  className="mt-1 bg-muted border-border text-foreground"
-                  placeholder="Player 1"
-                />
+                <Input value={p1Name} onChange={(e) => setP1Name(e.target.value)} className="mt-1 bg-muted border-border text-foreground" placeholder="Player 1" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground uppercase tracking-widest font-mono-game">Player 2</label>
-                <Input
-                  value={p2Name}
-                  onChange={(e) => setP2Name(e.target.value)}
-                  className="mt-1 bg-muted border-border text-foreground"
-                  placeholder="Player 2"
-                />
+                <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-muted border-border text-foreground" placeholder="Player 2" />
               </div>
             </div>
-
-            <Button onClick={startGame} className="w-full text-lg h-12" size="lg">
-              🎯 Start Game
-            </Button>
+            <Button onClick={startGame} className="w-full text-lg h-12" size="lg">🎯 Start Game</Button>
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1 font-mono-game">
@@ -90,18 +77,16 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen p-3 md:p-6 flex flex-col items-center">
+    <div className="min-h-screen p-3 md:p-4">
       {/* Header */}
-      <div className="w-full max-w-5xl flex items-center justify-between mb-4">
-        <h1 className="text-3xl text-foreground tracking-wider">FILLING GAME</h1>
-        <Button variant="outline" size="sm" onClick={resetGame}>
-          New Game
-        </Button>
+      <div className="flex items-center justify-between mb-3 max-w-6xl mx-auto">
+        <h1 className="text-2xl md:text-3xl text-foreground tracking-wider">FILLING GAME</h1>
+        <Button variant="outline" size="sm" onClick={resetGame}>New Game</Button>
       </div>
 
       {/* Game Over */}
       {gameState.gameOver && gameState.winner !== null && (
-        <div className="w-full max-w-5xl mb-4 bg-primary/20 border border-primary rounded-xl p-6 text-center glow-green">
+        <div className="max-w-6xl mx-auto mb-4 bg-primary/20 border border-primary rounded-xl p-6 text-center glow-green">
           <h2 className="text-4xl text-primary text-shadow-glow">
             {gameState.players[gameState.winner].name} WINS!
           </h2>
@@ -112,10 +97,30 @@ const Index = () => {
         </div>
       )}
 
-      {/* Main layout */}
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-start">
-        {/* Scoreboard */}
-        <div className="order-2 lg:order-1">
+      {/* Main layout: scoreboard left, dartboard+dart center */}
+      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-4">
+        {/* Dartboard + Dart Arrow - center stage */}
+        <div className="flex-1 flex flex-col items-center order-1 lg:order-2">
+          {/* Turn indicator */}
+          <div className="text-center mb-2">
+            <span className="font-mono-game text-sm text-primary animate-pulse-glow">
+              {gameState.players[gameState.currentPlayer].name}'s turn
+            </span>
+            <span className="text-muted-foreground text-xs ml-2 font-mono-game">
+              ({gameState.dartsRemaining} darts left)
+            </span>
+          </div>
+
+          <Dartboard
+            gameState={gameState}
+            onHitNumber={handleHitNumber}
+            onHitRing={handleHitRing}
+            disabled={gameState.gameOver}
+          />
+        </div>
+
+        {/* Scoreboard + Log - side panel */}
+        <div className="w-full lg:w-72 space-y-3 order-2 lg:order-1">
           <Scoreboard
             players={gameState.players}
             currentPlayer={gameState.currentPlayer}
@@ -124,40 +129,16 @@ const Index = () => {
             batch1Score={gameState.batch1Score}
             closedNumbers={gameState.closedNumbers}
           />
-        </div>
 
-        {/* Dartboard */}
-        <div className="order-1 lg:order-2 flex flex-col items-center">
-          <div className="relative">
-            <Dartboard
-              gameState={gameState}
-              onHitNumber={handleHitNumber}
-              onHitRing={handleHitRing}
-              disabled={gameState.gameOver}
-            />
-            {/* Current player indicator */}
-            <div className="text-center mt-2">
-              <span className="font-mono-game text-sm text-primary animate-pulse-glow">
-                {gameState.players[gameState.currentPlayer].name}'s turn
-              </span>
-              <span className="text-muted-foreground text-xs ml-2 font-mono-game">
-                ({gameState.dartsRemaining} darts left)
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Game Log */}
-        <div className="order-3">
           <GameLog messages={logMessages} />
-          
+
           {/* Ring legend */}
-          <div className="mt-3 bg-card border border-border rounded-lg p-3">
+          <div className="bg-card border border-border rounded-lg p-3">
             <h4 className="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-mono-game">Ring Guide</h4>
             <div className="space-y-1 text-xs font-mono-game">
-              <p><span className="text-foreground">Ring 1 (outer):</span> <span className="text-muted-foreground">7, 4, 3, 6, 2</span></p>
+              <p><span className="text-foreground">Ring 1:</span> <span className="text-muted-foreground">7, 4, 3, 6, 2</span></p>
               <p><span className="text-foreground">Ring 2:</span> <span className="text-muted-foreground">11, 5, 9, 8, 10, 1</span></p>
-              <p><span className="text-foreground">Ring 3 (inner):</span> <span className="text-muted-foreground">14, 12, 13</span></p>
+              <p><span className="text-foreground">Ring 3:</span> <span className="text-muted-foreground">14, 12, 13</span></p>
             </div>
           </div>
         </div>

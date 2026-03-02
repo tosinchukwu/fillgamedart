@@ -200,185 +200,187 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
       {/* ═══ CENTER: 3D Dartboard ═══ */}
       <div className="flex flex-col items-center">
-        <svg
-          viewBox="0 0 500 500"
-          className="w-[300px] h-[300px] sm:w-[350px] sm:h-[350px] md:w-[420px] md:h-[420px]"
-          style={{
-            transform: `rotate(${rotationDeg}deg)`,
-            transition: boardPhase === 'rotating' ? 'none' : 'transform 0.4s ease-out',
-            filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.6)) drop-shadow(0 8px 10px rgba(0,0,0,0.4))',
-            pointerEvents: 'none',
-          }}
-        >
-          <defs>
-            {/* Board Base Gradients */}
-            <linearGradient id="boardBaseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#444" />
-              <stop offset="20%" stopColor="#252525" />
-              <stop offset="80%" stopColor="#1a1a1a" />
-              <stop offset="100%" stopColor="#0a0a0a" />
-            </linearGradient>
+        <div style={{ filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.6)) drop-shadow(0 8px 10px rgba(0,0,0,0.4))' }}>
+          <svg
+            viewBox="0 0 500 500"
+            className="w-[300px] h-[300px] sm:w-[350px] sm:h-[350px] md:w-[420px] md:h-[420px]"
+            style={{
+              transform: `rotate(${rotationDeg}deg)`,
+              transition: boardPhase === 'rotating' ? 'none' : 'transform 0.4s ease-out',
+              pointerEvents: 'none',
+              willChange: 'transform',
+            }}
+          >
+            <defs>
+              {/* Board Base Gradients */}
+              <linearGradient id="boardBaseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#444" />
+                <stop offset="20%" stopColor="#252525" />
+                <stop offset="80%" stopColor="#1a1a1a" />
+                <stop offset="100%" stopColor="#0a0a0a" />
+              </linearGradient>
 
-            <radialGradient id="boardInnerGrad" cx="40%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#282828" />
-              <stop offset="50%" stopColor="#1d1d1d" />
-              <stop offset="90%" stopColor="#111111" />
-              <stop offset="100%" stopColor="#080808" />
-            </radialGradient>
+              <radialGradient id="boardInnerGrad" cx="40%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#282828" />
+                <stop offset="50%" stopColor="#1d1d1d" />
+                <stop offset="90%" stopColor="#111111" />
+                <stop offset="100%" stopColor="#080808" />
+              </radialGradient>
 
-            {/* 3D Drop Shadows & Bevels */}
-            <filter id="whiteRingShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#000" floodOpacity="0.8" />
-              <feDropShadow dx="0" dy="3" stdDeviation="2" floodColor="#000" floodOpacity="0.5" />
-            </filter>
+              {/* 3D Drop Shadows & Bevels */}
+              <filter id="whiteRingShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#000" floodOpacity="0.8" />
+                <feDropShadow dx="0" dy="3" stdDeviation="2" floodColor="#000" floodOpacity="0.5" />
+              </filter>
 
-            <filter id="dot3D" x="-30%" y="-30%" width="160%" height="160%">
-              {/* Outer shadow */}
-              <feDropShadow dx="3" dy="6" stdDeviation="4" floodColor="#000" floodOpacity="0.75" result="shadow" />
-              {/* Top specular highlight (bevel inner light) */}
-              <feOffset dx="-2" dy="-2" in="SourceAlpha" result="highlightOffset" />
-              <feGaussianBlur stdDeviation="2" in="highlightOffset" result="highlightBlur" />
-              <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="highlightMask" in="highlightBlur" />
-              <feFlood floodColor="#ffffff" floodOpacity="0.6" result="highlightColor" />
-              <feComposite in="highlightColor" in2="highlightMask" operator="in" result="highlightFinal" />
-              {/* Bottom shadow (bevel inner dark) */}
-              <feOffset dx="2" dy="2" in="SourceAlpha" result="darkOffset" />
-              <feGaussianBlur stdDeviation="2" in="darkOffset" result="darkBlur" />
-              <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="darkMask" in="darkBlur" />
-              <feFlood floodColor="#000000" floodOpacity="0.8" result="darkColor" />
-              <feComposite in="darkColor" in2="darkMask" operator="in" result="darkFinal" />
+              <filter id="dot3D" x="-30%" y="-30%" width="160%" height="160%">
+                {/* Outer shadow */}
+                <feDropShadow dx="3" dy="6" stdDeviation="4" floodColor="#000" floodOpacity="0.75" result="shadow" />
+                {/* Top specular highlight (bevel inner light) */}
+                <feOffset dx="-2" dy="-2" in="SourceAlpha" result="highlightOffset" />
+                <feGaussianBlur stdDeviation="2" in="highlightOffset" result="highlightBlur" />
+                <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="highlightMask" in="highlightBlur" />
+                <feFlood floodColor="#ffffff" floodOpacity="0.6" result="highlightColor" />
+                <feComposite in="highlightColor" in2="highlightMask" operator="in" result="highlightFinal" />
+                {/* Bottom shadow (bevel inner dark) */}
+                <feOffset dx="2" dy="2" in="SourceAlpha" result="darkOffset" />
+                <feGaussianBlur stdDeviation="2" in="darkOffset" result="darkBlur" />
+                <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="darkMask" in="darkBlur" />
+                <feFlood floodColor="#000000" floodOpacity="0.8" result="darkColor" />
+                <feComposite in="darkColor" in2="darkMask" operator="in" result="darkFinal" />
 
-              {/* Merge them all */}
-              <feMerge>
-                <feMergeNode in="shadow" />
-                <feMergeNode in="SourceGraphic" />
-                <feMergeNode in="highlightFinal" />
-                <feMergeNode in="darkFinal" />
-              </feMerge>
-            </filter>
+                {/* Merge them all */}
+                <feMerge>
+                  <feMergeNode in="shadow" />
+                  <feMergeNode in="SourceGraphic" />
+                  <feMergeNode in="highlightFinal" />
+                  <feMergeNode in="darkFinal" />
+                </feMerge>
+              </filter>
 
-            <filter id="textBevel">
-              <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodColor="#000" floodOpacity="0.5" />
-            </filter>
+              <filter id="textBevel">
+                <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodColor="#000" floodOpacity="0.5" />
+              </filter>
 
-            <filter id="ringGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#22c55e" floodOpacity="0.8" />
-            </filter>
-          </defs>
+              <filter id="ringGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#22c55e" floodOpacity="0.8" />
+              </filter>
+            </defs>
 
-          {/* ── 3D Board Base ── */}
-          {/* Thick outer rim edge (simulates 3D depth of board) */}
-          <circle cx={CENTER} cy={CENTER + 8} r={240} fill="#0a0a0a" />
+            {/* ── 3D Board Base ── */}
+            {/* Thick outer rim edge (simulates 3D depth of board) */}
+            <circle cx={CENTER} cy={CENTER + 8} r={240} fill="#0a0a0a" />
 
-          {/* Main board face */}
-          <circle cx={CENTER} cy={CENTER} r={240} fill="url(#boardBaseGrad)" stroke="#111" strokeWidth="2" />
-          <circle cx={CENTER} cy={CENTER} r={235} fill="url(#boardInnerGrad)" />
+            {/* Main board face */}
+            <circle cx={CENTER} cy={CENTER} r={240} fill="url(#boardBaseGrad)" stroke="#111" strokeWidth="2" />
+            <circle cx={CENTER} cy={CENTER} r={235} fill="url(#boardInnerGrad)" />
 
-          {/* Faint subtle ring grooves inside the black area to add depth */}
-          {[...RING_RADII].reverse().map((ring, idx) => (
-            <circle
-              key={`groove-${idx}`}
-              cx={CENTER} cy={CENTER}
-              r={ring.outer * SCALE}
-              fill="none"
-              stroke="#000"
-              strokeWidth="10"
-              opacity="0.3"
-              style={{ filter: 'blur(3px)' }}
-            />
-          ))}
+            {/* Faint subtle ring grooves inside the black area to add depth */}
+            {[...RING_RADII].reverse().map((ring, idx) => (
+              <circle
+                key={`groove-${idx}`}
+                cx={CENTER} cy={CENTER}
+                r={ring.outer * SCALE}
+                fill="none"
+                stroke="#000"
+                strokeWidth="10"
+                opacity="0.3"
+                style={{ filter: boardPhase === 'rotating' ? 'none' : 'blur(3px)' }}
+              />
+            ))}
 
-          {/* ── 3D White Thick Ring Boundaries ── */}
-          {RING_RADII.map((ring, i) => (
-            <circle
-              key={`ring-line-${i}`}
-              cx={CENTER} cy={CENTER}
-              r={ring.outer * SCALE}
-              fill="none"
-              stroke="#f2f2f2"
-              strokeWidth="7"
-              filter="url(#whiteRingShadow)"
-            />
-          ))}
+            {/* ── 3D White Thick Ring Boundaries ── */}
+            {RING_RADII.map((ring, i) => (
+              <circle
+                key={`ring-line-${i}`}
+                cx={CENTER} cy={CENTER}
+                r={ring.outer * SCALE}
+                fill="none"
+                stroke="#f2f2f2"
+                strokeWidth="7"
+                filter={boardPhase === 'rotating' ? 'none' : "url(#whiteRingShadow)"}
+              />
+            ))}
 
-          {/* ── 3D Number Dots ── */}
-          {BOARD_LAYOUT.map((pos) => {
-            const ringData = RING_RADII[pos.ring];
-            const r = (ringData.inner + ringData.outer) / 2;
-            const [x, y] = polarToXY(pos.angle, r);
-            const isCompleted = player.completed[pos.number];
-            const isClosed = gameState.closedNumbers.has(pos.number);
-            const hitPct = Math.min(player.hits[pos.number] / pos.number, 1);
+            {/* ── 3D Number Dots ── */}
+            {BOARD_LAYOUT.map((pos) => {
+              const ringData = RING_RADII[pos.ring];
+              const r = (ringData.inner + ringData.outer) / 2;
+              const [x, y] = polarToXY(pos.angle, r);
+              const isCompleted = player.completed[pos.number];
+              const isClosed = gameState.closedNumbers.has(pos.number);
+              const hitPct = Math.min(player.hits[pos.number] / pos.number, 1);
 
-            const dotFill = isClosed ? '#2a2a2a' : pos.color === 'red' ? '#e13535' : '#1ab15a';
-            const textFill = isClosed ? '#555' : '#ffffff';
-            const DOT_R = 21;
+              const dotFill = isClosed ? '#2a2a2a' : pos.color === 'red' ? '#e13535' : '#1ab15a';
+              const textFill = isClosed ? '#555' : '#ffffff';
+              const DOT_R = 21;
 
-            return (
-              <g key={pos.number} style={{ pointerEvents: 'none' }}>
-                {/* Main 3D Dot */}
-                <circle
-                  cx={x} cy={y}
-                  r={DOT_R}
-                  fill={dotFill}
-                  filter="url(#dot3D)"
-                  opacity={isClosed ? 0.6 : 1}
-                />
-
-                {/* Number Text (bevelled) */}
-                <text
-                  x={x} y={y + 1}
-                  textAnchor="middle" dominantBaseline="central"
-                  fill={textFill}
-                  fontSize="22"
-                  fontWeight="bold"
-                  fontFamily="'Bebas Neue', sans-serif"
-                  filter="url(#textBevel)"
-                >
-                  {pos.number}
-                </text>
-
-                {/* Progress arc showing hits around the 3D dot */}
-                {!isClosed && player.hits[pos.number] > 0 && (
-                  <circle cx={x} cy={y} r={DOT_R + 5}
-                    fill="none"
-                    stroke={isCompleted ? '#22c55e' : '#facc15'}
-                    strokeWidth="3.5"
-                    strokeDasharray={`${hitPct * (2 * Math.PI * (DOT_R + 5))} ${2 * Math.PI * (DOT_R + 5)}`}
-                    transform={`rotate(-90 ${x} ${y})`}
-                    strokeLinecap="round"
-                    filter="url(#ringGlow)"
-                    opacity="0.9"
+              return (
+                <g key={pos.number} style={{ pointerEvents: 'none' }}>
+                  {/* Main 3D Dot */}
+                  <circle
+                    cx={x} cy={y}
+                    r={DOT_R}
+                    fill={dotFill}
+                    filter={boardPhase === 'rotating' ? 'none' : "url(#dot3D)"}
+                    opacity={isClosed ? 0.6 : 1}
                   />
-                )}
 
-                {/* Hit badge */}
-                {player.hits[pos.number] > 0 && !isClosed && (
-                  <g className="pointer-events-none" transform={`translate(0, -${DOT_R + 8})`}>
-                    <rect x={x - 12} y={y - 7} width={24} height={14} rx={4}
-                      fill="#111" stroke="#facc15" strokeWidth="1.2" />
-                    <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central"
-                      fill="#facc15" fontSize="9" fontWeight="bold" fontFamily="'JetBrains Mono', monospace"
-                    >
-                      {player.hits[pos.number]}/{pos.number}
-                    </text>
-                  </g>
-                )}
+                  {/* Number Text (bevelled) */}
+                  <text
+                    x={x} y={y + 1}
+                    textAnchor="middle" dominantBaseline="central"
+                    fill={textFill}
+                    fontSize="22"
+                    fontWeight="bold"
+                    fontFamily="'Bebas Neue', sans-serif"
+                    filter={boardPhase === 'rotating' ? 'none' : "url(#textBevel)"}
+                  >
+                    {pos.number}
+                  </text>
+
+                  {/* Progress arc showing hits around the 3D dot */}
+                  {!isClosed && player.hits[pos.number] > 0 && (
+                    <circle cx={x} cy={y} r={DOT_R + 5}
+                      fill="none"
+                      stroke={isCompleted ? '#22c55e' : '#facc15'}
+                      strokeWidth="3.5"
+                      strokeDasharray={`${hitPct * (2 * Math.PI * (DOT_R + 5))} ${2 * Math.PI * (DOT_R + 5)}`}
+                      transform={`rotate(-90 ${x} ${y})`}
+                      strokeLinecap="round"
+                      filter="url(#ringGlow)"
+                      opacity="0.9"
+                    />
+                  )}
+
+                  {/* Hit badge */}
+                  {player.hits[pos.number] > 0 && !isClosed && (
+                    <g className="pointer-events-none" transform={`translate(0, -${DOT_R + 8})`}>
+                      <rect x={x - 12} y={y - 7} width={24} height={14} rx={4}
+                        fill="#111" stroke="#facc15" strokeWidth="1.2" />
+                      <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central"
+                        fill="#facc15" fontSize="9" fontWeight="bold" fontFamily="'JetBrains Mono', monospace"
+                      >
+                        {player.hits[pos.number]}/{pos.number}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Stuck dart markers (simplistic 3D pin) */}
+            {stuckDarts.map((dart) => (
+              <g key={dart.id}>
+                {/* shadow */}
+                <ellipse cx={dart.x + 4} cy={dart.y + 6} rx="6" ry="3" fill="#000" opacity="0.6" filter="blur(2px)" />
+                {/* pin body */}
+                <path d={`M${dart.x - 7},${dart.y - 25} L${dart.x + 7},${dart.y - 25} L${dart.x + 2},${dart.y} L${dart.x - 2},${dart.y} Z`} fill="url(#boardBaseGrad)" stroke="#888" strokeWidth="1" />
+                <polygon points={`${dart.x - 9},${dart.y - 35} ${dart.x + 9},${dart.y - 35} ${dart.x + 7},${dart.y - 25} ${dart.x - 7},${dart.y - 25}`} fill="#facc15" />
               </g>
-            );
-          })}
-
-          {/* Stuck dart markers (simplistic 3D pin) */}
-          {stuckDarts.map((dart) => (
-            <g key={dart.id}>
-              {/* shadow */}
-              <ellipse cx={dart.x + 4} cy={dart.y + 6} rx="6" ry="3" fill="#000" opacity="0.6" filter="blur(2px)" />
-              {/* pin body */}
-              <path d={`M${dart.x - 7},${dart.y - 25} L${dart.x + 7},${dart.y - 25} L${dart.x + 2},${dart.y} L${dart.x - 2},${dart.y} Z`} fill="url(#boardBaseGrad)" stroke="#888" strokeWidth="1" />
-              <polygon points={`${dart.x - 9},${dart.y - 35} ${dart.x + 9},${dart.y - 35} ${dart.x + 7},${dart.y - 25} ${dart.x - 7},${dart.y - 25}`} fill="#facc15" />
-            </g>
-          ))}
-        </svg>
+            ))}
+          </svg>
+        </div>
 
         {/* Hint text below board */}
         <div className="mt-4 text-center" style={{ minHeight: 20 }}>

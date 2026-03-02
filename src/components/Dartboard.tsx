@@ -212,16 +212,16 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
           }}
         >
           {/* Background */}
-          <circle cx={CENTER} cy={CENTER} r={238} fill="#090909" />
-          <circle cx={CENTER} cy={CENTER} r={234} fill="#181818" />
+          <circle cx={CENTER} cy={CENTER} r={238} fill="#141514" />
+          <circle cx={CENTER} cy={CENTER} r={234} fill="#1a1c1a" />
 
-          {/* Ring fills — alternating dark shades */}
+          {/* Ring fills — slightly different dark shades to add subtle depth */}
           {[...RING_RADII].reverse().map((ring, idx) => (
             <circle
               key={`fill-${idx}`}
               cx={CENTER} cy={CENTER}
               r={ring.outer * SCALE}
-              fill={idx % 2 === 0 ? '#1b1b1b' : '#141414'}
+              fill={idx % 2 === 0 ? '#1f221f' : '#1a1c1a'}
             />
           ))}
 
@@ -232,8 +232,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               cx={CENTER} cy={CENTER}
               r={ring.outer * SCALE}
               fill="none"
-              stroke="#e5e5e5"
-              strokeWidth="4"
+              stroke="#ffffff"
+              strokeWidth="6"
             />
           ))}
 
@@ -246,9 +246,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             const isClosed = gameState.closedNumbers.has(pos.number);
             const hitPct = Math.min(player.hits[pos.number] / pos.number, 1);
 
-            const dotFill = isClosed ? '#2a2a2a' : pos.color === 'red' ? '#e13535' : '#1ab15a';
-            const textFill = isClosed ? '#555' : '#ffffff';
-            const DOT_R = 16;
+            const dotFill = isClosed ? '#2a2a2a' : pos.color === 'red' ? '#b81515' : '#106b29';
+            const textFill = isClosed ? '#666' : '#ffffff';
+            const DOT_R = 18;
 
             return (
               <g key={pos.number} style={{ pointerEvents: 'none' }}>

@@ -114,7 +114,7 @@ const Index = () => {
       <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-4 items-start justify-center">
 
         {/* ===== LEFT: Player 1 ===== */}
-        <div className="xl:w-64 w-full xl:flex-shrink-0 order-2 xl:order-1">
+        <div className="xl:w-64 w-full xl:flex-shrink-0 order-2 xl:order-1 space-y-4">
           <PlayerPanel
             player={gameState.players[0]}
             isActive={gameState.currentPlayer === 0}
@@ -124,6 +124,21 @@ const Index = () => {
             closedNumbers={gameState.closedNumbers}
             playerIdx={0}
           />
+
+          {/* Hint / Ring Guide moved to left panel */}
+          <div className="bg-card border border-border rounded-lg p-4 hidden xl:block shadow-sm">
+            <h4 className="text-sm font-bold text-foreground tracking-wider mb-3 font-mono-game">How to Play & Ring Guide</h4>
+            <div className="flex flex-col gap-2 text-xs font-mono-game">
+              <p><span className="font-bold text-primary">① Click dart</span> <span className="text-muted-foreground">→ spins test</span></p>
+              <p><span className="font-bold text-foreground">Ring 1 (inner):</span> <span className="text-muted-foreground">14, 13</span></p>
+              <p><span className="font-bold text-primary">② Click dart again</span> <span className="text-muted-foreground">→ stops &amp; throws</span></p>
+              <p><span className="font-bold text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
+              <p><span className="font-bold text-primary">Hit line</span> <span className="text-muted-foreground">→ ring scored</span></p>
+              <p><span className="font-bold text-foreground">Ring 3:</span> <span className="text-muted-foreground">1, 3, 12, 8</span></p>
+              <p><span className="font-bold text-secondary">Filler:</span> <span className="text-muted-foreground">+2 pts per hit</span></p>
+              <p><span className="font-bold text-foreground">Ring 4 (outer):</span> <span className="text-muted-foreground">7, 4, 2, 6</span></p>
+            </div>
+          </div>
         </div>
 
         {/* ===== CENTER: Dart + Dartboard + Log + Hint ===== */}
@@ -146,22 +161,18 @@ const Index = () => {
             disabled={gameState.gameOver}
           />
 
-          {/* Game Log + Hint BELOW the dartboard */}
-          <div className="w-full max-w-lg mt-4 space-y-3">
+          {/* Game Log BELOW the dartboard */}
+          <div className="w-full max-w-lg mt-4">
             <GameLog messages={logMessages} />
 
-            {/* Hint / Ring Guide */}
-            <div className="bg-card border border-border rounded-lg p-3">
-              <h4 className="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-mono-game">How to Play & Ring Guide</h4>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs font-mono-game">
-                <p><span className="text-foreground">① Click dart</span> <span className="text-muted-foreground">→ board spins (5-7s)</span></p>
-                <p><span className="text-foreground">Ring 1 (inner):</span> <span className="text-muted-foreground">14, 13</span></p>
-                <p><span className="text-foreground">② Click dart again</span> <span className="text-muted-foreground">→ stops &amp; throws!</span></p>
-                <p><span className="text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
-                <p><span className="text-foreground">Hit line</span> <span className="text-muted-foreground">→ ring scored</span></p>
-                <p><span className="text-foreground">Ring 3:</span> <span className="text-muted-foreground">1, 3, 12, 8</span></p>
-                <p><span className="text-foreground">Filler:</span> <span className="text-muted-foreground">+2 pts per hit</span></p>
-                <p><span className="text-foreground">Ring 4 (outer):</span> <span className="text-muted-foreground">7, 4, 2, 6</span></p>
+            {/* Mobile-only Hint */}
+            <div className="bg-card border border-border rounded-lg p-3 mt-3 xl:hidden">
+              <h4 className="text-xs font-bold text-foreground tracking-widest mb-2 font-mono-game">How to Play</h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono-game">
+                <p><span className="font-bold text-primary">① Click dart</span> <span className="text-muted-foreground">→ spins</span></p>
+                <p><span className="font-bold text-foreground">Ring 1:</span> <span className="text-muted-foreground">14, 13</span></p>
+                <p><span className="font-bold text-primary">② Click dart again</span> <span className="text-muted-foreground">→ throws</span></p>
+                <p><span className="font-bold text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
               </div>
             </div>
           </div>

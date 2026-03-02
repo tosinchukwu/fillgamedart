@@ -7,14 +7,14 @@ interface GameLogProps {
 
 const GameLog: React.FC<GameLogProps> = ({ messages }) => {
   return (
-    <div className="bg-card border border-border rounded-lg p-3 max-h-40 overflow-y-auto">
-      <h4 className="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-mono-game">Game Log</h4>
-      <div className="space-y-1">
+    <div className="bg-card border border-border rounded-lg p-4 max-h-48 overflow-y-auto shadow-sm">
+      <h4 className="text-sm text-foreground font-bold uppercase tracking-widest mb-3 font-mono-game border-b border-border pb-2">Game Log</h4>
+      <div className="space-y-2">
         {messages.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">Throw your first dart!</p>
+          <p className="text-sm text-muted-foreground italic font-medium">Throw your first dart!</p>
         ) : (
           [...messages].reverse().slice(0, 15).map((msg, i) => (
-            <p key={i} className={`text-xs font-mono-game ${i === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+            <p key={i} className={`text-sm font-bold font-mono-game leading-relaxed ${i === 0 ? 'text-primary' : 'text-foreground'}`}>
               {msg}
             </p>
           ))

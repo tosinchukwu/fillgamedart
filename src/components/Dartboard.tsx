@@ -176,7 +176,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
   return (
     <div className="relative flex items-center justify-center gap-4 md:gap-8">
-      {/* ═══ LEFT: 3D Dart Arrow ═══ */}
+      {/* ═══ LEFT: Dart Arrow ═══ */}
       <div className="flex flex-col items-center gap-2 flex-shrink-0 z-10">
         <DartArrow
           boardPhase={boardPhase}
@@ -198,189 +198,104 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
         </div>
       </div>
 
-      {/* ═══ CENTER: 3D Dartboard ═══ */}
+      {/* ═══ CENTER: Flat Dartboard (Fast Performance) ═══ */}
       <div className="flex flex-col items-center">
-        <div style={{ filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.6)) drop-shadow(0 8px 10px rgba(0,0,0,0.4))' }}>
-          <svg
-            viewBox="0 0 500 500"
-            className="w-[300px] h-[300px] sm:w-[350px] sm:h-[350px] md:w-[420px] md:h-[420px]"
-            style={{
-              transform: `rotate(${rotationDeg}deg)`,
-              transition: boardPhase === 'rotating' ? 'none' : 'transform 0.4s ease-out',
-              pointerEvents: 'none',
-              willChange: 'transform',
-            }}
-          >
-            <defs>
-              {/* Board Base Gradients */}
-              <linearGradient id="boardBaseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#444" />
-                <stop offset="20%" stopColor="#252525" />
-                <stop offset="80%" stopColor="#1a1a1a" />
-                <stop offset="100%" stopColor="#0a0a0a" />
-              </linearGradient>
+        <svg
+          viewBox="0 0 500 500"
+          className="w-[290px] h-[290px] sm:w-[340px] sm:h-[340px] md:w-[400px] md:h-[400px]"
+          style={{
+            transform: `rotate(${rotationDeg}deg)`,
+            transition: boardPhase === 'rotating' ? 'none' : 'transform 0.4s ease-out',
+            filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.8))',
+            pointerEvents: 'none',
+            willChange: 'transform',
+          }}
+        >
+          {/* Background */}
+          <circle cx={CENTER} cy={CENTER} r={238} fill="#090909" />
+          <circle cx={CENTER} cy={CENTER} r={234} fill="#181818" />
 
-              <radialGradient id="boardInnerGrad" cx="40%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="#282828" />
-                <stop offset="50%" stopColor="#1d1d1d" />
-                <stop offset="90%" stopColor="#111111" />
-                <stop offset="100%" stopColor="#080808" />
-              </radialGradient>
+          {/* Ring fills — alternating dark shades */}
+          {[...RING_RADII].reverse().map((ring, idx) => (
+            <circle
+              key={`fill-${idx}`}
+              cx={CENTER} cy={CENTER}
+              r={ring.outer * SCALE}
+              fill={idx % 2 === 0 ? '#1b1b1b' : '#141414'}
+            />
+          ))}
 
-              {/* 3D Drop Shadows & Bevels */}
-              <filter id="whiteRingShadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#000" floodOpacity="0.8" />
-                <feDropShadow dx="0" dy="3" stdDeviation="2" floodColor="#000" floodOpacity="0.5" />
-              </filter>
+          {/* White ring boundary lines */}
+          {RING_RADII.map((ring, i) => (
+            <circle
+              key={`ring-line-${i}`}
+              cx={CENTER} cy={CENTER}
+              r={ring.outer * SCALE}
+              fill="none"
+              stroke="#e5e5e5"
+              strokeWidth="4"
+            />
+          ))}
 
-              <filter id="dot3D" x="-30%" y="-30%" width="160%" height="160%">
-                {/* Outer shadow */}
-                <feDropShadow dx="3" dy="6" stdDeviation="4" floodColor="#000" floodOpacity="0.75" result="shadow" />
-                {/* Top specular highlight (bevel inner light) */}
-                <feOffset dx="-2" dy="-2" in="SourceAlpha" result="highlightOffset" />
-                <feGaussianBlur stdDeviation="2" in="highlightOffset" result="highlightBlur" />
-                <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="highlightMask" in="highlightBlur" />
-                <feFlood floodColor="#ffffff" floodOpacity="0.6" result="highlightColor" />
-                <feComposite in="highlightColor" in2="highlightMask" operator="in" result="highlightFinal" />
-                {/* Bottom shadow (bevel inner dark) */}
-                <feOffset dx="2" dy="2" in="SourceAlpha" result="darkOffset" />
-                <feGaussianBlur stdDeviation="2" in="darkOffset" result="darkBlur" />
-                <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="darkMask" in="darkBlur" />
-                <feFlood floodColor="#000000" floodOpacity="0.8" result="darkColor" />
-                <feComposite in="darkColor" in2="darkMask" operator="in" result="darkFinal" />
+          {/* Number dots with simple fills */}
+          {BOARD_LAYOUT.map((pos) => {
+            const ringData = RING_RADII[pos.ring];
+            const r = (ringData.inner + ringData.outer) / 2;
+            const [x, y] = polarToXY(pos.angle, r);
+            const isCompleted = player.completed[pos.number];
+            const isClosed = gameState.closedNumbers.has(pos.number);
+            const hitPct = Math.min(player.hits[pos.number] / pos.number, 1);
 
-                {/* Merge them all */}
-                <feMerge>
-                  <feMergeNode in="shadow" />
-                  <feMergeNode in="SourceGraphic" />
-                  <feMergeNode in="highlightFinal" />
-                  <feMergeNode in="darkFinal" />
-                </feMerge>
-              </filter>
+            const dotFill = isClosed ? '#2a2a2a' : pos.color === 'red' ? '#e13535' : '#1ab15a';
+            const textFill = isClosed ? '#555' : '#ffffff';
+            const DOT_R = 16;
 
-              <filter id="textBevel">
-                <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodColor="#000" floodOpacity="0.5" />
-              </filter>
+            return (
+              <g key={pos.number} style={{ pointerEvents: 'none' }}>
+                <circle cx={x} cy={y} r={DOT_R} fill={dotFill} opacity={isClosed ? 0.6 : 1} />
 
-              <filter id="ringGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#22c55e" floodOpacity="0.8" />
-              </filter>
-            </defs>
-
-            {/* ── 3D Board Base ── */}
-            {/* Thick outer rim edge (simulates 3D depth of board) */}
-            <circle cx={CENTER} cy={CENTER + 8} r={240} fill="#0a0a0a" />
-
-            {/* Main board face */}
-            <circle cx={CENTER} cy={CENTER} r={240} fill="url(#boardBaseGrad)" stroke="#111" strokeWidth="2" />
-            <circle cx={CENTER} cy={CENTER} r={235} fill="url(#boardInnerGrad)" />
-
-            {/* Faint subtle ring grooves inside the black area to add depth */}
-            {[...RING_RADII].reverse().map((ring, idx) => (
-              <circle
-                key={`groove-${idx}`}
-                cx={CENTER} cy={CENTER}
-                r={ring.outer * SCALE}
-                fill="none"
-                stroke="#000"
-                strokeWidth="10"
-                opacity="0.3"
-                style={{ filter: boardPhase === 'rotating' ? 'none' : 'blur(3px)' }}
-              />
-            ))}
-
-            {/* ── 3D White Thick Ring Boundaries ── */}
-            {RING_RADII.map((ring, i) => (
-              <circle
-                key={`ring-line-${i}`}
-                cx={CENTER} cy={CENTER}
-                r={ring.outer * SCALE}
-                fill="none"
-                stroke="#f2f2f2"
-                strokeWidth="7"
-                filter={boardPhase === 'rotating' ? 'none' : "url(#whiteRingShadow)"}
-              />
-            ))}
-
-            {/* ── 3D Number Dots ── */}
-            {BOARD_LAYOUT.map((pos) => {
-              const ringData = RING_RADII[pos.ring];
-              const r = (ringData.inner + ringData.outer) / 2;
-              const [x, y] = polarToXY(pos.angle, r);
-              const isCompleted = player.completed[pos.number];
-              const isClosed = gameState.closedNumbers.has(pos.number);
-              const hitPct = Math.min(player.hits[pos.number] / pos.number, 1);
-
-              const dotFill = isClosed ? '#2a2a2a' : pos.color === 'red' ? '#e13535' : '#1ab15a';
-              const textFill = isClosed ? '#555' : '#ffffff';
-              const DOT_R = 21;
-
-              return (
-                <g key={pos.number} style={{ pointerEvents: 'none' }}>
-                  {/* Main 3D Dot */}
-                  <circle
-                    cx={x} cy={y}
-                    r={DOT_R}
-                    fill={dotFill}
-                    filter={boardPhase === 'rotating' ? 'none' : "url(#dot3D)"}
-                    opacity={isClosed ? 0.6 : 1}
+                {/* Progress arc */}
+                {!isClosed && player.hits[pos.number] > 0 && (
+                  <circle cx={x} cy={y} r={DOT_R + 4}
+                    fill="none"
+                    stroke={isCompleted ? '#22c55e' : '#facc15'}
+                    strokeWidth="2.5"
+                    strokeDasharray={`${hitPct * (2 * Math.PI * (DOT_R + 4))} ${2 * Math.PI * (DOT_R + 4)}`}
+                    transform={`rotate(-90 ${x} ${y})`}
+                    strokeLinecap="round"
                   />
+                )}
 
-                  {/* Number Text (bevelled) */}
-                  <text
-                    x={x} y={y + 1}
-                    textAnchor="middle" dominantBaseline="central"
-                    fill={textFill}
-                    fontSize="22"
-                    fontWeight="bold"
-                    fontFamily="'Bebas Neue', sans-serif"
-                    filter={boardPhase === 'rotating' ? 'none' : "url(#textBevel)"}
-                  >
-                    {pos.number}
-                  </text>
+                {/* Number text */}
+                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central"
+                  fill={textFill} fontSize="15" fontWeight="bold" fontFamily="'Bebas Neue', sans-serif"
+                >{pos.number}</text>
 
-                  {/* Progress arc showing hits around the 3D dot */}
-                  {!isClosed && player.hits[pos.number] > 0 && (
-                    <circle cx={x} cy={y} r={DOT_R + 5}
-                      fill="none"
-                      stroke={isCompleted ? '#22c55e' : '#facc15'}
-                      strokeWidth="3.5"
-                      strokeDasharray={`${hitPct * (2 * Math.PI * (DOT_R + 5))} ${2 * Math.PI * (DOT_R + 5)}`}
-                      transform={`rotate(-90 ${x} ${y})`}
-                      strokeLinecap="round"
-                      filter="url(#ringGlow)"
-                      opacity="0.9"
-                    />
-                  )}
-
-                  {/* Hit badge */}
-                  {player.hits[pos.number] > 0 && !isClosed && (
-                    <g className="pointer-events-none" transform={`translate(0, -${DOT_R + 8})`}>
-                      <rect x={x - 12} y={y - 7} width={24} height={14} rx={4}
-                        fill="#111" stroke="#facc15" strokeWidth="1.2" />
-                      <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central"
-                        fill="#facc15" fontSize="9" fontWeight="bold" fontFamily="'JetBrains Mono', monospace"
-                      >
-                        {player.hits[pos.number]}/{pos.number}
-                      </text>
-                    </g>
-                  )}
-                </g>
-              );
-            })}
-
-            {/* Stuck dart markers (simplistic 3D pin) */}
-            {stuckDarts.map((dart) => (
-              <g key={dart.id}>
-                {/* shadow */}
-                <ellipse cx={dart.x + 4} cy={dart.y + 6} rx="6" ry="3" fill="#000" opacity="0.6" filter="blur(2px)" />
-                {/* pin body */}
-                <path d={`M${dart.x - 7},${dart.y - 25} L${dart.x + 7},${dart.y - 25} L${dart.x + 2},${dart.y} L${dart.x - 2},${dart.y} Z`} fill="url(#boardBaseGrad)" stroke="#888" strokeWidth="1" />
-                <polygon points={`${dart.x - 9},${dart.y - 35} ${dart.x + 9},${dart.y - 35} ${dart.x + 7},${dart.y - 25} ${dart.x - 7},${dart.y - 25}`} fill="#facc15" />
+                {/* Hit badge */}
+                {player.hits[pos.number] > 0 && !isClosed && (
+                  <g className="pointer-events-none" transform={`translate(0, -${DOT_R + 10})`}>
+                    <rect x={x - 10} y={y - 6} width={20} height={12} rx={3} fill="#111" />
+                    <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fill="#facc15" fontSize="7" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">
+                      {player.hits[pos.number]}/{pos.number}
+                    </text>
+                  </g>
+                )}
               </g>
-            ))}
-          </svg>
-        </div>
+            );
+          })}
+
+          {/* Spinning visual cue */}
+          {boardPhase === 'rotating' && (
+            <circle cx={CENTER} cy={CENTER} r={232} fill="none" stroke="#facc15" strokeWidth="3" opacity="0.4" strokeDasharray="10 10" />
+          )}
+
+          {/* Stuck dart markers */}
+          {stuckDarts.map((dart) => (
+            <g key={dart.id}>
+              <circle cx={dart.x} cy={dart.y} r={6} fill="#facc15" stroke="#111" strokeWidth="1" />
+            </g>
+          ))}
+        </svg>
 
         {/* Hint text below board */}
         <div className="mt-4 text-center" style={{ minHeight: 20 }}>
@@ -393,7 +308,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   );
 };
 
-// ─── 3D Dart Arrow ───────────────────────────────────────────────────────────
+// ─── Flat Dart Arrow ─────────────────────────────────────────────────────────
 const DartArrow: React.FC<{
   boardPhase: BoardPhase;
   isFlying: boolean;
@@ -415,61 +330,32 @@ const DartArrow: React.FC<{
         ${isReadyToThrow ? 'animate-pulse' : ''}
       `}
     >
-      <div className="relative group-hover:-translate-y-1 transition-transform drop-shadow-2xl">
-        <svg viewBox="0 0 240 100" className="w-[140px] md:w-[180px]">
-          <defs>
-            <linearGradient id="dartMetal" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fff" />
-              <stop offset="20%" stopColor="#cfcfcf" />
-              <stop offset="50%" stopColor="#888" />
-              <stop offset="80%" stopColor="#555" />
-              <stop offset="100%" stopColor="#222" />
-            </linearGradient>
-
-            <linearGradient id="dartBrass" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fff2a8" />
-              <stop offset="30%" stopColor="#d4af37" />
-              <stop offset="70%" stopColor="#aa7c11" />
-              <stop offset="100%" stopColor="#5c430a" />
-            </linearGradient>
-
-            <linearGradient id="dartFlight" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={isReadyToThrow ? '#4ade80' : '#f87171'} />
-              <stop offset="100%" stopColor={isReadyToThrow ? '#166534' : '#991b1b'} />
-            </linearGradient>
-
-            <filter id="flightShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="2" dy="5" stdDeviation="3" floodColor="#000" floodOpacity="0.6" />
-            </filter>
-          </defs>
-
+      <div className="relative group-hover:-translate-y-1 transition-transform drop-shadow-xl">
+        <svg viewBox="0 0 240 100" className="w-[120px] md:w-[150px]">
           {/* Flights - back */}
-          <path d="M10,50 L40,20 L55,50 Z" fill="url(#dartFlight)" filter="url(#flightShadow)" opacity="0.9" />
-          <path d="M10,50 L40,80 L55,50 Z" fill="url(#dartFlight)" filter="url(#flightShadow)" opacity="0.9" />
+          <path d="M10,50 L40,20 L55,50 Z" fill={isReadyToThrow ? '#4ade80' : '#f87171'} />
+          <path d="M10,50 L40,80 L55,50 Z" fill={isReadyToThrow ? '#22c55e' : '#ef4444'} />
 
           {/* Shaft */}
-          <rect x="52" y="46" width="55" height="8" rx="2" fill="url(#dartMetal)" />
+          <rect x="52" y="46" width="55" height="8" rx="2" fill="#555" />
 
-          {/* Barrel (Brass Body) */}
-          <path d="M105,42 Q140,36 170,42 L170,58 Q140,64 105,58 Z" fill="url(#dartBrass)" />
+          {/* Barrel */}
+          <path d="M105,42 Q140,36 170,42 L170,58 Q140,64 105,58 Z" fill="#d4af37" />
 
           {/* Barrel Grips */}
           {[115, 125, 135, 145, 155].map(x => (
-            <ellipse key={x} cx={x} cy="50" rx="2.5" ry="8" fill="#111" opacity="0.5" />
+            <ellipse key={x} cx={x} cy="50" rx="2" ry="7" fill="#111" opacity="0.3" />
           ))}
 
           {/* Tip Metal Base */}
-          <polygon points="170,44 190,47 190,53 170,56" fill="url(#dartMetal)" />
+          <polygon points="170,44 190,47 190,53 170,56" fill="#888" />
 
           {/* Needle Tip */}
-          <polygon points="190,48 230,50 190,52" fill="url(#dartMetal)" />
-
-          {/* Highlight along top edge */}
-          <path d="M105,44 Q140,38 170,44" fill="none" stroke="#fff" strokeWidth="1.5" opacity="0.6" />
+          <polygon points="190,48 230,50 190,52" fill="#d4d4d4" />
 
           {/* Ready Glow */}
           {!disabled && isReadyToThrow && (
-            <circle cx="230" cy="50" r="6" fill="#4ade80" opacity="0.8" filter="blur(3px)" />
+            <circle cx="230" cy="50" r="5" fill="#4ade80" />
           )}
         </svg>
       </div>

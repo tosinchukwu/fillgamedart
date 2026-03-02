@@ -6,52 +6,30 @@
 
 @layer base {
   :root {
-    --background: 220 20% 8%;
-    --foreground: 0 0% 95%;
+    /* Space/Neon Theme tokens */
+    --neon-cyan: 180 100% 50%;
+    --neon-pink: 320 100% 60%;
+    --neon-purple: 280 100% 60%;
+    --neon-glow-cyan: hsla(180, 100%, 50%, 0.5);
+    --neon-glow-pink: hsla(320, 100%, 60%, 0.5);
+    --neon-glow-purple: hsla(280, 100%, 60%, 0.5);
+    
+    --background: 240 30% 2%;
+    --foreground: 0 0% 100%;
 
-    --card: 220 18% 12%;
-    --card-foreground: 0 0% 95%;
+    --card: 240 20% 5% / 0.6;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 220 18% 12%;
-    --popover-foreground: 0 0% 95%;
+    --primary: 180 100% 50%;
+    --primary-foreground: 0 0% 0%;
 
-    --primary: 145 60% 45%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 0 70% 50%;
+    --secondary: 320 100% 60%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 220 10% 55%;
+    --border: 240 20% 20% / 0.5;
+    --ring: 180 100% 50%;
 
-    --accent: 45 90% 55%;
-    --accent-foreground: 220 20% 8%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 145 60% 45%;
-
-    --radius: 0.75rem;
-
-    /* Game-specific tokens */
-    --dart-red: 0 70% 50%;
-    --dart-green: 145 60% 40%;
-    --dart-ring: 0 0% 85%;
-    --dart-board: 220 20% 6%;
-    --dart-glow: 145 60% 45%;
-    --score-gold: 45 90% 55%;
-
-    --sidebar-background: 220 18% 10%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 145 60% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 220 15% 22%;
-    --sidebar-ring: 145 60% 45%;
+    --radius: 1rem;
   }
 }
 
@@ -61,13 +39,20 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground min-h-screen;
     font-family: 'Inter', sans-serif;
+    background-image: 
+      radial-gradient(circle at 50% 50%, rgba(10, 0, 30, 0.4) 0%, transparent 100%),
+      url('/space-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 
   h1, h2, h3 {
     font-family: 'Bebas Neue', sans-serif;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
   }
 }
 
@@ -75,6 +60,23 @@
   .font-mono-game {
     font-family: 'JetBrains Mono', monospace;
   }
+
+  .glass-panel {
+    background: rgba(10, 10, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  }
+
+  .neon-border-cyan { border-color: hsl(var(--neon-cyan)); box-shadow: 0 0 15px var(--neon-glow-cyan); }
+  .neon-border-pink { border-color: hsl(var(--neon-pink)); box-shadow: 0 0 15px var(--neon-glow-pink); }
+  .neon-border-purple { border-color: hsl(var(--neon-purple)); box-shadow: 0 0 15px var(--neon-glow-purple); }
+
+  .text-glow-cyan { text-shadow: 0 0 10px hsl(var(--neon-cyan)), 0 0 20px hsl(var(--neon-cyan)); }
+  .text-glow-pink { text-shadow: 0 0 10px hsl(var(--neon-pink)), 0 0 20px hsl(var(--neon-pink)); }
+  .text-glow-purple { text-shadow: 0 0 10px hsl(var(--neon-purple)), 0 0 20px hsl(var(--neon-purple)); }
+  .text-glow-white { text-shadow: 0 0 10px #fff, 0 0 20px hsla(180, 100%, 50%, 0.8); }
 
   .glow-green {
     box-shadow: 0 0 20px hsl(145 60% 45% / 0.3), 0 0 60px hsl(145 60% 45% / 0.1);

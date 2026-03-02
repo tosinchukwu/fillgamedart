@@ -45,31 +45,30 @@ const Index = () => {
   if (!gameStarted || !gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8 text-center">
+        <div className="w-full max-w-md space-y-8 text-center glass-panel p-10 rounded-[2rem] neon-border-purple">
           <div>
-            <h1 className="text-6xl text-foreground tracking-wider">FILLING GAME</h1>
-            <p className="text-muted-foreground mt-2 text-sm font-mono-game">Strategic Dart Competition</p>
+            <h1 className="text-7xl text-white tracking-[0.2em] text-glow-purple">FILLING GAME</h1>
+            <p className="text-primary mt-2 text-sm font-mono-game uppercase tracking-widest text-glow-cyan">Strategic Space Competition</p>
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-widest font-mono-game">Player 1</label>
-                <Input value={p1Name} onChange={(e) => setP1Name(e.target.value)} className="mt-1 bg-muted border-border text-foreground" placeholder="Player 1" />
+          <div className="space-y-6 pt-4">
+            <div className="space-y-4">
+              <div className="text-left">
+                <label className="text-[10px] text-primary/80 uppercase tracking-[0.2em] font-mono-game ml-2">Pilot One</label>
+                <Input value={p1Name} onChange={(e) => setP1Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-primary h-12 rounded-xl" placeholder="Player 1" />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-widest font-mono-game">Player 2</label>
-                <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-muted border-border text-foreground" placeholder="Player 2" />
+              <div className="text-left">
+                <label className="text-[10px] text-secondary/80 uppercase tracking-[0.2em] font-mono-game ml-2">Pilot Two</label>
+                <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-secondary h-12 rounded-xl" placeholder="Player 2" />
               </div>
             </div>
-            <Button onClick={startGame} className="w-full text-lg h-12" size="lg">🎯 Start Game</Button>
+            <Button onClick={startGame} className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-black font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]" size="lg">🚀 Launch Mission</Button>
           </div>
 
-          <div className="text-xs text-muted-foreground space-y-1 font-mono-game">
-            <p>Target: {TARGET_SCORE} pts per batch</p>
-            <p>3 darts per turn • Numbers 1–14</p>
-            <p>① Click dart arrow → board spins 5-7s</p>
-            <p>② Click dart arrow again → stops & throws!</p>
+          <div className="text-[10px] text-white/50 space-y-1 font-mono-game uppercase tracking-widest leading-loose">
+            <p>Target: {TARGET_SCORE} LY per sector</p>
+            <p>3 energy cells per cycle • nodes 1–14</p>
+            <p>Direct targeting protocol active</p>
           </div>
         </div>
       </div>
@@ -77,18 +76,19 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen p-3 md:p-4">
+    <div className="min-h-screen p-3 md:p-6 flex flex-col items-center">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 max-w-7xl mx-auto">
-        <h1 className="text-2xl md:text-3xl text-foreground tracking-wider">FILLING GAME</h1>
-        <div className="flex items-center gap-3">
-          <span className="font-mono-game text-sm text-primary animate-pulse-glow hidden sm:inline">
-            {gameState.players[gameState.currentPlayer].name}'s turn
+      <div className="w-full max-w-7xl flex flex-col items-center gap-4 mb-8">
+        <h1 className="text-5xl md:text-6xl text-white tracking-[0.25em] text-glow-white text-center">FILLING GAME</h1>
+        <div className="flex items-center gap-6 glass-panel py-2 px-6 rounded-full border-white/10">
+          <span className="font-mono-game text-xs tracking-[0.2em] text-primary animate-pulse uppercase">
+            {gameState.players[gameState.currentPlayer].name}'S ENGAGEMENT
           </span>
-          <span className="text-muted-foreground text-xs font-mono-game hidden sm:inline">
-            ({gameState.dartsRemaining} darts)
+          <div className="h-4 w-[1px] bg-white/10" />
+          <span className="text-white/60 text-xs font-mono-game tracking-[0.2em] uppercase">
+            {gameState.dartsRemaining} CELLS REMAINING
           </span>
-          <Button variant="outline" size="sm" onClick={resetGame}>New Game</Button>
+          <Button variant="ghost" size="sm" onClick={resetGame} className="text-[10px] uppercase tracking-widest text-secondary hover:text-white hover:bg-secondary/20">Abort Mission</Button>
         </div>
       </div>
 
@@ -126,17 +126,15 @@ const Index = () => {
           />
 
           {/* Hint / Ring Guide moved to left panel */}
-          <div className="bg-card border border-border rounded-lg p-4 hidden xl:block shadow-sm">
-            <h4 className="text-sm font-bold text-foreground tracking-wider mb-3 font-mono-game">How to Play & Ring Guide</h4>
-            <div className="flex flex-col gap-2 text-xs font-mono-game">
-              <p><span className="font-bold text-primary">① Click dart</span> <span className="text-muted-foreground">→ spins test</span></p>
-              <p><span className="font-bold text-foreground">Ring 1 (inner):</span> <span className="text-muted-foreground">14, 13</span></p>
-              <p><span className="font-bold text-primary">② Click dart again</span> <span className="text-muted-foreground">→ stops &amp; throws</span></p>
-              <p><span className="font-bold text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
-              <p><span className="font-bold text-primary">Hit line</span> <span className="text-muted-foreground">→ ring scored</span></p>
-              <p><span className="font-bold text-foreground">Ring 3:</span> <span className="text-muted-foreground">1, 3, 12, 8</span></p>
-              <p><span className="font-bold text-secondary">Filler:</span> <span className="text-muted-foreground">+2 pts per hit</span></p>
-              <p><span className="font-bold text-foreground">Ring 4 (outer):</span> <span className="text-muted-foreground">7, 4, 2, 6</span></p>
+          <div className="glass-panel rounded-xl p-5 hidden xl:block border-white/5">
+            <h4 className="text-[10px] font-bold text-primary tracking-[0.2em] mb-4 font-mono-game uppercase">Targeting Parameters</h4>
+            <div className="flex flex-col gap-3 text-[10px] font-mono-game uppercase tracking-widest text-white/60">
+              <p className="flex justify-between items-center"><span className="text-white">Inner Ring:</span> <span>14, 13</span></p>
+              <p className="flex justify-between items-center"><span className="text-white">Ring 2:</span> <span>5, 9, 10, 11</span></p>
+              <p className="flex justify-between items-center"><span className="text-white">Ring 3:</span> <span>1, 3, 12, 8</span></p>
+              <p className="flex justify-between items-center"><span className="text-white">Outer Ring:</span> <span>7, 4, 2, 6</span></p>
+              <div className="h-px bg-white/5 my-1" />
+              <p className="text-[9px] leading-relaxed text-secondary/70">Impact on boundary lines grants ring completion.</p>
             </div>
           </div>
         </div>
@@ -211,7 +209,7 @@ const PlayerPanel: React.FC<PlayerPanelProps> = ({
   player, isActive, dartsRemaining, batch, batch1Score, closedNumbers, playerIdx
 }) => {
   return (
-    <div className={`rounded-xl p-4 border transition-all space-y-3 ${isActive ? 'border-primary bg-primary/10 glow-green' : 'border-border bg-card'
+    <div className={`rounded-2xl p-5 transition-all space-y-4 glass-panel ${isActive ? 'neon-border-cyan ring-1 ring-primary/20 scale-[1.02]' : 'border-white/10 opacity-80'
       }`}>
       {/* Header */}
       <div className="flex items-center justify-between">

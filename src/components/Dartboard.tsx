@@ -405,7 +405,6 @@ const DartArrow: React.FC<{
   onClickThrow?: () => void;
 }> = ({ isThrown, isVisible, disabled, boardPhase, onClickThrow }) => {
   const ready = boardPhase === 'ready';
-  const spinning = boardPhase === 'rotating';
 
   return (
     <div

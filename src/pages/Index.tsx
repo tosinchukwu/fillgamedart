@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import Dartboard from '../components/Dartboard';
-import Scoreboard from '../components/Scoreboard';
 import GameLog from '../components/GameLog';
-import { createInitialGameState, hitNumber, hitRing, GameState } from '../game/gameLogic';
-import { RING_NUMBERS, TARGET_SCORE } from '../game/boardLayout';
+import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState } from '../game/gameLogic';
+import { RING_NUMBERS, TARGET_SCORE, TOTAL_NUMBERS } from '../game/boardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -183,8 +182,6 @@ const Index = () => {
 };
 
 // ---- Individual Player Panel (extracted from Scoreboard) ----
-import { PlayerState } from '../game/gameLogic';
-import { TOTAL_NUMBERS } from '../game/boardLayout';
 
 interface PlayerPanelProps {
   player: PlayerState;
@@ -248,12 +245,12 @@ const PlayerPanel: React.FC<PlayerPanelProps> = ({
           <div
             key={num}
             className={`w-7 h-7 rounded text-[10px] font-mono-game flex items-center justify-center font-bold ${closedNumbers.has(num)
-                ? 'bg-muted text-muted-foreground line-through'
-                : player.completed[num]
-                  ? 'bg-primary/30 text-primary'
-                  : player.hits[num] > 0
-                    ? 'bg-accent/20 text-accent'
-                    : 'bg-muted/50 text-muted-foreground'
+              ? 'bg-muted text-muted-foreground line-through'
+              : player.completed[num]
+                ? 'bg-primary/30 text-primary'
+                : player.hits[num] > 0
+                  ? 'bg-accent/20 text-accent'
+                  : 'bg-muted/50 text-muted-foreground'
               }`}
           >
             {num}

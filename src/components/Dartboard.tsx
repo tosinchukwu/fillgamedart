@@ -77,7 +77,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
     let closestDist = Infinity;
     BOARD_LAYOUT.forEach((pos) => {
       if (pos.ring !== hitRingIdx) return;
-      const r = (RING_RADII[pos.ring].inner + RING_RADII[pos.ring].outer) / 2;
+      // Dot is placed exactly ON the outer ring boundary
+      const r = RING_RADII[pos.ring].outer;
       const [nx, ny] = polarToXY(pos.angle, r);
       const d = Math.sqrt((lx - nx) ** 2 + (ly - ny) ** 2);
       if (d < closestDist) {
@@ -240,7 +241,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
           {/* Number dots with simple fills */}
           {BOARD_LAYOUT.map((pos) => {
             const ringData = RING_RADII[pos.ring];
-            const r = (ringData.inner + ringData.outer) / 2;
+            // Dot strictly sits on the white ring line (the 'outer' radius)
+            const r = ringData.outer;
             const [x, y] = polarToXY(pos.angle, r);
             const isCompleted = player.completed[pos.number];
             const isClosed = gameState.closedNumbers.has(pos.number);

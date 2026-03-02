@@ -11,44 +11,44 @@ export interface NumberPosition {
   color: 'red' | 'green';
 }
 
-// Angles based on original image positions, redistributed across new rings
+// Angles based exactly on the provided image
 export const BOARD_LAYOUT: NumberPosition[] = [
-  // Ring 0 - innermost (2 numbers, ~180° apart)
-  { number: 14, ring: 0, angle: 310, color: 'green' },
-  { number: 13, ring: 0, angle: 130, color: 'red' },
+  // Ring 0 (innermost circle line, r=55)
+  { number: 14, ring: 0, angle: 0, color: 'red' },
+  { number: 13, ring: 0, angle: 180, color: 'green' },
 
-  // Ring 1 (4 numbers)
-  { number: 11, ring: 1, angle: 340, color: 'green' },
-  { number: 5, ring: 1, angle: 20, color: 'green' },
-  { number: 9, ring: 1, angle: 290, color: 'red' },
-  { number: 10, ring: 1, angle: 200, color: 'red' },
+  // Ring 1 (second circle line, r=115)
+  { number: 9, ring: 1, angle: 320, color: 'red' },
+  { number: 5, ring: 1, angle: 45, color: 'green' },
+  { number: 12, ring: 1, angle: 135, color: 'red' },
+  { number: 10, ring: 1, angle: 225, color: 'green' },
 
-  // Ring 2 (4 numbers)
-  { number: 1, ring: 2, angle: 170, color: 'red' },
-  { number: 3, ring: 2, angle: 225, color: 'green' },
-  { number: 12, ring: 2, angle: 80, color: 'green' },
-  { number: 8, ring: 2, angle: 100, color: 'red' },
+  // Ring 2 (third circle line, r=175)
+  { number: 11, ring: 2, angle: 0, color: 'green' },
+  { number: 8, ring: 2, angle: 90, color: 'green' },
+  { number: 1, ring: 2, angle: 180, color: 'red' },
+  { number: 3, ring: 2, angle: 270, color: 'green' },
 
-  // Ring 3 - outermost (4 numbers)
-  { number: 7, ring: 3, angle: 270, color: 'green' },
-  { number: 4, ring: 3, angle: 35, color: 'red' },
-  { number: 2, ring: 3, angle: 145, color: 'red' },
-  { number: 6, ring: 3, angle: 200, color: 'red' },
+  // Ring 3 (outermost circle line, r=230)
+  { number: 4, ring: 3, angle: 45, color: 'red' },
+  { number: 2, ring: 3, angle: 135, color: 'green' },
+  { number: 6, ring: 3, angle: 225, color: 'red' },
+  { number: 7, ring: 3, angle: 315, color: 'green' },
 ];
 
-// Which numbers are on each ring
 export const RING_NUMBERS: Record<number, number[]> = {
   0: [14, 13],
-  1: [11, 5, 9, 10],
-  2: [1, 3, 12, 8],
-  3: [7, 4, 2, 6],
+  1: [9, 5, 12, 10],
+  2: [11, 8, 1, 3],
+  3: [4, 2, 6, 7],
 };
 
+// Radii of the drawn white ring boundaries
 export const RING_RADII = [
-  { inner: 0, outer: 55 }, // ring 0 - innermost
-  { inner: 55, outer: 115 }, // ring 1
-  { inner: 115, outer: 175 }, // ring 2
-  { inner: 175, outer: 230 }, // ring 3 - outermost
+  { inner: 0, outer: 60 },     // Ring 0 line is at r=60
+  { inner: 60, outer: 115 },   // Ring 1 line is at r=115
+  { inner: 115, outer: 175 },  // Ring 2 line is at r=175
+  { inner: 175, outer: 235 },  // Ring 3 line is at r=235
 ];
 
 export const TOTAL_NUMBERS = 14;

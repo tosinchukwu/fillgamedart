@@ -68,7 +68,9 @@ const Index = () => {
           <div className="text-xs text-muted-foreground space-y-1 font-mono-game">
             <p>Target: {TARGET_SCORE} pts per batch</p>
             <p>3 darts per turn • Numbers 1–14</p>
-            <p>Click board to spin → click to throw</p>
+            <p>① Click dart → board spins 5-7s</p>
+            <p>② Click dart again → aim mode</p>
+            <p>③ Click board → dart lands!</p>
           </div>
         </div>
       </div>
@@ -151,14 +153,16 @@ const Index = () => {
 
             {/* Hint / Ring Guide */}
             <div className="bg-card border border-border rounded-lg p-3">
-              <h4 className="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-mono-game">How to Play</h4>
+              <h4 className="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-mono-game">How to Play & Ring Guide</h4>
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs font-mono-game">
-                <p><span className="text-foreground">Step 1:</span> <span className="text-muted-foreground">Click board → it spins</span></p>
-                <p><span className="text-foreground">Ring 1:</span> <span className="text-muted-foreground">7, 4, 3, 6, 2</span></p>
-                <p><span className="text-foreground">Step 2:</span> <span className="text-muted-foreground">Board stops → click to throw</span></p>
-                <p><span className="text-foreground">Ring 2:</span> <span className="text-muted-foreground">11, 5, 9, 8, 10, 1</span></p>
+                <p><span className="text-foreground">① Click dart</span> <span className="text-muted-foreground">→ board spins (5-7s)</span></p>
+                <p><span className="text-foreground">Ring 1 (inner):</span> <span className="text-muted-foreground">14, 13</span></p>
+                <p><span className="text-foreground">② Click dart</span> <span className="text-muted-foreground">→ ready to aim</span></p>
+                <p><span className="text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
+                <p><span className="text-foreground">③ Click board</span> <span className="text-muted-foreground">→ dart lands!</span></p>
+                <p><span className="text-foreground">Ring 3:</span> <span className="text-muted-foreground">1, 3, 12, 8</span></p>
                 <p><span className="text-foreground">Filler:</span> <span className="text-muted-foreground">+2 pts per hit</span></p>
-                <p><span className="text-foreground">Ring 3:</span> <span className="text-muted-foreground">14, 12, 13</span></p>
+                <p><span className="text-foreground">Ring 4 (outer):</span> <span className="text-muted-foreground">7, 4, 2, 6</span></p>
               </div>
             </div>
           </div>

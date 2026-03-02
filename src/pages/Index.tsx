@@ -68,9 +68,8 @@ const Index = () => {
           <div className="text-xs text-muted-foreground space-y-1 font-mono-game">
             <p>Target: {TARGET_SCORE} pts per batch</p>
             <p>3 darts per turn • Numbers 1–14</p>
-            <p>① Click dart → board spins 5-7s</p>
-            <p>② Click dart again → aim mode</p>
-            <p>③ Click board → dart lands!</p>
+            <p>① Click dart arrow → board spins 5-7s</p>
+            <p>② Click dart arrow again → stops & throws!</p>
           </div>
         </div>
       </div>
@@ -157,9 +156,9 @@ const Index = () => {
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs font-mono-game">
                 <p><span className="text-foreground">① Click dart</span> <span className="text-muted-foreground">→ board spins (5-7s)</span></p>
                 <p><span className="text-foreground">Ring 1 (inner):</span> <span className="text-muted-foreground">14, 13</span></p>
-                <p><span className="text-foreground">② Click dart</span> <span className="text-muted-foreground">→ ready to aim</span></p>
+                <p><span className="text-foreground">② Click dart again</span> <span className="text-muted-foreground">→ stops &amp; throws!</span></p>
                 <p><span className="text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
-                <p><span className="text-foreground">③ Click board</span> <span className="text-muted-foreground">→ dart lands!</span></p>
+                <p><span className="text-foreground">Hit line</span> <span className="text-muted-foreground">→ ring scored</span></p>
                 <p><span className="text-foreground">Ring 3:</span> <span className="text-muted-foreground">1, 3, 12, 8</span></p>
                 <p><span className="text-foreground">Filler:</span> <span className="text-muted-foreground">+2 pts per hit</span></p>
                 <p><span className="text-foreground">Ring 4 (outer):</span> <span className="text-muted-foreground">7, 4, 2, 6</span></p>

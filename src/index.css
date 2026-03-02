@@ -92,36 +92,32 @@
     text-shadow: 0 0 10px currentColor;
   }
 
-  @keyframes dart-throw {
+  @keyframes dart-throw-horizontal {
     0% {
-      transform: translateY(0) scale(1);
+      transform: rotate(90deg) translateY(0) scale(1);
       opacity: 1;
     }
-    30% {
-      transform: translateY(-120px) scale(0.7);
-      opacity: 0.9;
+    40% {
+      transform: rotate(90deg) translateY(-80px) scale(0.7);
+      opacity: 0.8;
     }
-    60% {
-      transform: translateY(-250px) scale(0.3);
-      opacity: 0.6;
-    }
-    80% {
-      transform: translateY(-300px) scale(0.15);
-      opacity: 0.3;
+    70% {
+      transform: rotate(90deg) translateY(-160px) scale(0.35);
+      opacity: 0.5;
     }
     100% {
-      transform: translateY(-320px) scale(0.1);
+      transform: rotate(90deg) translateY(-240px) scale(0.1);
       opacity: 0;
     }
   }
 
   @keyframes dart-return {
     0% {
-      transform: translateY(-320px) scale(0.1);
+      transform: rotate(90deg) translateY(-240px) scale(0.1);
       opacity: 0;
     }
     100% {
-      transform: translateY(0) scale(1);
+      transform: rotate(90deg) translateY(0) scale(1);
       opacity: 1;
     }
   }
@@ -131,12 +127,26 @@
     100% { opacity: 0; }
   }
 
+  @keyframes board-spin-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 0 4px hsl(145 60% 45% / 0.4); }
+  }
+
+  @keyframes animate-pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
   .animate-dart-throw {
-    animation: dart-throw 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-               dart-return 0.4s cubic-bezier(0, 0, 0.2, 1) 0.8s forwards;
+    animation: dart-throw-horizontal 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+               dart-return 0.4s cubic-bezier(0, 0, 0.2, 1) 0.7s forwards;
   }
 
   .animate-dart-fade {
     animation: dart-fade 0.8s ease-out 0.2s forwards;
+  }
+
+  .animate-pulse-glow {
+    animation: animate-pulse-glow 2s ease-in-out infinite;
   }
 }

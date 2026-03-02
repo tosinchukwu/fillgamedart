@@ -45,29 +45,29 @@ const Index = () => {
   if (!gameStarted || !gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8 text-center glass-panel p-10 rounded-[2rem] neon-border-purple">
+        <div className="w-full max-w-md space-y-8 text-center glass-panel p-10 rounded-[2rem] neon-border-ava">
           <div>
-            <h1 className="text-7xl text-white tracking-[0.2em] text-glow-purple">FILLING GAME</h1>
-            <p className="text-primary mt-2 text-sm font-mono-game uppercase tracking-widest text-glow-cyan">Strategic Space Competition</p>
+            <h1 className="text-7xl text-white tracking-[0.2em] text-glow-white">FILLING GAME</h1>
+            <p className="text-primary mt-2 text-sm font-mono-game uppercase tracking-widest text-glow-ava">Strategic Dart Competition</p>
           </div>
 
           <div className="space-y-6 pt-4">
             <div className="space-y-4">
               <div className="text-left">
-                <label className="text-[10px] text-primary/80 uppercase tracking-[0.2em] font-mono-game ml-2">Pilot One</label>
+                <label className="text-[10px] text-white/60 uppercase tracking-[0.2em] font-mono-game ml-2">Player 1 Name</label>
                 <Input value={p1Name} onChange={(e) => setP1Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-primary h-12 rounded-xl" placeholder="Player 1" />
               </div>
               <div className="text-left">
-                <label className="text-[10px] text-secondary/80 uppercase tracking-[0.2em] font-mono-game ml-2">Pilot Two</label>
-                <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-secondary h-12 rounded-xl" placeholder="Player 2" />
+                <label className="text-[10px] text-white/60 uppercase tracking-[0.2em] font-mono-game ml-2">Player 2 Name</label>
+                <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-primary h-12 rounded-xl" placeholder="Player 2" />
               </div>
             </div>
-            <Button onClick={startGame} className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-black font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]" size="lg">🚀 Launch Mission</Button>
+            <Button onClick={startGame} className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] border-none" size="lg">🎯 Start Game</Button>
           </div>
 
           <div className="text-[10px] text-white/50 space-y-1 font-mono-game uppercase tracking-widest leading-loose">
-            <p>Target: {TARGET_SCORE} LY per sector</p>
-            <p>3 energy cells per cycle • nodes 1–14</p>
+            <p>Target: {TARGET_SCORE} pts per batch</p>
+            <p>3 darts per turn • Numbers 1–14</p>
             <p>Direct targeting protocol active</p>
           </div>
         </div>
@@ -82,13 +82,13 @@ const Index = () => {
         <h1 className="text-5xl md:text-6xl text-white tracking-[0.25em] text-glow-white text-center">FILLING GAME</h1>
         <div className="flex items-center gap-6 glass-panel py-2 px-6 rounded-full border-white/10">
           <span className="font-mono-game text-xs tracking-[0.2em] text-primary animate-pulse uppercase">
-            {gameState.players[gameState.currentPlayer].name}'S ENGAGEMENT
+            {gameState.players[gameState.currentPlayer].name}'S TURN
           </span>
           <div className="h-4 w-[1px] bg-white/10" />
           <span className="text-white/60 text-xs font-mono-game tracking-[0.2em] uppercase">
-            {gameState.dartsRemaining} CELLS REMAINING
+            {gameState.dartsRemaining} DARTS REMAINING
           </span>
-          <Button variant="ghost" size="sm" onClick={resetGame} className="text-[10px] uppercase tracking-widest text-secondary hover:text-white hover:bg-secondary/20">Abort Mission</Button>
+          <Button variant="ghost" size="sm" onClick={resetGame} className="text-[10px] uppercase tracking-widest text-white/40 hover:text-primary hover:bg-white/5">New Game</Button>
         </div>
       </div>
 
@@ -127,14 +127,14 @@ const Index = () => {
 
           {/* Hint / Ring Guide moved to left panel */}
           <div className="glass-panel rounded-xl p-5 hidden xl:block border-white/5">
-            <h4 className="text-[10px] font-bold text-primary tracking-[0.2em] mb-4 font-mono-game uppercase">Targeting Parameters</h4>
+            <h4 className="text-[10px] font-bold text-primary tracking-[0.2em] mb-4 font-mono-game uppercase">Ring Guide</h4>
             <div className="flex flex-col gap-3 text-[10px] font-mono-game uppercase tracking-widest text-white/60">
-              <p className="flex justify-between items-center"><span className="text-white">Inner Ring:</span> <span>14, 13</span></p>
-              <p className="flex justify-between items-center"><span className="text-white">Ring 2:</span> <span>5, 9, 10, 11</span></p>
-              <p className="flex justify-between items-center"><span className="text-white">Ring 3:</span> <span>1, 3, 12, 8</span></p>
-              <p className="flex justify-between items-center"><span className="text-white">Outer Ring:</span> <span>7, 4, 2, 6</span></p>
+              <p className="flex justify-between items-center"><span className="text-white/80">Ring 1 (Inner):</span> <span>14, 13</span></p>
+              <p className="flex justify-between items-center"><span className="text-white/80">Ring 2:</span> <span>5, 9, 10, 11</span></p>
+              <p className="flex justify-between items-center"><span className="text-white/80">Ring 3:</span> <span>1, 3, 12, 8</span></p>
+              <p className="flex justify-between items-center"><span className="text-white/80">Ring 4 (Outer):</span> <span>7, 4, 2, 6</span></p>
               <div className="h-px bg-white/5 my-1" />
-              <p className="text-[9px] leading-relaxed text-secondary/70">Impact on boundary lines grants ring completion.</p>
+              <p className="text-[9px] leading-relaxed text-primary/50">Hitting boundary lines scores the entire ring.</p>
             </div>
           </div>
         </div>
@@ -209,7 +209,7 @@ const PlayerPanel: React.FC<PlayerPanelProps> = ({
   player, isActive, dartsRemaining, batch, batch1Score, closedNumbers, playerIdx
 }) => {
   return (
-    <div className={`rounded-2xl p-5 transition-all space-y-4 glass-panel ${isActive ? 'neon-border-cyan ring-1 ring-primary/20 scale-[1.02]' : 'border-white/10 opacity-80'
+    <div className={`rounded-2xl p-5 transition-all space-y-4 glass-panel ${isActive ? 'neon-border-ava ring-1 ring-primary/20 scale-[1.02]' : 'border-white/10 opacity-70'
       }`}>
       {/* Header */}
       <div className="flex items-center justify-between">

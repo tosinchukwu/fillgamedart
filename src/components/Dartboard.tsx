@@ -120,24 +120,17 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   }, [disabled, gameState.gameOver, gameState.closedNumbers, boardPhase, player, onHitNumber, onHitRing, resolveDartLanding]);
 
   const getHint = () => {
-    if (disabled) return 'Mission Terminated';
-    if (boardPhase === 'idle') return 'Ready for engagement. Click to fire logic.';
-    if (boardPhase === 'throwing') return 'Energy cell deployed...';
+    if (disabled) return 'GAME PAUSED';
+    if (boardPhase === 'idle') return 'Click arrow to throw dart';
+    if (boardPhase === 'throwing') return 'Dart in flight...';
     return '';
   };
 
-  const ringGlows = [
-    '0 0 15px hsla(180, 100%, 50%, 0.5)', // Inner - Cyan
-    '0 0 15px hsla(320, 100%, 60%, 0.5)', // Ring 2 - Pink
-    '0 0 15px hsla(280, 100%, 60%, 0.5)', // Ring 3 - Purple
-    '0 0 15px hsla(180, 100%, 50%, 0.3)', // Outer - Dim Cyan
-  ];
-
   const ringColors = [
-    'hsl(180, 100%, 50%)',
-    'hsl(320, 100%, 60%)',
-    'hsl(280, 100%, 60%)',
-    'hsla(180, 100%, 70%, 0.8)',
+    '#E84142', // Inner - Avalanche Red
+    '#FFFFFF', // Ring 2 - White
+    '#E84142', // Ring 3 - Red
+    'rgba(255, 255, 255, 0.6)', // Outer - Dim White
   ];
 
   return (
@@ -153,8 +146,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             onClick={handleDartArrowClick}
           />
           <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10">
-            <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-cyan-400 uppercase">
-              {boardPhase === 'idle' && !disabled ? 'Engage Target' : '...'}
+            <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase">
+              {boardPhase === 'idle' && !disabled ? 'Throw Dart' : '...'}
             </span>
           </div>
         </div>
@@ -199,7 +192,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {/* Galaxy Surface */}
             <circle cx={CENTER} cy={CENTER} r={245} fill="rgba(10, 10, 20, 0.4)" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
 
-            {/* Energy Rings */}
+            {/* Energy Rings - Now Solid Lines */}
             {[...RING_RADII].map((ring, i) => (
               <circle
                 key={`ring-line-${i}`}
@@ -207,10 +200,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 r={ring.outer * SCALE}
                 fill="none"
                 stroke={ringColors[i]}
-                strokeWidth="2"
-                strokeDasharray={i % 2 === 0 ? "none" : "8 4"}
+                strokeWidth="2.5"
                 filter="url(#glow)"
-                opacity={0.6}
               />
             ))}
 
@@ -245,22 +236,27 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                   {!isClosed && player.hits[pos.number] > 0 && (
                     <circle cx={x} cy={y} r={DOT_R + 3}
                       fill="none"
-                      stroke={player.completed[pos.number] ? '#00f2fe' : '#f0f'}
-                      strokeWidth="2"
+                      stroke={player.completed[pos.number] ? '#E84142' : '#fff'}
+                      strokeWidth="3"
                       strokeDasharray={`${(Math.min(player.hits[pos.number] / pos.number, 1)) * (2 * Math.PI * (DOT_R + 3))} ${2 * Math.PI * (DOT_R + 3)}`}
                       transform={`rotate(-90 ${x} ${y})`}
                       strokeLinecap="round"
+                      filter="url(#glow)"
                     />
                   )}
                 </g>
               );
             })}
 
-            {/* Stuck dart energy spikes */}
+            {/* Stuck dart impact spots - Highly Visible */}
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
-                <circle cx={dart.x} cy={dart.y} r={10} fill="none" stroke="#fff" strokeWidth="2" opacity="0.4" className="animate-pulse" />
-                <circle cx={dart.x} cy={dart.y} r={4} fill="#00f2fe" filter="url(#glow)" />
+                {/* Impact Wave */}
+                <circle cx={dart.x} cy={dart.y} r={15} fill="none" stroke="#E84142" strokeWidth="2" className="animate-ping" />
+                {/* Secondary Glow */}
+                <circle cx={dart.x} cy={dart.y} r={8} fill="rgba(232, 65, 66, 0.4)" filter="url(#glow)" />
+                {/* Impact point */}
+                <circle cx={dart.x} cy={dart.y} r={4} fill="#fff" filter="url(#glow)" />
               </g>
             ))}
           </svg>
@@ -277,7 +273,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   );
 };
 
-// ─── Energy Cell (Arrow) ───────────────────────────────────────────────────
+// ─── Dart Arrow Component ───────────────────────────────────────────────────
 const DartArrow: React.FC<{
   boardPhase: BoardPhase;
   isFlying: boolean;
@@ -295,27 +291,27 @@ const DartArrow: React.FC<{
         transition-all duration-300 select-none group
         ${!isVisible ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}
         ${isFlying ? 'translate-x-48 opacity-0 duration-500 ease-in' : ''}
-        ${canClick ? 'hover:scale-105 active:scale-95' : ''}
+        ${canClick ? 'hover:scale-110 active:scale-90' : ''}
       `}
     >
-      <div className="relative drop-shadow-[0_0_15px_rgba(0,242,254,0.4)]">
-        <svg viewBox="0 0 240 100" className="w-[120px] md:w-[150px]">
-          {/* Energy Core */}
-          <rect x="10" y="35" width="160" height="30" rx="15" fill="rgba(0, 242, 254, 0.1)" stroke="#00f2fe" strokeWidth="1" />
+      <div className="relative drop-shadow-[0_0_20px_rgba(232,65,66,0.3)]">
+        <svg viewBox="0 0 200 60" className="w-[100px] md:w-[130px]">
+          {/* Fletching (Back) */}
+          <path d="M10,10 L40,30 L10,50 Z" fill="#E84142" stroke="#fff" strokeWidth="1" />
+          <path d="M20,10 L50,30 L20,50 Z" fill="#E84142" stroke="#fff" strokeWidth="1" opacity="0.6" />
 
-          {/* Thrusters */}
-          <path d="M10,50 L40,20 L55,50 Z" fill="rgba(240, 0, 255, 0.4)" stroke="#f0f" strokeWidth="1" />
-          <path d="M10,50 L40,80 L55,50 Z" fill="rgba(240, 0, 255, 0.4)" stroke="#f0f" strokeWidth="1" />
+          {/* Shaft */}
+          <rect x="50" y="27" width="100" height="6" fill="#fff" />
 
-          {/* Body */}
-          <rect x="52" y="44" width="70" height="12" rx="6" fill="#1e293b" stroke="#334155" strokeWidth="1" />
+          {/* Tip (Front) */}
+          <path d="M150,22 L190,30 L150,38 Z" fill="#E84142" filter="url(#glow)" />
 
-          {/* Glow Tip */}
-          <path d="M170,40 L230,50 L170,60 Z" fill="rgba(0, 242, 254, 0.8)" filter="url(#glow)" />
+          {/* Shine on Shaft */}
+          <rect x="60" y="28" width="40" height="2" fill="rgba(255,255,255,0.8)" />
 
-          {/* Pulse Effect */}
+          {/* Indicator Pulse */}
           {canClick && (
-            <circle cx="230" cy="50" r="8" fill="#00f2fe" opacity="0.4" className="animate-ping" />
+            <circle cx="190" cy="30" r="10" fill="#E84142" opacity="0.4" className="animate-ping" />
           )}
         </svg>
       </div>

@@ -127,10 +127,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   };
 
   const ringColors = [
-    '#E84142', // Inner - Avalanche Red
-    '#FFFFFF', // Ring 2 - White
-    '#E84142', // Ring 3 - Red
-    'rgba(255, 255, 255, 0.6)', // Outer - Dim White
+    'var(--ring-1)',
+    'var(--ring-2)',
+    'var(--ring-3)',
+    'var(--ring-4)',
   ];
 
   return (
@@ -236,7 +236,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                   {!isClosed && player.hits[pos.number] > 0 && (
                     <circle cx={x} cy={y} r={DOT_R + 3}
                       fill="none"
-                      stroke={player.completed[pos.number] ? '#E84142' : '#fff'}
+                      stroke="var(--theme-accent)"
                       strokeWidth="3"
                       strokeDasharray={`${(Math.min(player.hits[pos.number] / pos.number, 1)) * (2 * Math.PI * (DOT_R + 3))} ${2 * Math.PI * (DOT_R + 3)}`}
                       transform={`rotate(-90 ${x} ${y})`}
@@ -252,9 +252,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
                 {/* Impact Wave */}
-                <circle cx={dart.x} cy={dart.y} r={15} fill="none" stroke="#E84142" strokeWidth="2" className="animate-ping" />
+                <circle cx={dart.x} cy={dart.y} r={15} fill="none" stroke="var(--theme-accent)" strokeWidth="2" className="animate-ping" />
                 {/* Secondary Glow */}
-                <circle cx={dart.x} cy={dart.y} r={8} fill="rgba(232, 65, 66, 0.4)" filter="url(#glow)" />
+                <circle cx={dart.x} cy={dart.y} r={8} fill="var(--theme-glow)" filter="url(#glow)" />
                 {/* Impact point */}
                 <circle cx={dart.x} cy={dart.y} r={4} fill="#fff" filter="url(#glow)" />
               </g>
@@ -264,8 +264,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       </div>
 
       {/* Mission log hint */}
+      {/* Game hint */}
       <div className="text-center glass-panel px-8 py-3 rounded-full border-white/5 min-w-[300px]">
-        <span className="text-xs tracking-[0.3em] font-mono font-bold uppercase" style={{ color: boardPhase === 'throwing' ? 'hsl(320, 100%, 60%)' : 'hsl(180, 100%, 50%)' }}>
+        <span className="text-xs tracking-[0.3em] font-mono font-bold uppercase"
+          style={{ color: 'var(--theme-accent)' }}>
           {getHint()}
         </span>
       </div>
@@ -294,24 +296,24 @@ const DartArrow: React.FC<{
         ${canClick ? 'hover:scale-110 active:scale-90' : ''}
       `}
     >
-      <div className="relative drop-shadow-[0_0_20px_rgba(232,65,66,0.3)]">
+      <div className="relative" style={{ filter: 'drop-shadow(0 0 20px var(--theme-glow))' }}>
         <svg viewBox="0 0 200 60" className="w-[100px] md:w-[130px]">
           {/* Fletching (Back) */}
-          <path d="M10,10 L40,30 L10,50 Z" fill="#E84142" stroke="#fff" strokeWidth="1" />
-          <path d="M20,10 L50,30 L20,50 Z" fill="#E84142" stroke="#fff" strokeWidth="1" opacity="0.6" />
+          <path d="M10,10 L40,30 L10,50 Z" fill="var(--theme-accent)" stroke="#fff" strokeWidth="1" />
+          <path d="M20,10 L50,30 L20,50 Z" fill="var(--theme-accent)" stroke="#fff" strokeWidth="1" opacity="0.6" />
 
           {/* Shaft */}
           <rect x="50" y="27" width="100" height="6" fill="#fff" />
 
           {/* Tip (Front) */}
-          <path d="M150,22 L190,30 L150,38 Z" fill="#E84142" filter="url(#glow)" />
+          <path d="M150,22 L190,30 L150,38 Z" fill="var(--theme-accent)" filter="url(#glow)" />
 
           {/* Shine on Shaft */}
           <rect x="60" y="28" width="40" height="2" fill="rgba(255,255,255,0.8)" />
 
           {/* Indicator Pulse */}
           {canClick && (
-            <circle cx="190" cy="30" r="10" fill="#E84142" opacity="0.4" className="animate-ping" />
+            <circle cx="190" cy="30" r="10" fill="var(--theme-accent)" opacity="0.4" className="animate-ping" />
           )}
         </svg>
       </div>

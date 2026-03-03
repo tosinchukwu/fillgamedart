@@ -37,6 +37,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   const [stuckDarts, setStuckDarts] = useState<DartStuck[]>([]);
   const [dartVisible, setDartVisible] = useState(true);
   const [dartFlying, setDartFlying] = useState(false);
+  const [hitPulse, setHitPulse] = useState<{ id: string; type: 'number' | 'ring' } | null>(null);
 
   const phaseRef = useRef<BoardPhase>('idle');
   useEffect(() => { phaseRef.current = boardPhase; }, [boardPhase]);
@@ -115,9 +116,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       // Permanent markers: do not remove them after 2.5s
 
       if (hitRingLine && hitRingLineIdx >= 0) {
+        setHitPulse({ id: `ring-${hitRingLineIdx}`, type: 'ring' });
         const rNums = RING_NUMBERS[hitRingLineIdx] ?? [];
         if (rNums.length > 0) onHitRing(hitRingLineIdx);
       } else if (closestNum !== -1) {
+        setHitPulse({ id: `num-${closestNum}`, type: 'number' });
         if (!gameState.closedNumbers.has(closestNum) && !player.completed[closestNum]) {
           onHitNumber(closestNum);
         } else {
@@ -125,6 +128,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
           if (rNums.length > 0) onHitRing(hitRingIdx);
         }
       }
+
+      setTimeout(() => setHitPulse(null), 1000);
     }, 560);
   }, [disabled, gameState.gameOver, gameState.closedNumbers, boardPhase, player, onHitNumber, onHitRing, resolveDartLanding]);
 
@@ -186,9 +191,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               </filter>
             </defs>
 
-            {/* Golden Base background */}
-            <circle cx={CENTER} cy={CENTER} r="255" fill="#C5A059" opacity="1.0" />
-            <circle cx={CENTER} cy={CENTER} r="248" fill="none" stroke="#B08D43" strokeWidth="6" />
+            {/* Royal Blue Base background */}
+            <circle cx={CENTER} cy={CENTER} r="255" fill="#002366" opacity="1.0" />
+            <circle cx={CENTER} cy={CENTER} r="248" fill="none" stroke="#4169E1" strokeWidth="8" />
 
             {/* Dartboard Slices */}
             {Array.from({ length: 20 }).map((_, i) => {
@@ -220,8 +225,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 cx={CENTER} cy={CENTER}
                 r={ring.outer * SCALE}
                 fill="none"
-                stroke="rgba(255,255,255,0.8)"
-                strokeWidth="4"
+                stroke={hitPulse?.type === 'ring' && hitPulse.id === `ring-${i}` ? "#FFFFFF" : "rgba(255,255,255,0.8)"}
+                strokeWidth={hitPulse?.type === 'ring' && hitPulse.id === `ring-${i}` ? "8" : "4"}
+                className={hitPulse?.type === 'ring' && hitPulse.id === `ring-${i}` ? "animate-pulse" : ""}
+                style={{ transition: 'stroke-width 0.2s' }}
                 filter="url(#glow)"
               />
             ))}
@@ -241,9 +248,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 <g key={pos.number}>
                   {/* Exquisite Image Badge */}
                   <circle
-                    cx={x} cy={y} r="21"
+                    cx={x} cy={y} r={hitPulse?.id === `num-${pos.number}` ? "26" : "21"}
                     fill={isClosed ? "#333" : (pos.color === 'red' ? 'url(#ruby-grad)' : 'url(#emerald-grad)')}
                     filter="url(#glow)"
+                    className={hitPulse?.id === `num-${pos.number}` ? "animate-pulse" : ""}
+                    style={{ transition: 'all 0.2s ease-out' }}
                   />
 
 
@@ -297,9 +306,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                   y={dart.y - 160}
                   width="80"
                   height="160"
+                  transform={`rotate(${dart.angle} ${dart.x} ${dart.y})`}
                   style={{
-                    transform: `rotate(${dart.angle}deg)`,
-                    transformOrigin: `${dart.x}px ${dart.y}px`,
                     filter: 'drop-shadow(0 15px 15px rgba(0,0,0,0.6))'
                   }}
                 />

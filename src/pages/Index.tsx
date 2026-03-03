@@ -307,7 +307,7 @@ const Index = () => {
 
 // Sub-components
 
-const RulesScroll = () => (
+const RulesScroll_REDUNDANT = () => (
   <div className="mt-2 text-left glass-panel p-6 rounded-2xl border-white/10 bg-black/40 space-y-4 max-h-72 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-4 duration-500">
     <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-black border-b border-white/10 pb-3 flex items-center justify-between">
       Rules of Engagement

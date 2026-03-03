@@ -27,7 +27,7 @@ export const BOARD_LAYOUT: NumberPosition[] = [
   { number: 1, ring: 2, angle: 180, color: 'red' },
   { number: 3, ring: 2, angle: 275, color: 'green' },
   { number: 8, ring: 2, angle: 85, color: 'green' },
-  { number: 12, ring: 2, angle: 145, color: 'red' },
+  { number: 12, ring: 2, angle: 135, color: 'red' },
 
   // Ring 3 (outermost circle line, r=235)
   { number: 7, ring: 3, angle: 310, color: 'green' },

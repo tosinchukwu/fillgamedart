@@ -162,22 +162,18 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             }}
           >
             <defs>
-              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="3.5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-              {/* Black Pearl Gradient */}
-              <radialGradient id="pearl-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
-                <stop offset="0%" stopColor="#444444" />
-                <stop offset="60%" stopColor="#111111" />
-                <stop offset="100%" stopColor="#000000" />
+              {/* Exquisite Orange Gradient */}
+              <radialGradient id="orange-grad" cx="40%" cy="40%" r="60%" fx="30%" fy="30%">
+                <stop offset="0%" stopColor="#FFB347" />
+                <stop offset="60%" stopColor="#FF8C00" />
+                <stop offset="100%" stopColor="#CC7000" />
               </radialGradient>
               <filter id="inner-glow">
                 <feGaussianBlur stdDeviation="1" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
-              <filter id="pearl-shine">
-                <feGaussianBlur stdDeviation="0.4" result="blur" />
+              <filter id="badge-shine">
+                <feGaussianBlur stdDeviation="0.5" result="blur" />
               </filter>
             </defs>
 
@@ -234,20 +230,20 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Black Pearl Exquisite Badge */}
+                  {/* Exquisite Orange Badge */}
                   <circle
                     cx={x} cy={y} r="21"
-                    fill={isClosed ? "#222" : "url(#pearl-grad)"}
-                    stroke={isClosed ? "#444" : "#E0E0E0"}
+                    fill={isClosed ? "#444" : "url(#orange-grad)"}
+                    stroke={isClosed ? "#555" : "#CC7000"}
                     strokeWidth="1.5"
                     filter="url(#glow)"
                   />
-                  {/* High-gloss pearl highlight */}
+                  {/* High-gloss shine highlight */}
                   {!isClosed && (
                     <circle
-                      cx={x - 6} cy={y - 6} r="4"
-                      fill="rgba(255,255,255,0.7)"
-                      filter="url(#pearl-shine)"
+                      cx={x - 6} cy={y - 6} r="5"
+                      fill="rgba(255,255,255,0.5)"
+                      filter="url(#badge-shine)"
                       pointerEvents="none"
                     />
                   )}
@@ -272,14 +268,14 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                     y={y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isClosed ? "#666" : "#FFD700"}
+                    fill={isClosed ? "#888" : "#006400"} // Bottle Green
                     fontSize="22"
                     fontWeight="900"
                     fontFamily="'Playfair Display', serif"
                     style={{
                       textShadow: isClosed
                         ? 'none'
-                        : `0 0 10px rgba(255, 215, 0, 0.4), 0 0 4px rgba(255, 255, 255, 0.3)`
+                        : `0 0 8px rgba(0, 100, 0, 0.4), 0 0 2px rgba(255, 255, 255, 0.5)`
                     }}
                   >
                     {pos.number}

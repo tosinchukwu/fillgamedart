@@ -19,21 +19,21 @@ export const BOARD_LAYOUT: NumberPosition[] = [
 
   // Ring 1 (second circle line, r=115)
   { number: 11, ring: 1, angle: 0, color: 'green' },
-  { number: 9, ring: 1, angle: 315, color: 'red' },
-  { number: 5, ring: 1, angle: 45, color: 'green' },
+  { number: 9, ring: 1, angle: 320, color: 'red' },
+  { number: 5, ring: 1, angle: 40, color: 'green' },
   { number: 10, ring: 1, angle: 220, color: 'green' },
 
   // Ring 2 (third circle line, r=175)
   { number: 1, ring: 2, angle: 180, color: 'red' },
-  { number: 3, ring: 2, angle: 270, color: 'green' },
-  { number: 8, ring: 2, angle: 90, color: 'green' },
-  { number: 12, ring: 2, angle: 140, color: 'red' },
+  { number: 3, ring: 2, angle: 275, color: 'green' },
+  { number: 8, ring: 2, angle: 85, color: 'green' },
+  { number: 12, ring: 2, angle: 145, color: 'red' },
 
   // Ring 3 (outermost circle line, r=235)
-  { number: 7, ring: 3, angle: 305, color: 'green' },
-  { number: 4, ring: 3, angle: 55, color: 'red' },
-  { number: 2, ring: 3, angle: 125, color: 'green' },
-  { number: 6, ring: 3, angle: 235, color: 'red' },
+  { number: 7, ring: 3, angle: 310, color: 'green' },
+  { number: 4, ring: 3, angle: 50, color: 'red' },
+  { number: 2, ring: 3, angle: 130, color: 'green' },
+  { number: 6, ring: 3, angle: 230, color: 'red' },
 ];
 
 export const RING_NUMBERS: Record<number, number[]> = {

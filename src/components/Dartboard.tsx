@@ -56,8 +56,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       // Pick a random number from layout
       const targetPos = BOARD_LAYOUT[Math.floor(Math.random() * BOARD_LAYOUT.length)];
       const ring = RING_RADII[targetPos.ring];
-      // ACCURACY OPTIMIZATION: Land in the center of the ring, not on the line
-      const r = (ring.inner + ring.outer) / 2;
+      // ALIGN TO RING CIRCLE: Always land exactly on the white boundary line
+      const r = ring.outer;
       const [lx, ly] = polarToXY(targetPos.angle, r);
 
       return {
@@ -166,24 +166,18 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 <feGaussianBlur stdDeviation="3.5" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
-              {/* Ruby Crystal Gradient */}
-              <radialGradient id="ruby-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
-                <stop offset="0%" stopColor="#FF4D4D" />
-                <stop offset="40%" stopColor="#B30000" />
-                <stop offset="100%" stopColor="#4D0000" />
-              </radialGradient>
-              {/* Emerald Crystal Gradient */}
-              <radialGradient id="emerald-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
-                <stop offset="0%" stopColor="#4DFF4D" />
-                <stop offset="40%" stopColor="#00B300" />
-                <stop offset="100%" stopColor="#004D00" />
+              {/* Black Pearl Gradient */}
+              <radialGradient id="pearl-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
+                <stop offset="0%" stopColor="#444444" />
+                <stop offset="60%" stopColor="#111111" />
+                <stop offset="100%" stopColor="#000000" />
               </radialGradient>
               <filter id="inner-glow">
                 <feGaussianBlur stdDeviation="1" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
-              <filter id="crystal-shine">
-                <feGaussianBlur stdDeviation="0.5" result="blur" />
+              <filter id="pearl-shine">
+                <feGaussianBlur stdDeviation="0.4" result="blur" />
               </filter>
             </defs>
 
@@ -230,8 +224,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {/* Gem Number Dots */}
             {BOARD_LAYOUT.map((pos) => {
               const ringData = RING_RADII[pos.ring];
-              // Render numbers at the exact geometric center point
-              const r = (ringData.inner + ringData.outer) / 2;
+              // Render numbers EXACTLY on the white ring circle
+              const r = ringData.outer;
               const [x, y] = polarToXY(pos.angle, r);
               const isClosed = gameState.closedNumbers.has(pos.number);
 
@@ -240,21 +234,20 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Exquisite Crystal Badge */}
+                  {/* Black Pearl Exquisite Badge */}
                   <circle
-                    cx={x} cy={y} r="20"
-                    fill={isClosed ? "#333" : (pos.color === 'red' ? 'url(#ruby-grad)' : 'url(#emerald-grad)')}
-                    stroke={isClosed ? "#555" : (pos.color === 'red' ? '#FF9999' : '#99FF99')}
-                    strokeWidth="2"
+                    cx={x} cy={y} r="21"
+                    fill={isClosed ? "#222" : "url(#pearl-grad)"}
+                    stroke={isClosed ? "#444" : "#E0E0E0"}
+                    strokeWidth="1.5"
                     filter="url(#glow)"
                   />
-                  {/* High-gloss shine highlight */}
+                  {/* High-gloss pearl highlight */}
                   {!isClosed && (
-                    <ellipse
-                      cx={x - 6} cy={y - 6} rx="6" ry="4"
-                      fill="rgba(255,255,255,0.4)"
-                      transform={`rotate(-45 ${x - 6} ${y - 6})`}
-                      filter="url(#crystal-shine)"
+                    <circle
+                      cx={x - 6} cy={y - 6} r="4"
+                      fill="rgba(255,255,255,0.7)"
+                      filter="url(#pearl-shine)"
                       pointerEvents="none"
                     />
                   )}
@@ -279,14 +272,14 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                     y={y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isClosed ? "#888" : "#FFF"}
-                    fontSize="20"
+                    fill={isClosed ? "#666" : "#FFD700"}
+                    fontSize="22"
                     fontWeight="900"
                     fontFamily="'Playfair Display', serif"
                     style={{
                       textShadow: isClosed
                         ? 'none'
-                        : `0 1px 2px rgba(0, 0, 0, 0.5), 0 0 5px rgba(255, 255, 255, 0.3)`
+                        : `0 0 10px rgba(255, 215, 0, 0.4), 0 0 4px rgba(255, 255, 255, 0.3)`
                     }}
                   >
                     {pos.number}

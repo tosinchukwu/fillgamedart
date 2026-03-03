@@ -61,7 +61,7 @@ function recalcTotalScore(player: PlayerState): number {
   return player.fillerPoints + player.topFillerBonuses + player.fillUpBonuses;
 }
 
-export function hitNumber(state: GameState, targetNumber: number): { state: GameState; message: string } {
+export function hitNumber(state: GameState, targetNumber: number, isMultiHit = false): { state: GameState; message: string } {
   const newState = structuredClone(state) as GameState;
   newState.closedNumbers = new Set(state.closedNumbers);
 
@@ -109,23 +109,24 @@ export function hitNumber(state: GameState, targetNumber: number): { state: Game
   player.totalScore = recalcTotalScore(player);
   opponent.totalScore = recalcTotalScore(opponent);
 
-  // Dart management
-  newState.dartsRemaining--;
-  const finalMessage = `[${player.name}]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
-  newState.lastAction = finalMessage;
+  if (!isMultiHit) {
+    // Dart management
+    newState.dartsRemaining--;
+    const finalMessage = `[player.name]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
+    newState.lastAction = finalMessage;
 
-  if (newState.dartsRemaining <= 0) {
-    // Check batch conditions before switching
-    checkBatchConditions(newState);
+    if (newState.dartsRemaining <= 0) {
+      // Check batch conditions before switching
+      checkBatchConditions(newState);
 
-    if (!newState.gameOver) {
-      newState.currentPlayer = cp === 0 ? 1 : 0;
-      newState.dartsRemaining = 3;
+      if (!newState.gameOver) {
+        newState.currentPlayer = cp === 0 ? 1 : 0;
+        newState.dartsRemaining = 3;
+      }
     }
+    // Final check for win conditions
+    checkBatchConditions(newState);
   }
-
-  // Check batch after every hit too
-  checkBatchConditions(newState);
 
   return { state: newState, message };
 }
@@ -140,7 +141,7 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
   currentState.dartsRemaining = 999;
 
   for (const num of ringNumbers) {
-    const result = hitNumber(currentState, num);
+    const result = hitNumber(currentState, num, true);
     currentState = result.state;
     currentState.closedNumbers = new Set(currentState.closedNumbers);
     messages.push(result.message);
@@ -228,9 +229,14 @@ function checkBatchConditions(state: GameState) {
       state.lastAction = `[SYSTEM]: 🏆 ${state.players[opponentIdx].name} surpassed the Benchmark of ${benchmark} and WINS!`;
     } else {
       // Check if opponent has finished all numbers but failed to beat the benchmark
-      const allCompleted = Object.values(state.players[opponentIdx].completed).every(v => v === true);
-      // Also consider if they have no more darts and no more potential to score? 
-      // Simplified: if both players completed all numbers (board closed), and opponent is still lower.
+      let allCompleted = true;
+      for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+        if (!state.players[opponentIdx].completed[i]) {
+          allCompleted = false;
+          break;
+        }
+      }
+
       if (allCompleted && opponentScore <= benchmark) {
         state.gameOver = true;
         state.winner = b1w;

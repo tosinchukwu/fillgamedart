@@ -18,6 +18,7 @@ import SettingsDialog from '../components/SettingsDialog';
 import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
+import { avalanche } from 'viem/chains';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../lib/constants';
 import { toast } from "sonner";
 
@@ -330,6 +331,7 @@ const Index = () => {
           BigInt(Math.floor(Date.now() / 1000))
         ],
         account: address as `0x${string}`,
+        chain: avalanche,
       });
     } catch (error) {
       console.error("Broadcast failed:", error);

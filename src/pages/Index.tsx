@@ -1,22 +1,233 @@
 import React, { useState, useCallback } from 'react';
-import Dartboard from '../components/Dartboard';
+import Dartboard, { DartArrow } from '../components/Dartboard';
 import GameLog from '../components/GameLog';
-import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState } from '../game/gameLogic';
+import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState, computeCPUMove } from '../game/gameLogic';
 import { RING_NUMBERS, TARGET_SCORE, TOTAL_NUMBERS } from '../game/boardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2 } from 'lucide-react';
+import SettingsDialog from '../components/SettingsDialog';
+import { useEffect, useRef } from 'react';
+import { useAccount, useDisconnect, useSendTransaction } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+import { encodeFunctionData, parseEther, stringToHex } from 'viem';
+
+// Audio assets (Placeholders)
+// Audio assets (Local paths in public/audio/)
+const AUDIO_ASSETS = {
+  throw: '/audio/throw.mp3',
+  hit: '/audio/hit.mp3',
+  music: {
+    synth_wave: '/audio/music_synth.mp3',
+    lofi_chill: '/audio/music_lofi.mp3',
+    high_energy: '/audio/music_energy.mp3'
+  }
+};
+
+const RulesScroll = () => (
+  <div className="mt-2 text-left glass-panel p-6 rounded-2xl border-white/10 bg-black/40 space-y-4 max-h-72 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-4 duration-500">
+    <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-black border-b border-white/10 pb-3 flex items-center justify-between">
+      Rules of Engagement
+      <span className="text-[9px] text-white/30 animate-pulse">Scroll to read more</span>
+    </h3>
+    <div className="text-white/80 text-[11px] space-y-5 font-medium leading-relaxed">
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🏹 Turn Structure
+        </h4>
+        <p className="pl-4 border-l border-white/10">Each player throws 3 darts per turn. Player A throws 3, then Player B. Turns alternate. Goal: Accumulate points and pass the target score.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          📊 Number Completion
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-1">
+          <p>Hit each number equal to its value (e.g., 14 hits for #14).</p>
+          <p>Once completed, no more filler points from that number.</p>
+          <p className="text-secondary/80">Fully closed when BOTH players complete it.</p>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          💰 Filler Points
+        </h4>
+        <p className="pl-4 border-l border-white/10">Every hit on an uncompleted number earns <span className="text-secondary font-bold">2 filler points</span> and counts toward its required total.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🔵 Circular Line Advantage
+        </h4>
+        <p className="pl-4 border-l border-white/10 italic text-white/60">Hitting a ring awards hits and filler points for ALL numbers on that ring simultaneously. Faster progress, higher strategy.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🎁 Bonus System
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-2">
+          <p><strong>🔥 Top Filler (7 pts):</strong> Highest total hits on numbers 2-14.</p>
+          <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the last player to complete a number.</p>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🏆 Batch System
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-2">
+          <p><strong>Batch 1:</strong> First to exceed <strong>221.5 pts</strong> ends Batch 1 and sets the <span className="text-primary font-bold">Benchmark Bar</span>.</p>
+          <p><strong>Batch 2:</strong> Opponent must surpass the Benchmark Score to win the game.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+);
 
 const Index = () => {
+  const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight'>('neon');
   const [gameStarted, setGameStarted] = useState(false);
   const [p1Name, setP1Name] = useState('Player 1');
   const [p2Name, setP2Name] = useState('Player 2');
+  const [p1Address, setP1Address] = useState<string | null>(null);
+  const [p2Address, setP2Address] = useState<string | null>(null);
+  const [isVsCPU, setIsVsCPU] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [showBatchOverlay, setShowBatchOverlay] = useState(false);
+  const [showRules, setShowRules] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [volume, setVolume] = useState(0.5);
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [sfxEnabled, setSfxEnabled] = useState(true);
+  const [selectedMusic, setSelectedMusic] = useState('synth_wave');
+
+  const { address, isConnected } = useAccount();
+  const { open } = useWeb3Modal();
+  const { disconnect } = useDisconnect();
+  const { sendTransaction, data: txHash, isPending: isBroadcasting, isSuccess: isBroadcasted } = useSendTransaction();
+
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const prevBatchRef = React.useRef<number>(1);
+
+  // Audio Logic
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (musicRef.current && musicEnabled && gameStarted && musicRef.current.paused) {
+        console.log("Unlocking audio via interaction...");
+        musicRef.current.play().catch(e => console.error("Unlock failed", e));
+      }
+      window.removeEventListener('click', unlockAudio);
+    };
+    window.addEventListener('click', unlockAudio);
+    return () => window.removeEventListener('click', unlockAudio);
+  }, [musicEnabled, gameStarted]);
+
+  useEffect(() => {
+    if (musicEnabled && gameStarted) {
+      console.log("Initializing music track:", selectedMusic);
+      if (!musicRef.current) {
+        musicRef.current = new Audio((AUDIO_ASSETS.music as any)[selectedMusic]);
+        musicRef.current.loop = true;
+      } else {
+        musicRef.current.src = (AUDIO_ASSETS.music as any)[selectedMusic];
+      }
+      musicRef.current.volume = volume * 0.4;
+      musicRef.current.play().catch(e => console.warn("Music play delayed until click", e));
+    } else {
+      if (musicRef.current) {
+        musicRef.current.pause();
+      }
+    }
+    return () => {
+      if (musicRef.current) musicRef.current.pause();
+    };
+  }, [musicEnabled, gameStarted, selectedMusic]);
+
+  useEffect(() => {
+    if (musicRef.current) {
+      musicRef.current.volume = volume * 0.4;
+    }
+  }, [volume]);
+
+  const playSFX = useCallback((type: 'throw' | 'hit') => {
+    if (!sfxEnabled) return;
+    console.log("Playing SFX:", type);
+    const audio = new Audio(AUDIO_ASSETS[type]);
+    audio.volume = volume;
+    audio.play().catch(e => console.error("SFX playback failed", e));
+  }, [sfxEnabled, volume]);
+
+  useEffect(() => {
+    const handleThrowSound = () => playSFX('throw');
+    const handleHitSound = () => playSFX('hit');
+
+    window.addEventListener('THROW_DART', handleThrowSound);
+    window.addEventListener('DART_HIT_IMPACT', handleHitSound);
+
+    return () => {
+      window.removeEventListener('THROW_DART', handleThrowSound);
+      window.removeEventListener('DART_HIT_IMPACT', handleHitSound);
+    };
+  }, [playSFX]);
 
   const startGame = () => {
-    setGameState(createInitialGameState(p1Name || 'Player 1', p2Name || 'Player 2'));
+    if (!p1Address || !p2Address) return;
+    setIsVsCPU(false);
+    setGameState(createInitialGameState(
+      p1Name || 'Player 1', p1Address,
+      p2Name || 'Player 2', p2Address,
+      false
+    ));
     setLogMessages([]);
     setGameStarted(true);
+  };
+
+  const startSoloGame = () => {
+    setIsVsCPU(true);
+    const guestAddr = '0xGUEST' + Math.random().toString(16).slice(2, 8);
+    const cpuAddr = '0xCOMPUTER';
+    setGameState(createInitialGameState(
+      'Guest', guestAddr,
+      'Computer AI', cpuAddr,
+      true
+    ));
+    setLogMessages([]);
+    setGameStarted(true);
+  };
+
+  const broadcastScore = async () => {
+    if (!gameState || gameState.winner === null || isVsCPU) return;
+
+    const winner = gameState.players[gameState.winner!];
+    const scoreData = `Winner: ${winner.name}, Score: ${winner.totalScore}, Wallet: ${winner.address}`;
+
+    // We broadcast the data by sending a self-transaction or a transaction to an empty address 
+    // with the score data encoded in the HEX data field.
+    try {
+      sendTransaction({
+        to: winner.address as `0x${string}`, // Sending to self to record data
+        data: stringToHex(scoreData),
+        value: parseEther('0'), // 0 AVAX
+      });
+    } catch (error) {
+      console.error("Broadcast failed", error);
+    }
   };
 
   const resetGame = () => {
@@ -29,7 +240,14 @@ const Index = () => {
     if (!gameState || gameState.gameOver) return;
     const result = hitNumber(gameState, num);
     setGameState(result.state);
-    setLogMessages(prev => [...prev, `[${result.state.players[gameState.currentPlayer].name}] ${result.message}`]);
+    if (result.state.lastAction) {
+      setLogMessages(prev => [...prev, result.state.lastAction!]);
+    }
+
+    if (result.state.batch === 2 && prevBatchRef.current === 1) {
+      setShowBatchOverlay(true);
+    }
+    prevBatchRef.current = result.state.batch;
   }, [gameState]);
 
   const handleHitRing = useCallback((ringIndex: number) => {
@@ -38,38 +256,153 @@ const Index = () => {
     if (!nums || nums.length === 0) return;
     const result = hitRing(gameState, ringIndex, nums);
     setGameState(result.state);
-    const playerName = gameState.players[gameState.currentPlayer].name;
-    setLogMessages(prev => [...prev, `[${playerName}] ${result.state.lastAction}`, ...result.messages.map(m => `  → ${m}`)]);
+    if (result.state.lastAction) {
+      setLogMessages(prev => [...prev, result.state.lastAction!, ...result.messages.map(m => `  → ${m}`)]);
+    }
+
+    if (result.state.batch === 2 && prevBatchRef.current === 1) {
+      setShowBatchOverlay(true);
+    }
+    prevBatchRef.current = result.state.batch;
   }, [gameState]);
+
+  // Handle CPU Moves
+  useEffect(() => {
+    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver) {
+      console.log("CPU Thinking...");
+      const timer = setTimeout(() => {
+        const move = computeCPUMove(gameState);
+
+        // 1. Visual Throw Animation
+        window.dispatchEvent(new CustomEvent('THROW_DART'));
+
+        // 2. Physical Impact on Data
+        const impactTimer = setTimeout(() => {
+          if (move.type === 'number') {
+            handleHitNumber(move.index);
+          } else {
+            handleHitRing(move.index);
+          }
+        }, 1000); // Wait for animation to "land"
+
+        return () => clearTimeout(impactTimer);
+      }, 2000); // Thinking time
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameStarted, gameState, handleHitNumber, handleHitRing]);
 
   if (!gameStarted || !gameState) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <div>
-            <h1 className="text-6xl text-foreground tracking-wider">FILLING GAME</h1>
-            <p className="text-muted-foreground mt-2 text-sm font-mono-game">Strategic Dart Competition</p>
-          </div>
+      <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
+        <div className="fixed top-6 right-6 z-50 flex gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSettingsOpen(true)}
+            className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white hover:bg-white/10"
+          >
+            <Settings className="w-6 h-6" />
+          </Button>
+        </div>
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="w-full max-w-md space-y-8 text-center glass-panel p-10 rounded-[2rem] neon-border-theme">
+            <div>
+              <h1 className="text-6xl text-white tracking-[0.2em] text-glow-white mb-2">FILLING GAME</h1>
+              <p className="text-primary text-sm font-mono-game uppercase tracking-[0.3em] text-glow-theme opacity-80">Strategic Dart Simulation</p>
+            </div>
 
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-widest font-mono-game">Player 1</label>
-                <Input value={p1Name} onChange={(e) => setP1Name(e.target.value)} className="mt-1 bg-muted border-border text-foreground" placeholder="Player 1" />
+            <div className="space-y-6 pt-4">
+              <div className="space-y-4">
+                {/* Player 1 Wallet Section */}
+                <div className={`p-4 rounded-2xl border transition-all ${p1Address ? 'bg-primary/10 border-primary/30' : 'bg-white/5 border-white/10'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game">Player 1 (Green)</span>
+                    {p1Address ? <CheckCircle2 className="w-4 h-4 text-primary" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />}
+                  </div>
+                  {p1Address ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white font-mono text-xs truncate max-w-[150px]">{p1Address}</span>
+                      <Button variant="ghost" size="sm" onClick={() => setP1Address(null)} className="h-7 text-[9px] text-white/40 hover:text-red-500">Unlink</Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => !isConnected ? open() : setP1Address(address!)}
+                      variant="outline"
+                      className="w-full h-10 border-white/10 text-white/60 hover:border-primary/50 hover:text-primary rounded-xl"
+                    >
+                      <Wallet className="w-3.5 h-3.5 mr-2" />
+                      {!isConnected ? 'Connect Wallet' : 'Register Current Wallet'}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Player 2 Wallet Section */}
+                <div className={`p-4 rounded-2xl border transition-all ${p2Address ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/10'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game">Player 2 (Red)</span>
+                    {p2Address ? <CheckCircle2 className="w-4 h-4 text-secondary" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />}
+                  </div>
+                  {p2Address ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white font-mono text-xs truncate max-w-[150px]">{p2Address}</span>
+                      <Button variant="ghost" size="sm" onClick={() => setP2Address(null)} className="h-7 text-[9px] text-white/40 hover:text-red-500">Unlink</Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => !isConnected ? open() : setP2Address(address!)}
+                      variant="outline"
+                      className="w-full h-10 border-white/10 text-white/60 hover:border-secondary/50 hover:text-secondary rounded-xl"
+                      disabled={p1Address === address && isConnected}
+                    >
+                      <Wallet className="w-3.5 h-3.5 mr-2" />
+                      {!isConnected ? 'Connect Wallet' : 'Register Current Wallet'}
+                    </Button>
+                  )}
+                </div>
+
+                {isConnected && !p1Address && !p2Address && (
+                  <p className="text-[9px] text-white/30 italic">Connected: {address?.slice(0, 6)}...{address?.slice(-4)}. Register to player slot above.</p>
+                )}
+                {isConnected && (
+                  <Button variant="ghost" size="sm" onClick={() => disconnect()} className="w-full h-6 text-[9px] text-white/20 hover:text-white/60">Disconnect Current Wallet</Button>
+                )}
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-widest font-mono-game">Player 2</label>
-                <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-muted border-border text-foreground" placeholder="Player 2" />
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={startGame}
+                  disabled={!p1Address || !p2Address}
+                  className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-white font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] border-none disabled:opacity-30 disabled:grayscale"
+                  size="lg"
+                >
+                  🎯 Start PVP Match
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={startSoloGame}
+                    className="flex-1 text-xs h-10 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 font-mono-game uppercase tracking-[0.2em]"
+                  >
+                    🤖 Solo (Vs CPU)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRules(!showRules)}
+                    className="flex-1 text-xs h-10 rounded-xl border-white/10 text-white/60 hover:text-primary hover:border-primary/40 hover:bg-white/5 font-mono-game uppercase tracking-[0.2em]"
+                  >
+                    {showRules ? 'Rules 📜' : 'Rules 📜'}
+                  </Button>
+                </div>
+              </div>
+
+              {showRules && <RulesScroll />}
+
+              <div className="text-[10px] text-white/40 space-y-1 font-mono-game uppercase tracking-widest leading-loose pt-4 border-t border-white/5">
+                <p>Target: {TARGET_SCORE} pts per batch</p>
+                <p>3 darts per turn • Numbers 1–14</p>
+                <p>Direct targeting protocol active</p>
               </div>
             </div>
-            <Button onClick={startGame} className="w-full text-lg h-12" size="lg">🎯 Start Game</Button>
-          </div>
-
-          <div className="text-xs text-muted-foreground space-y-1 font-mono-game">
-            <p>Target: {TARGET_SCORE} pts per batch</p>
-            <p>3 darts per turn • Numbers 1–14</p>
-            <p>① Click dart arrow → board spins 5-7s</p>
-            <p>② Click dart arrow again → stops & throws!</p>
           </div>
         </div>
       </div>
@@ -77,44 +410,67 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen p-3 md:p-4">
+    <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans`}>
+      <div className="fixed top-6 right-6 z-50 flex gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSettingsOpen(true)}
+          className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white hover:bg-white/10"
+        >
+          <Settings className="w-6 h-6" />
+        </Button>
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 max-w-7xl mx-auto">
-        <h1 className="text-2xl md:text-3xl text-foreground tracking-wider">FILLING GAME</h1>
-        <div className="flex items-center gap-3">
-          <span className="font-mono-game text-sm text-primary animate-pulse-glow hidden sm:inline">
-            {gameState.players[gameState.currentPlayer].name}'s turn
+      <div className="w-full max-w-7xl flex flex-col items-center gap-4 mb-8">
+        <h1 className="text-4xl md:text-5xl text-white tracking-[0.25em] text-glow-white text-center">FILLING GAME</h1>
+        <div className="flex items-center gap-6 glass-panel py-2 px-6 rounded-full border-white/10">
+          <span className="font-mono-game text-[10px] tracking-[0.2em] text-primary animate-pulse uppercase">
+            {gameState.players[gameState.currentPlayer].name}'S TURN
           </span>
-          <span className="text-muted-foreground text-xs font-mono-game hidden sm:inline">
-            ({gameState.dartsRemaining} darts)
+          <div className="h-4 w-[1px] bg-white/10" />
+          <span className="text-white/60 text-[10px] font-mono-game tracking-[0.2em] uppercase">
+            {gameState.dartsRemaining} DARTS REMAINING
           </span>
-          <Button variant="outline" size="sm" onClick={resetGame}>New Game</Button>
+          <Button variant="ghost" size="sm" onClick={resetGame} className="text-[9px] uppercase tracking-widest text-white/40 hover:text-primary hover:bg-white/5 px-4 h-6">New Game</Button>
         </div>
       </div>
 
       {/* Game Over Banner */}
       {gameState.gameOver && gameState.winner !== null && (
-        <div className="max-w-7xl mx-auto mb-4 bg-primary/20 border border-primary rounded-xl p-6 text-center glow-green">
-          <h2 className="text-4xl text-primary text-shadow-glow">
+        <div className="max-w-7xl mx-auto mb-8 bg-primary/10 border border-primary/30 rounded-2xl p-8 text-center glass-panel neon-border-theme">
+          <h2 className="text-5xl text-primary text-glow-theme mb-2">
             {gameState.players[gameState.winner].name} WINS!
           </h2>
-          <p className="text-muted-foreground font-mono-game mt-2">
+          <p className="text-white/60 font-mono-game uppercase tracking-widest text-sm mb-6">
             Final Score: {gameState.players[gameState.winner].totalScore} pts
           </p>
-          <Button onClick={resetGame} className="mt-4">Play Again</Button>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button onClick={resetGame} className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-8 py-6 text-lg rounded-xl">New Match</Button>
+            {!isVsCPU && (
+              <Button
+                onClick={broadcastScore}
+                disabled={isBroadcasting || isBroadcasted}
+                className="bg-primary hover:bg-primary/80 font-black px-8 py-6 text-lg rounded-xl shadow-lg shadow-primary/20"
+              >
+                {isBroadcasting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Share2 className="w-5 h-5 mr-2" />}
+                {isBroadcasted ? 'Score Broadcasted!' : 'Broadcast to Avalanche'}
+              </Button>
+            )}
+          </div>
+          {isBroadcasted && txHash && (
+            <p className="mt-4 text-[10px] text-white/40 font-mono">
+              TX: <a href={`https://snowtrace.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{txHash}</a>
+            </p>
+          )}
         </div>
       )}
 
-      {/* 
-        Main 3-column layout:
-        LEFT  → Player 1 scoreboard
-        CENTER → Dart arrow + Dartboard + (GameLog + Hint below)
-        RIGHT  → Player 2 scoreboard
-      */}
-      <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-4 items-start justify-center">
+      {/* Main 3-column layout */}
+      <div className="max-w-7xl w-full mx-auto flex flex-col xl:flex-row gap-8 md:gap-14 xl:gap-20 items-start justify-center">
 
-        {/* ===== LEFT: Player 1 ===== */}
-        <div className="xl:w-64 w-full xl:flex-shrink-0 order-2 xl:order-1 space-y-4">
+        <div className="xl:w-72 w-full xl:flex-shrink-0 order-2 xl:order-1 space-y-6">
           <PlayerPanel
             player={gameState.players[0]}
             isActive={gameState.currentPlayer === 0}
@@ -125,35 +481,15 @@ const Index = () => {
             playerIdx={0}
           />
 
-          {/* Hint / Ring Guide moved to left panel */}
-          <div className="bg-card border border-border rounded-lg p-4 hidden xl:block shadow-sm">
-            <h4 className="text-sm font-bold text-foreground tracking-wider mb-3 font-mono-game">How to Play & Ring Guide</h4>
-            <div className="flex flex-col gap-2 text-xs font-mono-game">
-              <p><span className="font-bold text-primary">① Click dart</span> <span className="text-muted-foreground">→ spins test</span></p>
-              <p><span className="font-bold text-foreground">Ring 1 (inner):</span> <span className="text-muted-foreground">14, 13</span></p>
-              <p><span className="font-bold text-primary">② Click dart again</span> <span className="text-muted-foreground">→ stops &amp; throws</span></p>
-              <p><span className="font-bold text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
-              <p><span className="font-bold text-primary">Hit line</span> <span className="text-muted-foreground">→ ring scored</span></p>
-              <p><span className="font-bold text-foreground">Ring 3:</span> <span className="text-muted-foreground">1, 3, 12, 8</span></p>
-              <p><span className="font-bold text-secondary">Filler:</span> <span className="text-muted-foreground">+2 pts per hit</span></p>
-              <p><span className="font-bold text-foreground">Ring 4 (outer):</span> <span className="text-muted-foreground">7, 4, 2, 6</span></p>
-            </div>
-          </div>
+          {/* Player 1 Specific Log */}
+          <GameLog
+            messages={logMessages.filter(msg => msg.includes(`[${gameState.players[0].name}]`) || msg.includes("[SYSTEM]"))}
+            p1Name={gameState.players[0].name}
+            p2Name={gameState.players[1].name}
+          />
         </div>
 
-        {/* ===== CENTER: Dart + Dartboard + Log + Hint ===== */}
-        <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0">
-          {/* Turn indicator (mobile) */}
-          <div className="xl:hidden text-center mb-2">
-            <span className="font-mono-game text-sm text-primary">
-              {gameState.players[gameState.currentPlayer].name}'s turn
-            </span>
-            <span className="text-muted-foreground text-xs ml-2 font-mono-game">
-              ({gameState.dartsRemaining} darts)
-            </span>
-          </div>
-
-          {/* Dartboard + Dart Arrow (horizontal, dart on left) */}
+        <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0 space-y-10">
           <Dartboard
             gameState={gameState}
             onHitNumber={handleHitNumber}
@@ -161,25 +497,38 @@ const Index = () => {
             disabled={gameState.gameOver}
           />
 
-          {/* Game Log BELOW the dartboard */}
-          <div className="w-full max-w-lg mt-4">
-            <GameLog messages={logMessages} />
-
-            {/* Mobile-only Hint */}
-            <div className="bg-card border border-border rounded-lg p-3 mt-3 xl:hidden">
-              <h4 className="text-xs font-bold text-foreground tracking-widest mb-2 font-mono-game">How to Play</h4>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono-game">
-                <p><span className="font-bold text-primary">① Click dart</span> <span className="text-muted-foreground">→ spins</span></p>
-                <p><span className="font-bold text-foreground">Ring 1:</span> <span className="text-muted-foreground">14, 13</span></p>
-                <p><span className="font-bold text-primary">② Click dart again</span> <span className="text-muted-foreground">→ throws</span></p>
-                <p><span className="font-bold text-foreground">Ring 2:</span> <span className="text-muted-foreground">5, 9, 10, 11</span></p>
-              </div>
+          {/* Centered Throwing Controls */}
+          <div className="flex flex-col items-center gap-6 w-full max-w-md">
+            <div className="text-center glass-panel px-6 py-2 rounded-xl border-white/10 w-full mb-2">
+              <span className="text-[10px] font-mono-game leading-tight tracking-[0.3em] text-white uppercase opacity-60">
+                ACTIVE WEAPON: {gameState.players[gameState.currentPlayer].name}
+              </span>
+            </div>
+            <DartArrow
+              boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
+              isFlying={false}
+              isVisible={!gameState.gameOver}
+              disabled={gameState.gameOver || gameState.dartsRemaining === 0}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('THROW_DART'));
+              }}
+              playerIdx={gameState.currentPlayer}
+            />
+            <div className="text-center glass-panel px-10 py-5 rounded-3xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-2xl min-w-[200px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!gameState.gameOver && gameState.dartsRemaining > 0) {
+                  window.dispatchEvent(new CustomEvent('THROW_DART'));
+                }
+              }}>
+              <span className="text-[13px] font-black leading-tight tracking-[0.4em] text-primary uppercase group-hover:text-glow-theme transition-all">
+                {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* ===== RIGHT: Player 2 ===== */}
-        <div className="xl:w-64 w-full xl:flex-shrink-0 order-3">
+        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3 space-y-6">
           <PlayerPanel
             player={gameState.players[1]}
             isActive={gameState.currentPlayer === 1}
@@ -189,88 +538,217 @@ const Index = () => {
             closedNumbers={gameState.closedNumbers}
             playerIdx={1}
           />
+
+          {/* Player 2 Specific Log */}
+          <GameLog
+            messages={logMessages.filter(msg => msg.includes(`[${gameState.players[1].name}]`) || msg.includes("[SYSTEM]"))}
+            p1Name={gameState.players[0].name}
+            p2Name={gameState.players[1].name}
+          />
         </div>
+
+        {/* Batch Transition Overlay */}
+        <BatchTransitionOverlay
+          show={showBatchOverlay}
+          benchmark={gameState.batch1Score || 0}
+          winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''}
+          opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''}
+          onClose={() => setShowBatchOverlay(false)}
+        />
+
+        <SettingsDialog
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          theme={theme}
+          onThemeChange={setTheme}
+          volume={volume}
+          onVolumeChange={setVolume}
+          musicEnabled={musicEnabled}
+          onMusicToggle={setMusicEnabled}
+          sfxEnabled={sfxEnabled}
+          onSfxToggle={setSfxEnabled}
+          selectedMusic={selectedMusic}
+          onMusicChange={setSelectedMusic}
+        />
       </div>
     </div>
   );
 };
 
-// ---- Individual Player Panel (extracted from Scoreboard) ----
+// Sub-components
 
-interface PlayerPanelProps {
+
+
+const RingGuide = () => (
+  <div className="glass-panel rounded-2xl p-6 hidden xl:block border-white/5">
+    <h4 className="text-[10px] font-bold text-primary tracking-[0.2em] mb-4 font-mono-game uppercase opacity-80">Ring Layout Guide</h4>
+    <div className="flex flex-col gap-3 text-[10px] font-mono-game uppercase tracking-widest text-white/50">
+      <div className="flex justify-between items-center"><span className="text-white/70">Ring 1 (Inner):</span> <span className="text-primary">14, 13</span></div>
+      <div className="flex justify-between items-center"><span className="text-white/70">Ring 2:</span> <span className="text-primary">12, 9, 5, 10</span></div>
+      <div className="flex justify-between items-center"><span className="text-white/70">Ring 3:</span> <span className="text-primary">11, 1, 3, 8</span></div>
+      <div className="flex justify-between items-center"><span className="text-white/70">Ring 4 (Outer):</span> <span className="text-primary">7, 4, 2, 6</span></div>
+    </div>
+  </div>
+);
+
+const PlayerPanel: React.FC<{
   player: PlayerState;
   isActive: boolean;
   dartsRemaining: number;
-  batch: 1 | 2;
+  batch: number;
   batch1Score: number | null;
   closedNumbers: Set<number>;
   playerIdx: number;
-}
-
-const PlayerPanel: React.FC<PlayerPanelProps> = ({
-  player, isActive, dartsRemaining, batch, batch1Score, closedNumbers, playerIdx
-}) => {
+}> = ({ player, isActive, dartsRemaining, batch, batch1Score, closedNumbers, playerIdx }) => {
   return (
-    <div className={`rounded-xl p-4 border transition-all space-y-3 ${isActive ? 'border-primary bg-primary/10 glow-green' : 'border-border bg-card'
-      }`}>
-      {/* Header */}
+    <div className={`rounded-2xl p-6 transition-all space-y-5 glass-panel ${isActive ? 'neon-border-theme ring-1 ring-primary/20 scale-[1.02]' : 'border-white/10 opacity-60'}`}>
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold truncate">{player.name}</h3>
+        <h3 className={`text-lg font-bold tracking-tight ${isActive ? 'text-primary text-shadow-glow' : 'text-white'}`}>{player.name}</h3>
         {isActive && (
-          <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono-game whitespace-nowrap">
-            🎯 {dartsRemaining} darts
+          <div className="flex gap-2">
+            {Array.from({ length: dartsRemaining }).map((_, i) => (
+              <img
+                key={i}
+                src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
+                alt="Dart"
+                className="w-5 h-8 object-contain"
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-between items-end border-b border-white/5 pb-4">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-mono-game uppercase tracking-[0.2em] text-white/40 mb-1">Current Score</span>
+          <div className="text-4xl font-mono-game font-bold text-white leading-none">
+            {player.totalScore}
+            <span className="text-sm text-white/30 ml-2">pts</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-[10px] font-mono-game uppercase tracking-[0.2em] text-white/40 mb-1">Batch {batch}</span>
+          <span className="text-[10px] text-primary font-mono-game font-bold px-2 py-0.5 bg-primary/10 rounded">
+            Target: {batch === 1 ? TARGET_SCORE : 250}
           </span>
-        )}
-      </div>
-
-      {/* Batch info */}
-      <div className="text-center">
-        <span className="font-mono-game text-xs tracking-widest text-muted-foreground uppercase">Batch {batch}</span>
-        {batch === 2 && batch1Score && (
-          <p className="text-xs text-accent font-mono-game mt-0.5">Target: {batch1Score} pts</p>
-        )}
-      </div>
-
-      {/* Score */}
-      <div className="text-3xl font-mono-game font-bold text-foreground text-center">
-        {player.totalScore}
-        <span className="text-sm text-muted-foreground ml-1">pts</span>
-      </div>
-
-      {/* Score breakdown */}
-      <div className="space-y-1 text-xs text-muted-foreground font-mono-game border-t border-border pt-2">
-        <div className="flex justify-between">
-          <span>Filler</span>
-          <span className="text-foreground">{player.fillerPoints}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Top Bonus</span>
-          <span className="text-accent">{player.topFillerBonuses}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Fill-Up</span>
-          <span className="text-secondary">{player.fillUpBonuses}</span>
         </div>
       </div>
 
-      {/* Number completion grid */}
-      <div className="grid grid-cols-7 gap-1 border-t border-border pt-2">
+      <div className="grid grid-cols-2 gap-4 text-[10px] font-mono-game uppercase tracking-widest text-white/40">
+        <div className="flex justify-between border-b border-white/5 pb-1"><span>Filler</span> <span className="text-white">{player.fillerPoints}</span></div>
+        <div className="flex justify-between border-b border-white/5 pb-1"><span>Top Bonus</span> <span className="text-primary">{player.topFillerBonuses}</span></div>
+        <div className="flex justify-between border-b border-white/5 pb-1"><span>Fill-Up</span> <span className="text-secondary">{player.fillUpBonuses}</span></div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5 pt-2">
         {Array.from({ length: TOTAL_NUMBERS }, (_, idx) => idx + 1).map((num) => (
           <div
             key={num}
-            className={`w-7 h-7 rounded text-[10px] font-mono-game flex items-center justify-center font-bold ${closedNumbers.has(num)
-              ? 'bg-muted text-muted-foreground line-through'
+            className={`w-full aspect-square rounded-md text-[9px] font-mono-game flex items-center justify-center font-bold transition-all ${closedNumbers.has(num)
+              ? 'bg-white/5 text-white/20 line-through'
               : player.completed[num]
-                ? 'bg-primary/30 text-primary'
+                ? 'bg-primary text-white scale-110 shadow-[0_0_15px_rgba(232,65,66,0.6)] z-10'
                 : player.hits[num] > 0
-                  ? 'bg-accent/20 text-accent'
-                  : 'bg-muted/50 text-muted-foreground'
+                  ? 'bg-secondary text-black scale-105 shadow-[0_0_10px_rgba(255,180,0,0.4)]'
+                  : 'bg-white/5 text-white/30'
               }`}
           >
             {num}
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+const BatchTransitionOverlay = ({ show, benchmark, winnerName, opponentName, onClose }: {
+  show: boolean,
+  benchmark: number,
+  winnerName: string,
+  opponentName: string,
+  onClose: () => void
+}) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-500">
+      <div className="max-w-2xl w-full glass-panel p-12 rounded-[3rem] border-2 border-primary neon-border-theme flex flex-col items-center text-center gap-8 shadow-2xl animate-in zoom-in slide-in-from-bottom-12 duration-700">
+        <div className="space-y-2">
+          <h2 className="text-6xl font-black italic tracking-tighter text-primary text-glow-theme animate-bounce">
+            BATCH 1 ACHIEVED!
+          </h2>
+          <p className="text-white/60 font-mono-game uppercase tracking-[0.4em] text-sm">Target {TARGET_SCORE} exceeded</p>
+        </div>
+
+        <div className="w-full h-px bg-white/10" />
+
+        <div className="space-y-6">
+          <p className="text-2xl text-white font-bold leading-relaxed px-4">
+            <span className="text-secondary">{winnerName}</span> set the Benchmark Bar at <span className="text-primary text-3xl">{benchmark}</span>!
+          </p>
+
+          <div className="glass-panel p-8 rounded-2xl border-white/5 bg-white/5 space-y-4">
+            <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-bold">Batch 2 Instructions (Qualification Round)</h3>
+            <ul className="text-white/80 text-sm space-y-3 font-medium leading-relaxed">
+              <li className="flex items-start gap-3 justify-center">
+                <span className="text-primary font-bold">1.</span>
+                <span>{opponentName} takes the turn from 0 points.</span>
+              </li>
+              <li className="flex items-start gap-3 justify-center">
+                <span className="text-primary font-bold">2.</span>
+                <span>Surpass the target of <span className="text-primary font-bold">{benchmark}</span> to WIN immediately!</span>
+              </li>
+              <li className="flex items-start gap-3 justify-center">
+                <span className="text-primary font-bold">3.</span>
+                <span>If board closes before beating the target, <span className="text-primary font-bold">{winnerName}</span> wins the game.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <Button
+          onClick={onClose}
+          className="bg-primary hover:bg-primary/80 text-white font-black px-12 py-8 text-2xl rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all animate-pulse"
+        >
+          GO BATCH 2! 🎯
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const ThemeSwitcher = ({ current, onSelect }: { current: string, onSelect: (t: any) => void }) => {
+  const themes = [
+    { id: 'neon', label: 'Neon Space', color: '#00f2fe' },
+    { id: 'avalanche', label: 'Avalanche', color: '#E84142' },
+    { id: 'gold', label: 'Cyber Gold', color: '#ffb400' },
+    { id: 'midnight', label: 'Deep Sea', color: '#00ff88' },
+  ];
+
+  return (
+    <div className="fixed top-6 right-6 z-50">
+      <Select value={current} onValueChange={onSelect}>
+        <SelectTrigger className="w-[180px] glass-panel border-white/10 text-white rounded-xl h-11 focus:ring-primary/50">
+          <div className="flex items-center gap-2">
+            <Palette className="w-4 h-4 text-primary" />
+            <SelectValue placeholder="Select Theme" />
+          </div>
+        </SelectTrigger>
+        <SelectContent className="glass-panel border-white/10 text-white rounded-xl overflow-hidden">
+          {themes.map((t) => (
+            <SelectItem
+              key={t.id}
+              value={t.id}
+              className="focus:bg-white/10 focus:text-white cursor-pointer py-3 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: t.color, color: t.color }} />
+                <span className="text-[11px] font-mono-game uppercase tracking-widest">{t.label}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 };

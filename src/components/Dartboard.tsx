@@ -21,305 +21,323 @@ interface DartStuck {
   id: number;
   x: number;
   y: number;
+  angle: number;
+  tilt: number;
+  playerIdx: number;
 }
 
 let dartIdCounter = 0;
 
-type BoardPhase = 'idle' | 'rotating' | 'throwing';
+type BoardPhase = 'idle' | 'throwing';
 
 const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing, disabled }) => {
   const cp = gameState.currentPlayer;
   const player = gameState.players[cp];
 
   const [boardPhase, setBoardPhase] = useState<BoardPhase>('idle');
-  const [rotationDeg, setRotationDeg] = useState(0);
   const [stuckDarts, setStuckDarts] = useState<DartStuck[]>([]);
   const [dartVisible, setDartVisible] = useState(true);
   const [dartFlying, setDartFlying] = useState(false);
+  const [hitPulse, setHitPulse] = useState<{ id: string; type: 'number' | 'ring' } | null>(null);
 
-  const rotAnimRef = useRef<number | null>(null);
-  const rotDegRef = useRef(0);
   const phaseRef = useRef<BoardPhase>('idle');
-
   useEffect(() => { phaseRef.current = boardPhase; }, [boardPhase]);
 
   const prevCpRef = useRef(cp);
   useEffect(() => {
     if (prevCpRef.current !== cp) {
-      setStuckDarts([]);
-      setBoardPhase('idle');
+      // Darts persist until the new player takes their first action
       prevCpRef.current = cp;
     }
   }, [cp]);
 
-  useEffect(() => {
-    return () => { if (rotAnimRef.current) cancelAnimationFrame(rotAnimRef.current); };
-  }, []);
-
   const resolveDartLanding = useCallback(() => {
-    const landAngle = Math.random() * 360;
-    const weights = [0.15, 0.3, 0.35, 0.2];
-    const roll = Math.random();
-    let cumulative = 0;
-    let hitRingIdx = 0;
-    for (let i = 0; i < weights.length; i++) {
-      cumulative += weights[i];
-      if (roll < cumulative) { hitRingIdx = i; break; }
+    // 1. Choose a target: 70% chance for a number, 30% for a ring line
+    const hitNumberMode = Math.random() < 0.7;
+
+    if (hitNumberMode) {
+      // Pick a random number from layout
+      const targetPos = BOARD_LAYOUT[Math.floor(Math.random() * BOARD_LAYOUT.length)];
+      // ALIGN TO BADGE CENTER: 
+      // Important - number badges are rendered at targetPos.angle and ring.outer
+      const ring = RING_RADII[targetPos.ring];
+      const r = ring.outer;
+      const [lx, ly] = polarToXY(targetPos.angle, r);
+
+      return {
+        lx,
+        ly,
+        angle: targetPos.angle,
+        hitRingIdx: targetPos.ring,
+        closestNum: targetPos.number,
+        hitRingLine: false,
+        hitRingLineIdx: -1
+      };
+    } else {
+      // Pick a random ring line
+      const ringIdx = Math.floor(Math.random() * RING_RADII.length);
+      const ring = RING_RADII[ringIdx];
+      const landAngle = Math.random() * 360;
+      // Hit the EXACT radius line
+      const r = ring.outer;
+      const [lx, ly] = polarToXY(landAngle, r);
+
+      return {
+        lx, ly,
+        angle: landAngle,
+        hitRingIdx: ringIdx,
+        closestNum: -1,
+        hitRingLine: true,
+        hitRingLineIdx: ringIdx
+      };
     }
-
-    const ring = RING_RADII[hitRingIdx];
-    const landRadius = ring.inner + Math.random() * (ring.outer - ring.inner);
-    const rad = ((landAngle - 90) * Math.PI) / 180;
-    const lx = CENTER + landRadius * Math.cos(rad) * SCALE;
-    const ly = CENTER + landRadius * Math.sin(rad) * SCALE;
-
-    let closestNum = -1;
-    let closestDist = Infinity;
-    BOARD_LAYOUT.forEach((pos) => {
-      if (pos.ring !== hitRingIdx) return;
-      // Dot is placed exactly ON the outer ring boundary
-      const r = RING_RADII[pos.ring].outer;
-      const [nx, ny] = polarToXY(pos.angle, r);
-      const d = Math.sqrt((lx - nx) ** 2 + (ly - ny) ** 2);
-      if (d < closestDist) {
-        closestDist = d;
-        closestNum = pos.number;
-      }
-    });
-
-    const ringBoundaryDist = Math.min(
-      Math.abs(landRadius - ring.inner),
-      Math.abs(landRadius - ring.outer)
-    );
-    const hitRingLine = ringBoundaryDist < 14;
-
-    return { lx, ly, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx: hitRingLine ? hitRingIdx : -1 };
   }, []);
 
   const handleDartArrowClick = useCallback(() => {
-    if (disabled || gameState.gameOver) return;
+    setBoardPhase('throwing');
+    phaseRef.current = 'throwing';
 
-    if (boardPhase === 'idle') {
-      setBoardPhase('rotating');
-      phaseRef.current = 'rotating';
-
-      const spinMs = (5 + Math.random() * 2) * 1000;
-      const fps = 60;
-      const totalFrames = Math.round((spinMs / 1000) * fps);
-      let frame = 0;
-
-      const animate = () => {
-        if (phaseRef.current !== 'rotating') return;
-        frame++;
-        const t = frame / totalFrames;
-        const speed = 9 - t * 7;
-        rotDegRef.current = (rotDegRef.current + Math.max(speed, 2)) % 360;
-        setRotationDeg(rotDegRef.current);
-
-        if (frame < totalFrames) {
-          rotAnimRef.current = requestAnimationFrame(animate);
-        }
-      };
-      rotAnimRef.current = requestAnimationFrame(animate);
-      return;
+    // Clear previous player's darts on the current player's first throw
+    if (gameState.dartsRemaining === 3) {
+      setStuckDarts([]);
     }
 
-    if (boardPhase === 'rotating') {
-      if (rotAnimRef.current) {
-        cancelAnimationFrame(rotAnimRef.current);
-        rotAnimRef.current = null;
+    const { lx, ly, angle, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = resolveDartLanding();
+
+    setDartFlying(true);
+    setDartVisible(false);
+
+    setTimeout(() => {
+      setDartFlying(false);
+      setDartVisible(true);
+      setBoardPhase('idle');
+      phaseRef.current = 'idle';
+      window.dispatchEvent(new CustomEvent('DART_HIT_IMPACT'));
+
+      const id = ++dartIdCounter;
+      // Random tilt for realistic dart landing (±20°)
+      const tilt = (Math.random() - 0.5) * 40;
+      // Single-dart visibility: only keep the most recent dart
+      setStuckDarts([{ id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
+      // Permanent markers: do not remove them after 2.5s
+
+      if (hitRingLine && hitRingLineIdx >= 0) {
+        setHitPulse({ id: `ring-${hitRingLineIdx}`, type: 'ring' });
+        const rNums = RING_NUMBERS[hitRingLineIdx] ?? [];
+        if (rNums.length > 0) onHitRing(hitRingLineIdx);
+      } else if (closestNum !== -1) {
+        setHitPulse({ id: `num-${closestNum}`, type: 'number' });
+        if (!gameState.closedNumbers.has(closestNum) && !player.completed[closestNum]) {
+          onHitNumber(closestNum);
+        } else {
+          const rNums = RING_NUMBERS[hitRingIdx] ?? [];
+          if (rNums.length > 0) onHitRing(hitRingIdx);
+        }
       }
-      setBoardPhase('throwing');
-      phaseRef.current = 'throwing';
 
-      const { lx, ly, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = resolveDartLanding();
-
-      setDartFlying(true);
-      setDartVisible(false);
-
-      setTimeout(() => {
-        setDartFlying(false);
-        setDartVisible(true);
-        setBoardPhase('idle');
-        phaseRef.current = 'idle';
-
-        const id = ++dartIdCounter;
-        setStuckDarts(prev => [...prev, { id, x: lx, y: ly }]);
-        setTimeout(() => setStuckDarts(prev => prev.filter(d => d.id !== id)), 2500);
-
-        if (hitRingLine && hitRingLineIdx >= 0) {
-          const rNums = RING_NUMBERS[hitRingLineIdx] ?? [];
-          if (rNums.length > 0) onHitRing(hitRingLineIdx);
-        } else if (closestNum !== -1) {
-          if (!gameState.closedNumbers.has(closestNum) && !player.completed[closestNum]) {
-            onHitNumber(closestNum);
-          } else {
-            const rNums = RING_NUMBERS[hitRingIdx] ?? [];
-            if (rNums.length > 0) onHitRing(hitRingIdx);
-          }
-        }
-      }, 560);
-    }
+      setTimeout(() => setHitPulse(null), 1000);
+    }, 560);
   }, [disabled, gameState.gameOver, gameState.closedNumbers, boardPhase, player, onHitNumber, onHitRing, resolveDartLanding]);
 
+  useEffect(() => {
+    const handleGlobalThrow = () => {
+      handleDartArrowClick();
+    };
+    window.addEventListener('THROW_DART', handleGlobalThrow);
+    return () => window.removeEventListener('THROW_DART', handleGlobalThrow);
+  }, [handleDartArrowClick]);
+
   const getHint = () => {
-    if (disabled) return 'Game Over';
-    if (boardPhase === 'idle') return 'Click arrow to spin the board';
-    if (boardPhase === 'rotating') return '🌀 Spinning! Click arrow again to throw';
-    if (boardPhase === 'throwing') return '💨 Dart thrown!';
+    if (disabled) return 'GAME PAUSED';
+    if (boardPhase === 'idle') return 'Click arrow to throw dart';
+    if (boardPhase === 'throwing') return 'Dart in flight...';
     return '';
   };
 
-  const hintColor =
-    boardPhase === 'rotating' ? 'hsl(45,90%,60%)' :
-      boardPhase === 'throwing' ? 'hsl(0,80%,65%)' :
-        'hsl(220,10%,55%)';
+  const ringColors = [
+    'var(--ring-1)',
+    'var(--ring-2)',
+    'var(--ring-3)',
+    'var(--ring-4)',
+  ];
 
   return (
-    <div className="relative flex items-center justify-center gap-4 md:gap-8">
-      {/* ═══ LEFT: Dart Arrow ═══ */}
-      <div className="flex flex-col items-center gap-2 flex-shrink-0 z-10">
-        <DartArrow
-          boardPhase={boardPhase}
-          isFlying={dartFlying}
-          isVisible={dartVisible}
-          disabled={disabled}
-          onClick={handleDartArrowClick}
-        />
-        <div className="text-center" style={{ maxWidth: 76 }}>
-          <span
-            className="text-[10px] font-mono leading-tight"
-            style={{ color: boardPhase === 'rotating' ? 'hsl(45,90%,60%)' : boardPhase === 'idle' && !disabled ? '#ddd' : '#666' }}
+    <div className="relative flex flex-col items-center gap-10">
+      <div className="flex flex-col items-center justify-center gap-10">
+        {/* ═══ CENTER: Dartboard ═══ */}
+        <div className="flex flex-col items-center">
+          <svg
+            viewBox="0 0 500 500"
+            className="w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] md:w-[450px] md:h-[450px]"
+            style={{
+              filter: 'drop-shadow(0 0 30px rgba(0,0,0,0.5))',
+              pointerEvents: 'none',
+              overflow: 'visible'
+            }}
           >
-            {boardPhase === 'idle' && !disabled && '① Click me\nto spin!'}
-            {boardPhase === 'rotating' && '② Click me\nto throw!'}
-            {boardPhase === 'throwing' && '💨'}
-            {disabled && '—'}
-          </span>
-        </div>
-      </div>
+            <defs>
+              {/* Ruby Crystal Gradient */}
+              <radialGradient id="ruby-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
+                <stop offset="0%" stopColor="#FF4D4D" />
+                <stop offset="40%" stopColor="#B30000" />
+                <stop offset="100%" stopColor="#4D0000" />
+              </radialGradient>
+              {/* Emerald Crystal Gradient */}
+              <radialGradient id="emerald-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
+                <stop offset="0%" stopColor="#4DFF4D" />
+                <stop offset="40%" stopColor="#00B300" />
+                <stop offset="100%" stopColor="#004D00" />
+              </radialGradient>
+              <filter id="inner-glow">
+                <feGaussianBlur stdDeviation="1" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+              <filter id="crystal-shine">
+                <feGaussianBlur stdDeviation="0.4" result="blur" />
+              </filter>
+            </defs>
 
-      {/* ═══ CENTER: Flat Dartboard (Fast Performance) ═══ */}
-      <div className="flex flex-col items-center">
-        <svg
-          viewBox="0 0 500 500"
-          className="w-[290px] h-[290px] sm:w-[340px] sm:h-[340px] md:w-[400px] md:h-[400px]"
-          style={{
-            transform: `rotate(${rotationDeg}deg)`,
-            transition: boardPhase === 'rotating' ? 'none' : 'transform 0.4s ease-out',
-            filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.8))',
-            pointerEvents: 'none',
-            willChange: 'transform',
-          }}
-        >
-          {/* Background */}
-          <circle cx={CENTER} cy={CENTER} r={238} fill="#141514" />
-          <circle cx={CENTER} cy={CENTER} r={234} fill="#1a1c1a" />
+            {/* Royal Blue Base background */}
+            <circle cx={CENTER} cy={CENTER} r="255" fill="#002366" opacity="1.0" />
+            <circle cx={CENTER} cy={CENTER} r="248" fill="none" stroke="#4169E1" strokeWidth="8" />
 
-          {/* Ring fills — slightly different dark shades to add subtle depth */}
-          {[...RING_RADII].reverse().map((ring, idx) => (
-            <circle
-              key={`fill-${idx}`}
-              cx={CENTER} cy={CENTER}
-              r={ring.outer * SCALE}
-              fill={idx % 2 === 0 ? '#1f221f' : '#1a1c1a'}
-            />
-          ))}
+            {/* Dartboard Slices */}
+            {Array.from({ length: 20 }).map((_, i) => {
+              const startAngle = (i * 18 - 9 - 90) * Math.PI / 180;
+              const endAngle = ((i + 1) * 18 - 9 - 90) * Math.PI / 180;
+              const x1 = CENTER + 245 * Math.cos(startAngle);
+              const y1 = CENTER + 245 * Math.sin(startAngle);
+              const x2 = CENTER + 245 * Math.cos(endAngle);
+              const y2 = CENTER + 245 * Math.sin(endAngle);
 
-          {/* White ring boundary lines */}
-          {RING_RADII.map((ring, i) => (
-            <circle
-              key={`ring-line-${i}`}
-              cx={CENTER} cy={CENTER}
-              r={ring.outer * SCALE}
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="6"
-            />
-          ))}
+              // Alternate colors for the slices
+              const sliceColor = i % 2 === 0 ? "rgba(0,0,0,0.8)" : "rgba(240,240,230,0.1)";
 
-          {/* Number dots with simple fills */}
-          {BOARD_LAYOUT.map((pos) => {
-            const ringData = RING_RADII[pos.ring];
-            // Dot strictly sits on the white ring line (the 'outer' radius)
-            const r = ringData.outer;
-            const [x, y] = polarToXY(pos.angle, r);
-            const isCompleted = player.completed[pos.number];
-            const isClosed = gameState.closedNumbers.has(pos.number);
-            const hitPct = Math.min(player.hits[pos.number] / pos.number, 1);
+              return (
+                <path
+                  key={`slice-${i}`}
+                  d={`M ${CENTER} ${CENTER} L ${x1} ${y1} A 245 245 0 0 1 ${x2} ${y2} Z`}
+                  fill={sliceColor}
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth="1"
+                />
+              );
+            })}
 
-            const dotFill = isClosed ? '#2a2a2a' : pos.color === 'red' ? '#b81515' : '#106b29';
-            const textFill = isClosed ? '#666' : '#ffffff';
-            const DOT_R = 18;
+            {/* Energy Rings - Now Solid White Lines */}
+            {[...RING_RADII].map((ring, i) => (
+              <circle
+                key={`ring-line-${i}`}
+                cx={CENTER} cy={CENTER}
+                r={ring.outer * SCALE}
+                fill="none"
+                stroke={hitPulse?.type === 'ring' && hitPulse.id === `ring-${i}` ? "#FFFFFF" : "rgba(255,255,255,0.8)"}
+                strokeWidth={hitPulse?.type === 'ring' && hitPulse.id === `ring-${i}` ? "8" : "4"}
+                className={hitPulse?.type === 'ring' && hitPulse.id === `ring-${i}` ? "animate-pulse" : ""}
+                style={{ transition: 'stroke-width 0.2s' }}
+                filter="url(#glow)"
+              />
+            ))}
 
-            return (
-              <g key={pos.number} style={{ pointerEvents: 'none' }}>
-                <circle cx={x} cy={y} r={DOT_R} fill={dotFill} opacity={isClosed ? 0.6 : 1} />
+            {/* Gem Number Dots */}
+            {BOARD_LAYOUT.map((pos) => {
+              const ringData = RING_RADII[pos.ring];
+              // Render numbers EXACTLY on the white ring circle
+              const r = ringData.outer;
+              const [x, y] = polarToXY(pos.angle, r);
+              const isClosed = gameState.closedNumbers.has(pos.number);
 
-                {/* Progress arc */}
-                {!isClosed && player.hits[pos.number] > 0 && (
-                  <circle cx={x} cy={y} r={DOT_R + 4}
-                    fill="none"
-                    stroke={isCompleted ? '#22c55e' : '#facc15'}
-                    strokeWidth="2.5"
-                    strokeDasharray={`${hitPct * (2 * Math.PI * (DOT_R + 4))} ${2 * Math.PI * (DOT_R + 4)}`}
-                    transform={`rotate(-90 ${x} ${y})`}
-                    strokeLinecap="round"
+              const gemId = isClosed ? 'gem-gray' : pos.color === 'red' ? 'gem-red' : 'gem-green';
+              const DOT_R = 19;
+
+              return (
+                <g key={pos.number}>
+                  {/* Exquisite Image Badge */}
+                  <circle
+                    cx={x} cy={y} r={hitPulse?.id === `num-${pos.number}` ? "26" : "21"}
+                    fill={isClosed ? "#333" : (pos.color === 'red' ? 'url(#ruby-grad)' : 'url(#emerald-grad)')}
+                    filter="url(#glow)"
+                    className={hitPulse?.id === `num-${pos.number}` ? "animate-pulse" : ""}
+                    style={{ transition: 'all 0.2s ease-out' }}
                   />
-                )}
 
-                {/* Number text */}
-                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central"
-                  fill={textFill} fontSize="15" fontWeight="bold" fontFamily="'Bebas Neue', sans-serif"
-                >{pos.number}</text>
 
-                {/* Hit badge */}
-                {player.hits[pos.number] > 0 && !isClosed && (
-                  <g className="pointer-events-none" transform={`translate(0, -${DOT_R + 10})`}>
-                    <rect x={x - 10} y={y - 6} width={20} height={12} rx={3} fill="#111" />
-                    <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fill="#facc15" fontSize="7" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">
-                      {player.hits[pos.number]}/{pos.number}
-                    </text>
-                  </g>
-                )}
+                  {/* Restored Hit Progress Ring */}
+                  {!isClosed && player.hits[pos.number] > 0 && (
+                    <circle
+                      cx={x} cy={y} r="26"
+                      fill="none"
+                      stroke={pos.color === 'red' ? '#e63946' : '#2a9d8f'}
+                      strokeWidth="4"
+                      strokeDasharray={`${(Math.min(player.hits[pos.number] / pos.number, 1)) * (2 * Math.PI * 26)} ${2 * Math.PI * 26}`}
+                      transform={`rotate(-90 ${x} ${y})`}
+                      strokeLinecap="round"
+                      filter="url(#glow)"
+                    />
+                  )}
+
+                  {/* Number text - Fancy Playfair serif */}
+                  <text
+                    x={x}
+                    y={y + 1}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={isClosed ? "#888" : "#FFFFFF"}
+                    fontSize="22"
+                    fontWeight="800"
+                    fontFamily="'Orbitron', sans-serif"
+                    style={{
+                      textShadow: isClosed
+                        ? 'none'
+                        : `0 2px 4px rgba(0, 0, 0, 0.4)`
+                    }}
+                  >
+                    {pos.number}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Stuck dart impact spots - Permanent Image Markers */}
+            {stuckDarts.map((dart) => (
+              <g key={dart.id}>
+                {/* 
+                  The dart image is 80x160. 
+                  The TIP is roughly at (x+40, y+150).
+                  We rotate it so it points towards the center radial line.
+                */}
+                <image
+                  href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
+                  x={dart.x - 29}
+                  y={dart.y - 135 + 15} // Reduced height 135, 15px pierce
+                  width="58"
+                  height="135"
+                  transform={`rotate(${dart.angle + dart.tilt} ${dart.x} ${dart.y})`}
+                  style={{
+                    filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.6))'
+                  }}
+                />
               </g>
-            );
-          })}
-
-          {/* Spinning visual cue */}
-          {boardPhase === 'rotating' && (
-            <circle cx={CENTER} cy={CENTER} r={232} fill="none" stroke="#facc15" strokeWidth="3" opacity="0.4" strokeDasharray="10 10" />
-          )}
-
-          {/* Stuck dart markers */}
-          {stuckDarts.map((dart) => (
-            <g key={dart.id}>
-              <circle cx={dart.x} cy={dart.y} r={6} fill="#facc15" stroke="#111" strokeWidth="1" />
-            </g>
-          ))}
-        </svg>
-
-        {/* Hint text below board */}
-        <div className="mt-4 text-center" style={{ minHeight: 20 }}>
-          <span className="text-[13px] tracking-wide font-mono font-bold" style={{ color: hintColor, textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-            {getHint()}
-          </span>
+            ))}
+          </svg>
         </div>
       </div>
+
+
     </div>
   );
 };
 
-// ─── Flat Dart Arrow ─────────────────────────────────────────────────────────
-const DartArrow: React.FC<{
-  boardPhase: BoardPhase;
+// ─── Dart Arrow Component ───────────────────────────────────────────────────
+export const DartArrow: React.FC<{
+  boardPhase: string;
   isFlying: boolean;
   isVisible: boolean;
   disabled: boolean;
   onClick: () => void;
-}> = ({ boardPhase, isFlying, isVisible, disabled, onClick }) => {
-  const canClick = (boardPhase === 'idle' || boardPhase === 'rotating') && !disabled;
-  const isReadyToThrow = boardPhase === 'rotating';
+  playerIdx: number;
+}> = ({ boardPhase, isFlying, isVisible, disabled, onClick, playerIdx }) => {
+  const canClick = boardPhase === 'idle' && !disabled;
 
   return (
     <div
@@ -328,38 +346,22 @@ const DartArrow: React.FC<{
       className={`
         transition-all duration-300 select-none group
         ${!isVisible ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}
-        ${isFlying ? 'translate-x-48 opacity-0 duration-500 ease-in' : ''}
-        ${isReadyToThrow ? 'animate-pulse' : ''}
+        ${isFlying ? 'translate-x-[200px] translate-y-[100px] rotate-[60deg] opacity-0 duration-500 ease-in' : ''}
+        ${canClick ? 'hover:scale-110 active:scale-90' : ''}
       `}
     >
-      <div className="relative group-hover:-translate-y-1 transition-transform drop-shadow-xl">
-        <svg viewBox="0 0 240 100" className="w-[120px] md:w-[150px]">
-          {/* Flights - back */}
-          <path d="M10,50 L40,20 L55,50 Z" fill={isReadyToThrow ? '#4ade80' : '#f87171'} />
-          <path d="M10,50 L40,80 L55,50 Z" fill={isReadyToThrow ? '#22c55e' : '#ef4444'} />
-
-          {/* Shaft */}
-          <rect x="52" y="46" width="55" height="8" rx="2" fill="#555" />
-
-          {/* Barrel */}
-          <path d="M105,42 Q140,36 170,42 L170,58 Q140,64 105,58 Z" fill="#d4af37" />
-
-          {/* Barrel Grips */}
-          {[115, 125, 135, 145, 155].map(x => (
-            <ellipse key={x} cx={x} cy="50" rx="2" ry="7" fill="#111" opacity="0.3" />
-          ))}
-
-          {/* Tip Metal Base */}
-          <polygon points="170,44 190,47 190,53 170,56" fill="#888" />
-
-          {/* Needle Tip */}
-          <polygon points="190,48 230,50 190,52" fill="#d4d4d4" />
-
-          {/* Ready Glow */}
-          {!disabled && isReadyToThrow && (
-            <circle cx="230" cy="50" r="5" fill="#4ade80" />
-          )}
-        </svg>
+      <div className="relative" onClick={(e) => {
+        e.stopPropagation();
+        if (canClick) {
+          console.log("Dispatching THROW_DART from DartArrow image");
+          window.dispatchEvent(new CustomEvent('THROW_DART'));
+        }
+      }}>
+        <img
+          src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
+          alt="Dart arrow"
+          className="w-[80px] md:w-[100px] rounded"
+        />
       </div>
     </div>
   );

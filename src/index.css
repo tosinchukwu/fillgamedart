@@ -1,59 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+:root {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 100%;
+  --card: 240 10% 4%;
+  --card-foreground: 0 0% 100%;
+  --primary: 359 78% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 90%;
+  --secondary-foreground: 0 0% 10%;
+  --border: 240 5% 20% / 0.5;
+  --ring: 359 78% 58%;
+  --radius: 0.75rem;
 
-@layer base {
-  :root {
-    --background: 220 20% 8%;
-    --foreground: 0 0% 95%;
+  /* Theme Engine Defaults (Avalanche) */
+  --theme-bg: #050508;
+  --theme-accent: #E84142;
+  --theme-glow: hsla(359, 78%, 58%, 0.4);
+  --panel-blur: 24px;
+  --font-heading: 'Orbitron', sans-serif;
 
-    --card: 220 18% 12%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 220 18% 12%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 145 60% 45%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 0 70% 50%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 220 15% 18%;
-    --muted-foreground: 220 10% 55%;
-
-    --accent: 45 90% 55%;
-    --accent-foreground: 220 20% 8%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 145 60% 45%;
-
-    --radius: 0.75rem;
-
-    /* Game-specific tokens */
-    --dart-red: 0 70% 50%;
-    --dart-green: 145 60% 40%;
-    --dart-ring: 0 0% 85%;
-    --dart-board: 220 20% 6%;
-    --dart-glow: 145 60% 45%;
-    --score-gold: 45 90% 55%;
-
-    --sidebar-background: 220 18% 10%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 145 60% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 220 15% 22%;
-    --sidebar-ring: 145 60% 45%;
-  }
+  --ring-1: #E84142;
+  --ring-2: #FFFFFF;
+  --ring-3: #E84142;
+  --ring-4: rgba(255, 255, 255, 0.4);
 }
+
+/* 🌌 Theme: Neon Space */
+.theme-neon {
+  --theme-bg: #020205;
+  --theme-accent: #00f2fe;
+  --theme-glow: rgba(0, 242, 254, 0.4);
+  --primary: 180 100% 50%;
+  --foreground: 180 10% 98%;
+  --card: 240 10% 3%;
+  --border: 180 100% 50% / 0.2;
+  --ring-1: #00f2fe;
+  --ring-2: #f0f;
+  --ring-3: #7000ff;
+  --ring-4: #00f2fe;
+}
+
+/* 🔺 Theme: Avalanche Pro */
+.theme-avalanche {
+  --theme-bg: #08080c;
+  --theme-accent: #E84142;
+  --theme-glow: hsla(359, 78%, 58%, 0.4);
+  --primary: 359 78% 58%;
+  --foreground: 0 0% 100%;
+  --card: 240 10% 5%;
+  --border: 359 78% 58% / 0.2;
+  --ring-1: #E84142;
+  --ring-2: #fff;
+  --ring-3: #E84142;
+  --ring-4: rgba(255, 255, 255, 0.4);
+}
+
+/* ☢️ Theme: Cyberpunk Gold */
+.theme-gold {
+  --theme-bg: #0a0a05;
+  --theme-accent: #ffb400;
+  --theme-glow: rgba(255, 180, 0, 0.4);
+  --primary: 48 100% 50%;
+  --foreground: 48 10% 98%;
+  --card: 48 10% 3%;
+  --border: 48 100% 50% / 0.2;
+  --ring-1: #ffb400;
+  --ring-2: #ff6a00;
+  --ring-3: #ffb400;
+  --ring-4: rgba(255, 180, 0, 0.3);
+}
+
+/* 🌊 Theme: Midnight Sea */
+.theme-midnight {
+  --theme-bg: #02050a;
+  --theme-accent: #00ff88;
+  --theme-glow: rgba(0, 255, 136, 0.4);
+  --primary: 152 100% 50%;
+  --foreground: 152 10% 98%;
+  --card: 220 20% 4%;
+  --border: 152 100% 50% / 0.2;
+  --ring-1: #00ff88;
+  --ring-2: #00d4ff;
+  --ring-3: #0044ff;
+  --ring-4: rgba(0, 255, 136, 0.3);
+}
+
+/* ☁️ Theme: Ethereal Sky (REMOVED - Now Global) */
 
 @layer base {
   * {
@@ -61,13 +98,33 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground min-h-screen relative overflow-x-hidden transition-colors duration-700;
     font-family: 'Inter', sans-serif;
+    background: var(--theme-bg);
   }
 
-  h1, h2, h3 {
-    font-family: 'Bebas Neue', sans-serif;
-    letter-spacing: 0.05em;
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/sky-bg.png');
+    background-position: center;
+    background-size: cover;
+    pointer-events: none;
+    z-index: -1;
+    transition: all 0.7s ease;
+    opacity: 0.85;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
   }
 }
 
@@ -76,77 +133,25 @@
     font-family: 'JetBrains Mono', monospace;
   }
 
-  .glow-green {
-    box-shadow: 0 0 20px hsl(145 60% 45% / 0.3), 0 0 60px hsl(145 60% 45% / 0.1);
+  .glass-panel {
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(var(--panel-blur));
+    -webkit-backdrop-filter: blur(var(--panel-blur));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .glow-red {
-    box-shadow: 0 0 20px hsl(0 70% 50% / 0.3), 0 0 60px hsl(0 70% 50% / 0.1);
+  .neon-border-theme {
+    border: 1px solid var(--theme-accent);
+    box-shadow: 0 0 15px var(--theme-glow), inset 0 0 10px var(--theme-glow);
   }
 
-  .glow-gold {
-    box-shadow: 0 0 20px hsl(45 90% 55% / 0.3), 0 0 60px hsl(45 90% 55% / 0.1);
+  .text-glow-theme {
+    text-shadow: 0 0 8px var(--theme-accent), 0 0 20px var(--theme-glow);
   }
 
-  .text-shadow-glow {
-    text-shadow: 0 0 10px currentColor;
-  }
-
-  @keyframes dart-throw-horizontal {
-    0% {
-      transform: rotate(90deg) translateY(0) scale(1);
-      opacity: 1;
-    }
-    40% {
-      transform: rotate(90deg) translateY(-80px) scale(0.7);
-      opacity: 0.8;
-    }
-    70% {
-      transform: rotate(90deg) translateY(-160px) scale(0.35);
-      opacity: 0.5;
-    }
-    100% {
-      transform: rotate(90deg) translateY(-240px) scale(0.1);
-      opacity: 0;
-    }
-  }
-
-  @keyframes dart-return {
-    0% {
-      transform: rotate(90deg) translateY(-240px) scale(0.1);
-      opacity: 0;
-    }
-    100% {
-      transform: rotate(90deg) translateY(0) scale(1);
-      opacity: 1;
-    }
-  }
-
-  @keyframes dart-fade {
-    0% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-
-  @keyframes board-spin-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 transparent; }
-    50% { box-shadow: 0 0 0 4px hsl(145 60% 45% / 0.4); }
-  }
-
-  @keyframes animate-pulse-glow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  .animate-dart-throw {
-    animation: dart-throw-horizontal 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-               dart-return 0.4s cubic-bezier(0, 0, 0.2, 1) 0.7s forwards;
-  }
-
-  .animate-dart-fade {
-    animation: dart-fade 0.8s ease-out 0.2s forwards;
-  }
-
-  .animate-pulse-glow {
-    animation: animate-pulse-glow 2s ease-in-out infinite;
+  .text-glow-white {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.3);
   }
 }

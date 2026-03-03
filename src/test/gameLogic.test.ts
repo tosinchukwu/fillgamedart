@@ -66,4 +66,43 @@ describe("Game Logic Per-Number Bonus Tests", () => {
         // P1 gets 2 filler = 2
         expect(state.players[0].totalScore).toBe(2);
     });
+
+    it("should award ring points without incrementing hits or completion", () => {
+        const { RING_NUMBERS } = require("../game/boardLayout");
+        const { hitRing } = require("../game/gameLogic");
+        let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
+
+        // Hit Ring 4 (contains [7, 2, 4, 6]) based on boardLayout
+        const ring4Nums = RING_NUMBERS[3];
+        state = hitRing(state, 3, ring4Nums).state;
+
+        const player1 = state.players[0];
+        // Score: 4 numbers * 2 pts = 8 total. 
+        // 2, 4, 6 award TFP too? 
+        // P1 hits: 0. P2 hits: 0. TFP for 2, 4, 6 should be split 3.5 each? 
+        // Wait, recalcTotalScore says: if (pHits > 0 || oHits > 0). 
+        // Since hits are 0, no TFP awards at all.
+        expect(player1.totalScore).toBe(8);
+
+        // Hits should remain 0
+        expect(player1.hits[2]).toBe(0);
+        expect(player1.hits[7]).toBe(0);
+        expect(player1.completed[2]).toBe(false);
+
+        // Ring points should respect cap
+        // Hit Ring 3 which contains [11, 1, 3, 8]
+        state.currentPlayer = 0;
+        state = hitRing(state, 2, RING_NUMBERS[2]).state;
+
+        // P1 total score should increase by 4 * 2 = 8 pts. 8 + 8 = 16.
+        expect(state.players[0].totalScore).toBe(16);
+
+        // Now hit Number 1 directly. 
+        // P1 has 2 bonusPoints for #1 (from ring 3 hit). 
+        // Target for #1 is 1 hit. Cap is 2 pts. 
+        // P1 already has 2 pts for #1. Direct hit should award 0 MORE points.
+        state = hitNumber(state, 1).state;
+        expect(state.players[0].hits[1]).toBe(1);
+        expect(state.players[0].totalScore).toBe(16); // Still 16!
+    });
 });

@@ -26,8 +26,9 @@ Strategically complete numbers 1-14 on a shared board to earn filler points and 
 
 ### ⭕ Ring Mechanics
 - The board has 4 strategic rings.
-- Hitting a ring impacts **all numbers** within that ring group.
-- You gain hits/points for all numbers on the ring that you have not yet personally completed.
+- Hitting a ring awards **+2 filler points** for all numbers within that ring group (that are not yet closed).
+- **Critical**: Ring hits **do NOT count as hits** toward completion or Top Filler competition. They only award points.
+- Points earned from rings still count toward the filler point cap for each number.
 
 ## 🏆 How to Win (The Batch System)
 The game is played in two distinct phases:

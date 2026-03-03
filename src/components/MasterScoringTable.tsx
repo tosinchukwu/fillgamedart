@@ -71,8 +71,10 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
         const opponent = gameState.players[1 - playerIdx];
 
         for (let n = 1; n <= limitNum; n++) {
-            // Filler
-            score += Math.min(player.hits[n], n) * 2;
+            // Filler (Combined hits * 2 + bonusPoints, capped at n * 2)
+            const baseFiller = player.hits[n] * 2;
+            const bonus = player.bonusPoints[n];
+            score += Math.min(baseFiller + bonus, n * 2);
 
             // TFP (Only for 2-14)
             if (n >= 2 && (player.hits[n] > 0 || opponent.hits[n] > 0)) {

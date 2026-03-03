@@ -212,14 +212,20 @@ const Index = () => {
 
   useEffect(() => {
     if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0) {
+      // 6s delay for the first dart of the turn, 2s for others
+      const delay = gameState.dartsRemaining === 3 ? 6000 : 2000;
+
       const timer = setTimeout(() => {
         const move = computeCPUMove(gameState);
         window.dispatchEvent(new CustomEvent('THROW_DART'));
+
+        // Wait for throw animation (1s) before processing the hit
         setTimeout(() => {
           if (move.type === 'number') handleHitNumber(move.index);
           else handleHitRing(move.index);
         }, 1000);
-      }, 2000);
+      }, delay);
+
       return () => clearTimeout(timer);
     }
   }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, handleHitNumber, handleHitRing]);

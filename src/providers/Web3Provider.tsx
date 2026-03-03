@@ -5,14 +5,16 @@ import { avalanche } from 'viem/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 
+import { WALLET_CONNECT_PROJECT_ID } from '../lib/constants'
+
 // 1. Get projectId from https://cloud.walletconnect.com
-const projectId = 'YOUR_PROJECT_ID' // Placeholder - user needs to provide this
+const projectId = WALLET_CONNECT_PROJECT_ID
 
 // 2. Create wagmiConfig
 const metadata = {
     name: 'Filling Game',
     description: 'Filling Game on Avalanche',
-    url: 'https://filling-game.example.com', // origin must match your domain & subdomain
+    url: window.location.origin,
     icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
@@ -27,8 +29,8 @@ const config = defaultWagmiConfig({
 createWeb3Modal({
     wagmiConfig: config,
     projectId,
-    enableAnalytics: true, // Optional - defaults to your Cloud configuration
-    enableOnramp: true // Optional - false as default
+    enableAnalytics: true,
+    enableOnramp: true
 })
 
 const queryClient = new QueryClient()

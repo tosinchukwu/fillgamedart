@@ -15,9 +15,11 @@ import {
 } from "@/components/ui/select";
 import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2 } from 'lucide-react';
 import SettingsDialog from '../components/SettingsDialog';
-import { useAccount, useDisconnect, useSendTransaction } from 'wagmi';
+import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../lib/constants';
+import { toast } from "sonner";
 
 // Audio assets (Local paths in public/audio/)
 const AUDIO_ASSETS = {
@@ -257,7 +259,43 @@ const Index = () => {
     }
   }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, handleHitNumber, handleHitRing]);
 
-  const broadcastScore = async () => { /* ... (broadcasting logic) */ };
+  const { writeContract, data: hash } = useWriteContract();
+  const { isLoading: isWaitingForTx, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    if (isTxSuccess) {
+      toast.success("Score broadcasted successfully!", {
+        description: `Transaction hash: ${hash?.slice(0, 10)}...`
+      });
+    }
+  }, [isTxSuccess, hash]);
+
+  const broadcastScore = async () => {
+    if (!gameState || !gameState.gameOver) {
+      toast.error("Game is not over yet!");
+      return;
+    }
+
+    try {
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'recordScore',
+        args: [
+          gameState.players[0].name,
+          gameState.players[0].address as `0x${string}`,
+          BigInt(gameState.players[0].totalScore),
+          gameState.players[1].name,
+          gameState.players[1].address as `0x${string}`,
+          BigInt(gameState.players[1].totalScore),
+          BigInt(Math.floor(Date.now() / 1000))
+        ],
+      });
+    } catch (error) {
+      console.error("Broadcast failed:", error);
+      toast.error("Failed to broadcast score. Check your wallet.");
+    }
+  };
 
   if (!gameStarted || !gameState) {
     return (
@@ -315,7 +353,13 @@ const Index = () => {
           <div className="glass-panel p-12 rounded-[2rem] border-primary text-center neon-border-theme">
             <h2 className="text-6xl text-primary font-black italic mb-4 uppercase">{gameState.players[gameState.winner].name} WINS!</h2>
             <p className="text-white/60 font-mono-game uppercase tracking-widest mb-8">Final Score: {gameState.players[gameState.winner].totalScore} pts</p>
-            <Button onClick={resetGame} className="bg-primary text-white font-black px-12 py-6 text-xl rounded-xl">Play Again</Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={resetGame} className="bg-white/10 text-white font-black px-8 py-6 text-lg rounded-xl flex-1 hover:bg-white/20">Play Again</Button>
+              <Button onClick={broadcastScore} disabled={!isConnected} className="bg-primary text-white font-black px-8 py-6 text-lg rounded-xl flex-1 shadow-[0_0_20px_rgba(232,65,66,0.3)]">
+                {isWaitingForTx ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wallet className="w-5 h-5 mr-2" />}
+                Broadcast Score
+              </Button>
+            </div>
           </div>
         </div>
       )}

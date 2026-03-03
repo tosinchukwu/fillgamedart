@@ -22,6 +22,12 @@ export interface GameState {
   gameOver: boolean;
   winner: 0 | 1 | null;
   lastAction: string | null;
+  lastHit: {
+    type: 'number' | 'ring';
+    value: number | string;
+    player: string;
+    timestamp: number;
+  } | null;
 }
 
 export interface TurnAction {
@@ -54,6 +60,7 @@ export function createInitialGameState(p1Name: string, p2Name: string): GameStat
     gameOver: false,
     winner: null,
     lastAction: null,
+    lastHit: null,
   };
 }
 
@@ -113,6 +120,12 @@ export function hitNumber(state: GameState, targetNumber: number): { state: Game
   newState.dartsRemaining--;
   const finalMessage = `[${player.name}]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
   newState.lastAction = finalMessage;
+  newState.lastHit = {
+    type: 'number',
+    value: targetNumber,
+    player: player.name,
+    timestamp: Date.now(),
+  };
 
   if (newState.dartsRemaining <= 0) {
     // Check batch conditions before switching
@@ -187,24 +200,44 @@ function checkBatchConditions(state: GameState) {
   const p2Score = recalcTotalScore(state.players[1]);
 
   if (state.batch === 1) {
-    if (p1Score > TARGET_SCORE) {
+    if (p1Score >= TARGET_SCORE || p2Score >= TARGET_SCORE) {
+      const b1w = p1Score >= TARGET_SCORE ? 0 : 1;
       state.batch = 2;
-      state.batch1Score = p1Score;
-      state.batch1Winner = 0;
-      state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} exceeded ${TARGET_SCORE}! Batch 2 begins. Target: ${p1Score}`;
-    } else if (p2Score > TARGET_SCORE) {
-      state.batch = 2;
-      state.batch1Score = p2Score;
-      state.batch1Winner = 1;
-      state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} exceeded ${TARGET_SCORE}! Batch 2 begins. Target: ${p2Score}`;
+      state.batch1Winner = b1w;
+      state.batch1Score = 250; // New target for Batch 2
+
+      // Score and Board Reset for Batch 2
+      state.players.forEach(p => {
+        p.fillerPoints = 0;
+        p.topFillerBonuses = 0;
+        p.fillUpBonuses = 0;
+        p.totalScore = 0;
+        // Reset hits and completion for fresh start
+        for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+          p.hits[i] = 0;
+          p.completed[i] = false;
+        }
+      });
+      state.closedNumbers = new Set();
+
+      state.lastAction = `[SYSTEM]: 🚀 ${state.players[b1w].name} achieved Batch 1 target! SCORE RESET. Batch 2 starts! First to 250 wins!`;
+      state.lastHit = {
+        type: 'number', // Use 'number' for general system alerts
+        value: "BATCH 2 STARTED!",
+        player: "SYSTEM",
+        timestamp: Date.now()
+      };
     }
-  } else if (state.batch === 2 && state.batch1Winner !== null) {
-    const opponentIdx = state.batch1Winner === 0 ? 1 : 0;
-    const opponentScore = recalcTotalScore(state.players[opponentIdx]);
-    if (opponentScore > state.batch1Score!) {
+  } else if (state.batch === 2) {
+    // In Batch 2, first to 250 wins
+    if (p1Score >= 250) {
       state.gameOver = true;
-      state.winner = opponentIdx;
-      state.lastAction = `[SYSTEM]: 🎉 ${state.players[opponentIdx].name} wins by surpassing Batch 1 score!`;
+      state.winner = 0;
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} reached 250 points and wins the game!`;
+    } else if (p2Score >= 250) {
+      state.gameOver = true;
+      state.winner = 1;
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} reached 250 points and wins the game!`;
     }
   }
 }

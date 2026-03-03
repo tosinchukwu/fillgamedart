@@ -21,6 +21,7 @@ const Index = () => {
   const [p2Name, setP2Name] = useState('Player 2');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [activeNotification, setActiveNotification] = useState<{ message: string, detail: string, timestamp: number } | null>(null);
 
   const startGame = () => {
     setGameState(createInitialGameState(p1Name || 'Player 1', p2Name || 'Player 2'));
@@ -41,6 +42,13 @@ const Index = () => {
     if (result.state.lastAction) {
       setLogMessages(prev => [...prev, result.state.lastAction!]);
     }
+    if (result.state.lastHit) {
+      setActiveNotification({
+        message: result.state.lastHit.value === "BATCH 2 STARTED!" ? "BATCH 2 STARTED!" : `DIRECT HIT: ${result.state.lastHit.value}`,
+        detail: result.state.lastHit.value === "BATCH 2 STARTED!" ? "First to 250 wins! Scores reset." : result.state.lastHit.player,
+        timestamp: result.state.lastHit.timestamp
+      });
+    }
   }, [gameState]);
 
   const handleHitRing = useCallback((ringIndex: number) => {
@@ -51,6 +59,13 @@ const Index = () => {
     setGameState(result.state);
     if (result.state.lastAction) {
       setLogMessages(prev => [...prev, result.state.lastAction!, ...result.messages.map(m => `  → ${m}`)]);
+    }
+    if (result.state.lastHit) {
+      setActiveNotification({
+        message: `RING ${ringIndex + 1} HIT!`,
+        detail: result.state.lastHit.player,
+        timestamp: result.state.lastHit.timestamp
+      });
     }
   }, [gameState]);
 
@@ -199,6 +214,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Hit Notification Overlay */}
+      <HitNotification notification={activeNotification} onComplete={() => setActiveNotification(null)} />
     </div>
   );
 };
@@ -256,9 +274,9 @@ const PlayerPanel: React.FC<{
         </div>
         <div className="flex flex-col items-end">
           <span className="text-[10px] font-mono-game uppercase tracking-[0.2em] text-white/40 mb-1">Batch {batch}</span>
-          {batch === 2 && batch1Score && (
-            <span className="text-[10px] text-primary font-mono-game font-bold px-2 py-0.5 bg-primary/10 rounded">Target: {batch1Score}</span>
-          )}
+          <span className="text-[10px] text-primary font-mono-game font-bold px-2 py-0.5 bg-primary/10 rounded">
+            Target: {batch === 1 ? TARGET_SCORE : 250}
+          </span>
         </div>
       </div>
 
@@ -321,6 +339,38 @@ const ThemeSwitcher = ({ current, onSelect }: { current: string, onSelect: (t: a
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+};
+
+const HitNotification = ({ notification, onComplete }: { notification: any, onComplete: () => void }) => {
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    if (notification) {
+      setVisible(true);
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setTimeout(onComplete, 500); // Wait for fade out
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, onComplete]);
+
+  if (!notification || !visible) return null;
+
+  const isBatch = notification.message === "BATCH 2 STARTED!";
+
+  return (
+    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-[100] animate-in fade-in zoom-in duration-300">
+      <div className={`p-12 rounded-[3rem] glass-panel border-2 ${isBatch ? 'border-secondary neon-border-secondary' : 'border-primary neon-border-theme'} flex flex-col items-center gap-4 transition-all scale-110 shadow-2xl bg-black/40 backdrop-blur-xl`}>
+        <h2 className={`text-7xl font-black italic tracking-tighter ${isBatch ? 'text-secondary text-glow-secondary' : 'text-primary text-glow-theme'} animate-bounce`}>
+          {notification.message}
+        </h2>
+        <p className="text-white/80 font-mono-game uppercase tracking-[0.4em] text-lg">
+          {notification.detail}
+        </p>
+      </div>
     </div>
   );
 };

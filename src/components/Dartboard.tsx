@@ -119,6 +119,14 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
     }, 560);
   }, [disabled, gameState.gameOver, gameState.closedNumbers, boardPhase, player, onHitNumber, onHitRing, resolveDartLanding]);
 
+  useEffect(() => {
+    const handleGlobalThrow = () => {
+      handleDartArrowClick();
+    };
+    window.addEventListener('THROW_DART', handleGlobalThrow);
+    return () => window.removeEventListener('THROW_DART', handleGlobalThrow);
+  }, [handleDartArrowClick]);
+
   const getHint = () => {
     if (disabled) return 'GAME PAUSED';
     if (boardPhase === 'idle') return 'Click arrow to throw dart';
@@ -135,25 +143,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
   return (
     <div className="relative flex flex-col items-center gap-10">
-      <div className="flex items-center justify-center gap-12 md:gap-20">
-        {/* ═══ LEFT: Energy Cell (Dart) ═══ */}
-        <div className="flex flex-col items-center gap-4 flex-shrink-0 z-10">
-          <DartArrow
-            boardPhase={boardPhase}
-            isFlying={dartFlying}
-            isVisible={dartVisible}
-            disabled={disabled}
-            onClick={handleDartArrowClick}
-            playerIdx={cp}
-          />
-          <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10">
-            <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase">
-              {boardPhase === 'idle' && !disabled ? 'Throw Dart' : '...'}
-            </span>
-          </div>
-        </div>
-
-        {/* ═══ CENTER: Galaxy Dartboard ═══ */}
+      <div className="flex flex-col items-center justify-center gap-10">
+        {/* ═══ CENTER: Dartboard ═══ */}
         <div className="flex flex-col items-center">
           <svg
             viewBox="0 0 500 500"
@@ -190,18 +181,38 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               </filter>
             </defs>
 
-            {/* Galaxy Surface */}
-            <circle cx={CENTER} cy={CENTER} r={245} fill="rgba(10, 10, 20, 0.4)" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+            {/* Dartboard Slices */}
+            {Array.from({ length: 20 }).map((_, i) => {
+              const startAngle = (i * 18 - 9 - 90) * Math.PI / 180;
+              const endAngle = ((i + 1) * 18 - 9 - 90) * Math.PI / 180;
+              const x1 = CENTER + 245 * Math.cos(startAngle);
+              const y1 = CENTER + 245 * Math.sin(startAngle);
+              const x2 = CENTER + 245 * Math.cos(endAngle);
+              const y2 = CENTER + 245 * Math.sin(endAngle);
 
-            {/* Energy Rings - Now Solid Lines */}
+              // Alternate colors for the slices
+              const sliceColor = i % 2 === 0 ? "rgba(0,0,0,0.8)" : "rgba(240,240,230,0.1)";
+
+              return (
+                <path
+                  key={`slice-${i}`}
+                  d={`M ${CENTER} ${CENTER} L ${x1} ${y1} A 245 245 0 0 1 ${x2} ${y2} Z`}
+                  fill={sliceColor}
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth="1"
+                />
+              );
+            })}
+
+            {/* Energy Rings - Now Solid White Lines */}
             {[...RING_RADII].map((ring, i) => (
               <circle
                 key={`ring-line-${i}`}
                 cx={CENTER} cy={CENTER}
                 r={ring.outer * SCALE}
                 fill="none"
-                stroke={ringColors[i]}
-                strokeWidth="2.5"
+                stroke="#ffffff"
+                strokeWidth="3"
                 filter="url(#glow)"
               />
             ))}
@@ -258,7 +269,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                   y={dart.y - 45}
                   width="30"
                   height="60"
-                  style={{ mixBlendMode: 'multiply' }}
+                  style={{ mixBlendMode: 'darken' }}
                 />
               </g>
             ))}
@@ -279,8 +290,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 };
 
 // ─── Dart Arrow Component ───────────────────────────────────────────────────
-const DartArrow: React.FC<{
-  boardPhase: BoardPhase;
+export const DartArrow: React.FC<{
+  boardPhase: string;
   isFlying: boolean;
   isVisible: boolean;
   disabled: boolean;
@@ -305,7 +316,7 @@ const DartArrow: React.FC<{
           src={playerIdx === 0 ? "/red_dart.jpg" : "/green_dart.jpg"}
           alt="Dart arrow"
           className="w-[100px] md:w-[130px] rounded"
-          style={{ mixBlendMode: 'multiply' }}
+          style={{ mixBlendMode: 'darken' }}
         />
       </div>
     </div>

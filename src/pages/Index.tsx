@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import Dartboard from '../components/Dartboard';
+import Dartboard, { DartArrow } from '../components/Dartboard';
 import GameLog from '../components/GameLog';
 import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState } from '../game/gameLogic';
 import { RING_NUMBERS, TARGET_SCORE, TOTAL_NUMBERS } from '../game/boardLayout';
@@ -138,8 +138,28 @@ const Index = () => {
             disabled={gameState.gameOver}
           />
 
-          <div className="w-full max-w-lg mt-8">
-            <GameLog messages={logMessages} />
+          <div className="w-full mt-8 flex flex-row items-center gap-6 justify-center">
+            <div className="max-w-lg w-full flex-1">
+              <GameLog messages={logMessages} />
+            </div>
+            {/* ═══ RIGHT: Energy Cell (Dart) ═══ */}
+            <div className="flex flex-col items-center gap-4 flex-shrink-0 z-10 w-32 xl:absolute xl:right-[-120px] xl:top-20">
+              <DartArrow
+                boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
+                isFlying={false}
+                isVisible={!gameState.gameOver}
+                disabled={gameState.gameOver}
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('THROW_DART'));
+                }}
+                playerIdx={gameState.currentPlayer}
+              />
+              <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10">
+                <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase">
+                  {!gameState.gameOver ? 'Throw Dart' : '...'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

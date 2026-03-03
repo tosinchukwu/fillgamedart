@@ -264,11 +264,15 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                     y={y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isClosed ? "#444" : "#000"}
+                    fill={isClosed ? "#666" : "#FFF"}
                     fontSize="22"
                     fontWeight="900"
                     fontFamily="'Playfair Display', serif"
-                    style={{ textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}
+                    style={{
+                      textShadow: isClosed
+                        ? 'none'
+                        : `0 0 10px ${pos.color === 'red' ? '#FF3131' : '#39FF14'}, 0 0 5px rgba(255,255,255,0.8)`
+                    }}
                   >
                     {pos.number}
                   </text>

@@ -22,12 +22,6 @@ export interface GameState {
   gameOver: boolean;
   winner: 0 | 1 | null;
   lastAction: string | null;
-  lastHit: {
-    type: 'number' | 'ring';
-    value: number | string;
-    player: string;
-    timestamp: number;
-  } | null;
 }
 
 export interface TurnAction {
@@ -60,7 +54,6 @@ export function createInitialGameState(p1Name: string, p2Name: string): GameStat
     gameOver: false,
     winner: null,
     lastAction: null,
-    lastHit: null,
   };
 }
 
@@ -120,12 +113,6 @@ export function hitNumber(state: GameState, targetNumber: number): { state: Game
   newState.dartsRemaining--;
   const finalMessage = `[${player.name}]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
   newState.lastAction = finalMessage;
-  newState.lastHit = {
-    type: 'number',
-    value: targetNumber,
-    player: player.name,
-    timestamp: Date.now(),
-  };
 
   if (newState.dartsRemaining <= 0) {
     // Check batch conditions before switching
@@ -227,12 +214,6 @@ function checkBatchConditions(state: GameState) {
       state.dartsRemaining = 3;
 
       state.lastAction = `[SYSTEM]: 🚀 ${state.players[b1w].name} set the Bar at ${benchmark}! SCORE RESET. ${state.players[opponentIdx].name}'s turn to beat it!`;
-      state.lastHit = {
-        type: 'number',
-        value: "QUALIFICATION ROUND!",
-        player: "SYSTEM",
-        timestamp: Date.now()
-      };
     }
   } else if (state.batch === 2 && state.batch1Winner !== null) {
     const b1w = state.batch1Winner;
@@ -253,9 +234,7 @@ function checkBatchConditions(state: GameState) {
       if (allCompleted && opponentScore <= benchmark) {
         state.gameOver = true;
         state.winner = b1w;
-        state.lastAction = `[SYSTEM]: 🏆 ${state.players[opponentIdx].name} failed to beat the Bar. ${state.players[b1w].name} WINS!`;
       }
     }
   }
 }
-```

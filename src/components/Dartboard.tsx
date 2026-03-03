@@ -105,7 +105,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       phaseRef.current = 'idle';
 
       const id = ++dartIdCounter;
-      setStuckDarts(prev => [...prev, { id, x: lx, y: ly, playerIdx: cp }]);
+      // Single-dart visibility: only keep the most recent dart
+      setStuckDarts([{ id, x: lx, y: ly, playerIdx: cp }]);
       // Permanent markers: do not remove them after 2.5s
 
       if (hitRingLine && hitRingLineIdx >= 0) {
@@ -218,9 +219,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 cx={CENTER} cy={CENTER}
                 r={ring.outer * SCALE}
                 fill="none"
-                stroke="#ffffff"
-                strokeWidth="2"
-                opacity="0.6"
+                stroke="rgba(255,255,255,0.4)"
+                strokeWidth="1.5"
               />
             ))}
 
@@ -236,32 +236,23 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Outer Orbit */}
-                  <circle cx={x} cy={y} r={DOT_R + 6} fill="none" stroke={ringColors[pos.ring]} strokeWidth="1" strokeDasharray="3 3" opacity="0.2" />
-
-                  {/* Gem Dot */}
-                  <circle cx={x} cy={y} r={DOT_R} fill={`url(#${gemId})`} />
-
-                  {/* Inner Shine */}
-                  {!isClosed && <circle cx={x - 4} cy={y - 4} r={4} fill="white" opacity="0.3" />}
-
-                  {/* Number text */}
-                  <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central"
-                    fill={isClosed ? "#666" : "#fff"} fontSize="17" fontWeight="900" fontFamily="sans-serif"
-                  >{pos.number}</text>
-
-                  {/* Progress Ring */}
-                  {!isClosed && player.hits[pos.number] > 0 && (
-                    <circle cx={x} cy={y} r={DOT_R + 3}
-                      fill="none"
-                      stroke="var(--theme-accent)"
-                      strokeWidth="3"
-                      strokeDasharray={`${(Math.min(player.hits[pos.number] / pos.number, 1)) * (2 * Math.PI * (DOT_R + 3))} ${2 * Math.PI * (DOT_R + 3)}`}
-                      transform={`rotate(-90 ${x} ${y})`}
-                      strokeLinecap="round"
-                      filter="url(#glow)"
-                    />
-                  )}
+                  {/* Number text - Fancy, color-coded, clean */}
+                  <text
+                    x={x}
+                    y={y}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={isClosed ? "#444" : pos.color === 'red' ? '#ff4d4d' : '#4dff88'}
+                    fontSize="28"
+                    fontWeight="800"
+                    fontFamily="'Playfair Display', serif"
+                    style={{
+                      filter: isClosed ? 'none' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                      letterSpacing: '-0.02em'
+                    }}
+                  >
+                    {pos.number}
+                  </text>
                 </g>
               );
             })}
@@ -271,10 +262,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               <g key={dart.id}>
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
-                  x={dart.x - 90}
-                  y={dart.y - 350}
-                  width="180"
-                  height="360"
+                  x={dart.x - 70}
+                  y={dart.y - 280}
+                  width="140"
+                  height="280"
                 />
               </g>
             ))}

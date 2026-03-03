@@ -35,6 +35,14 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
             }
         }
 
+        // Top Filler bonus (Highest hits)
+        let tfpEarner = '-';
+        if (p1.hits[n] > 0 || p2.hits[n] > 0) {
+            if (p1.hits[n] > p2.hits[n]) tfpEarner = 'A';
+            else if (p2.hits[n] > p1.hits[n]) tfpEarner = 'B';
+            else tfpEarner = 'A, B';
+        }
+
         return (
             <tr key={n} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                 <td className="py-2 px-3 text-white/50 text-xs font-mono font-bold">{n}</td>
@@ -45,6 +53,7 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
                     {p2HitsDisplay}
                 </td>
                 <td className="py-2 px-3 text-white/50 text-[10px] text-center">{fillerEarners || '-'}</td>
+                <td className="py-2 px-3 text-primary text-[11px] font-black text-center">{tfpEarner}</td>
                 <td className="py-2 px-3 text-secondary text-[11px] font-black text-center">{fuEarner}</td>
                 <td className="py-2 px-3 text-white font-bold text-xs">
                     {calcRunningTotal(n, 0)}
@@ -59,14 +68,19 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
     const calcRunningTotal = (limitNum: number, playerIdx: 0 | 1) => {
         let score = 0;
         const player = gameState.players[playerIdx];
+        const opponent = gameState.players[1 - playerIdx];
 
-        // Filler
         for (let n = 1; n <= limitNum; n++) {
-            score += player.hits[n] * 2;
-        }
+            // Filler
+            score += Math.min(player.hits[n], n) * 2;
 
-        // Fill-Up (Cumulative)
-        for (let n = 1; n <= limitNum; n++) {
+            // TFP
+            if (player.hits[n] > 0 || opponent.hits[n] > 0) {
+                if (player.hits[n] > opponent.hits[n]) score += 7;
+                else if (player.hits[n] === opponent.hits[n]) score += 3.5;
+            }
+
+            // Fill-Up
             if (gameState.closedNumbers.has(n)) {
                 const seq = gameState.hitSequences[n];
                 let p1Rem = n;
@@ -83,21 +97,7 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
         return score;
     };
 
-    // Calculate Top Filler Bonus separately
-    const getTopFiller = () => {
-        let p1Hits = 0;
-        let p2Hits = 0;
-        for (let n = 2; n <= TOTAL_NUMBERS; n++) {
-            p1Hits += gameState.players[0].hits[n];
-            p2Hits += gameState.players[1].hits[n];
-        }
-        if (p1Hits > p2Hits) return { winner: 'A', bonus: [7, 0] };
-        if (p2Hits > p1Hits) return { winner: 'B', bonus: [0, 7] };
-        if (p1Hits > 0) return { winner: 'Tie', bonus: [3.5, 3.5] };
-        return { winner: '-', bonus: [0, 0] };
-    };
 
-    const tf = getTopFiller();
 
     return (
         <div className="glass-panel rounded-3xl overflow-hidden border-white/10 shadow-2xl flex flex-col h-full animate-in fade-in slide-in-from-right-8 duration-700">
@@ -106,12 +106,7 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(232,65,66,0.6)]" />
                     Master Scoring Table
                 </h3>
-                <div className="flex gap-4">
-                    <div className="flex flex-col items-end">
-                        <span className="text-[8px] text-white/30 uppercase">Top Filler Bonus (2-14)</span>
-                        <span className="text-[10px] font-bold text-primary">{tf.winner === 'Tie' ? 'SPLIT (+3.5)' : tf.winner !== '-' ? `${tf.winner} WINS (+7)` : 'NONE'}</span>
-                    </div>
-                </div>
+                <span className="text-[10px] font-mono-game text-white/30 uppercase tracking-widest">Number-Based Format</span>
             </div>
 
             <div className="flex-1 overflow-auto custom-scrollbar">
@@ -122,6 +117,7 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
                             <th className="py-3 px-3 font-black">Player A (Hits)</th>
                             <th className="py-3 px-3 font-black">Player B (Hits)</th>
                             <th className="py-3 px-3 font-black text-center">Filler pts</th>
+                            <th className="py-3 px-3 font-black text-center">TFP +7</th>
                             <th className="py-3 px-3 font-black text-center">Fill-Up +10</th>
                             <th className="py-3 px-3 font-black">A Running</th>
                             <th className="py-3 px-3 font-black">B Running</th>

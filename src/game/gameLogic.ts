@@ -69,46 +69,38 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
 function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
   let score = 0;
   const player = gameState.players[playerIdx];
+  const opponent = gameState.players[1 - playerIdx];
 
-  // 1. Filler Points (+2 per hit, capped at number's value)
   for (let n = 1; n <= TOTAL_NUMBERS; n++) {
-    const hits = player.hits[n];
-    score += hits * 2;
-  }
+    // 1. Filler Points (+2 per hit, capped at number's value)
+    const fillerHits = Math.min(player.hits[n], n);
+    score += fillerHits * 2;
 
-  // 2. Top Filler Bonus (+7 total, split if tied)
-  // Most total hits on 2–14
-  let p1TotalHits = 0;
-  let p2TotalHits = 0;
-  for (let n = 2; n <= TOTAL_NUMBERS; n++) {
-    p1TotalHits += gameState.players[0].hits[n];
-    p2TotalHits += gameState.players[1].hits[n];
-  }
+    // 2. Top Filler Bonus (+7 per number, split if tied)
+    // Awarded based on highest total hits for THIS number
+    const pHits = player.hits[n];
+    const oHits = opponent.hits[n];
 
-  if (p1TotalHits > p2TotalHits) {
-    if (playerIdx === 0) score += 7;
-  } else if (p2TotalHits > p1TotalHits) {
-    if (playerIdx === 1) score += 7;
-  } else if (p1TotalHits > 0) { // Tie > 0
-    score += 3.5;
-  }
+    if (pHits > 0 || oHits > 0) {
+      if (pHits > oHits) {
+        score += 7;
+      } else if (pHits === oHits) {
+        score += 3.5;
+      }
+    }
 
-  // 3. Fill-Up Bonus (+10 per number)
-  // Awarded to the player who landings the final hit to close the number for BOTH players
-  for (let n = 1; n <= TOTAL_NUMBERS; n++) {
-    const seq = gameState.hitSequences[n];
+    // 3. Fill-Up Bonus (+10 per number)
+    // Awarded to the player who landings the final hit to close the number for BOTH players
     if (gameState.closedNumbers.has(n)) {
-      // Find who landed the closing hit
-      // A number is closed when both have completed it.
-      // We need to find the index where the second person completed it.
-      let p1Remaining = n;
-      let p2Remaining = n;
+      const seq = gameState.hitSequences[n];
+      let p1Rem = n;
+      let p2Rem = n;
       for (let i = 0; i < seq.length; i++) {
         const p = seq[i];
-        if (p === 0) p1Remaining--;
-        else p2Remaining--;
+        if (p === 0) p1Rem--;
+        else p2Rem--;
 
-        if (p1Remaining <= 0 && p2Remaining <= 0) {
+        if (p1Rem <= 0 && p2Rem <= 0) {
           if (p === playerIdx) score += 10;
           break;
         }
@@ -128,25 +120,25 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
   let message = '';
 
   if (newState.closedNumbers.has(targetNumber)) {
-    message = `Number ${targetNumber} is closed for both! No points.`;
-  } else if (player.completed[targetNumber]) {
-    message = `You already completed ${targetNumber}. Waiting for opponent.`;
-    // We still record the hit for sequence but it won't award points in recalc (since it's capped)
-    newState.hitSequences[targetNumber].push(cp);
+    message = `Number ${targetNumber} is fully closed (both finished). No more points.`;
   } else {
-    // Record hit
+    // Record hit (Hits are uncapped for TFP comparison)
     player.hits[targetNumber]++;
     newState.hitSequences[targetNumber].push(cp);
 
     if (player.hits[targetNumber] >= targetNumber) {
+      const wasCompleted = player.completed[targetNumber];
       player.completed[targetNumber] = true;
-      message = `Hit ${targetNumber}! Completed!`;
+      message = `Hit ${targetNumber}!`;
+      if (!wasCompleted) message += ` Personal Completion reached!`;
 
       // Check if this fully closes the board
       const opponent = newState.players[1 - cp];
       if (opponent.completed[targetNumber]) {
         newState.closedNumbers.add(targetNumber);
-        message += " Board closed for this number! +10 Fill-Up Bonus!";
+        message += " Board closed for both! +10 Fill-Up Bonus awarded!";
+      } else {
+        message += ` Waiting for opponent to finish.`;
       }
     } else {
       message = `Hit ${targetNumber}! (${player.hits[targetNumber]}/${targetNumber}) +2 filler pts`;

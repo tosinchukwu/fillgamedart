@@ -79,7 +79,7 @@ const RulesScroll = () => (
           🎁 Bonus System
         </h4>
         <div className="pl-4 border-l border-white/10 space-y-2">
-          <p><strong>🔥 Top Filler (7 pts):</strong> Awarded to the player with the highest total hits on numbers <span className="text-secondary font-bold">2–14</span>. Shared if tied.</p>
+          <p><strong>🔥 Top Filler (7 pts):</strong> Awarded per number (1–14). Earned if you have the most hits on that specific number. Shared (3.5 each) if hits are equal.</p>
           <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the <span className="text-primary font-bold">last player</span> to complete a number. This fully closes the number for the board.</p>
         </div>
       </section>

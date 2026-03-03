@@ -306,10 +306,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
                   x={dart.x - 40}
-                  y={dart.y - 160} // Tip at bottom of image sits exactly at (x,y)
+                  y={dart.y} // Tip at top of image sits exactly at (x,y)
                   width="80"
                   height="160"
-                  transform={`rotate(${dart.angle} ${dart.x} ${dart.y})`}
+                  transform={`rotate(${dart.angle + 180} ${dart.x} ${dart.y})`}
                   style={{
                     filter: 'drop-shadow(0 15px 15px rgba(0,0,0,0.6))'
                   }}

@@ -1,7 +1,7 @@
 // Board layout - 4 rings from innermost (ring 0) to outermost (ring 3)
 // Ring 0 (innermost): 14, 13
-// Ring 1: 5, 9, 10, 11
-// Ring 2: 1, 3, 12, 8
+// Ring 1: 12, 9, 5, 10
+// Ring 2: 11, 1, 3, 8
 // Ring 3 (outermost): 7, 4, 2, 6
 
 export interface NumberPosition {
@@ -18,7 +18,7 @@ export const BOARD_LAYOUT: NumberPosition[] = [
   { number: 13, ring: 0, angle: 180, color: 'green' },
 
   // Ring 1 (second circle line, r=115)
-  { number: 12, ring: 2, angle: 135, color: 'red' },
+  { number: 12, ring: 1, angle: 135, color: 'red' },
   { number: 9, ring: 1, angle: 320, color: 'red' },
   { number: 5, ring: 1, angle: 40, color: 'green' },
   { number: 10, ring: 1, angle: 220, color: 'green' },
@@ -38,8 +38,8 @@ export const BOARD_LAYOUT: NumberPosition[] = [
 
 export const RING_NUMBERS: Record<number, number[]> = {
   0: [14, 13],
-  1: [9, 5, 10],
-  2: [12, 11, 1, 3, 8],
+  1: [12, 9, 5, 10],
+  2: [11, 1, 3, 8],
   3: [7, 4, 2, 6],
 };
 

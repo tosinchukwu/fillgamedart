@@ -60,8 +60,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       const [lx, ly] = polarToXY(targetPos.angle, r);
 
       return {
-        lx: lx + (Math.random() - 0.5) * 10,
-        ly: ly + (Math.random() - 0.5) * 10,
+        lx,
+        ly,
         hitRingIdx: targetPos.ring,
         closestNum: targetPos.number,
         hitRingLine: false,
@@ -160,29 +160,15 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             }}
           >
             <defs>
-              <radialGradient id="hole-grad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#000" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#0a0a14" stopOpacity="0.3" />
-              </radialGradient>
-              <radialGradient id="gem-red" cx="40%" cy="35%" r="50%">
-                <stop offset="0%" stopColor="#ff4d4d" />
-                <stop offset="100%" stopColor="#800000" />
-              </radialGradient>
-              <radialGradient id="gem-green" cx="40%" cy="35%" r="50%">
-                <stop offset="0%" stopColor="#4dffb5" />
-                <stop offset="100%" stopColor="#00663d" />
-              </radialGradient>
-              <radialGradient id="gem-gray" cx="40%" cy="35%" r="50%">
-                <stop offset="0%" stopColor="#a0a0a0" />
-                <stop offset="100%" stopColor="#202020" />
-              </radialGradient>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
+              <radialGradient id="badge-grad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(255,255,255,1)" />
+                <stop offset="70%" stopColor="rgba(255,255,255,0.9)" />
+                <stop offset="100%" stopColor="rgba(240,240,255,0.7)" />
+              </radialGradient>
             </defs>
 
             {/* Golden Base background */}
@@ -219,8 +205,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 cx={CENTER} cy={CENTER}
                 r={ring.outer * SCALE}
                 fill="none"
-                stroke="rgba(255,255,255,0.7)"
-                strokeWidth="5"
+                stroke="rgba(255,255,255,0.8)"
+                strokeWidth="4"
+                filter="url(#glow)"
               />
             ))}
 
@@ -236,22 +223,37 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Badge Circle - White background for numbers */}
+                  {/* Glazed Badge - Premium white background with glow */}
                   <circle
-                    cx={x} cy={y} r="20"
-                    fill="white"
-                    opacity="0.9"
-                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                    cx={x} cy={y} r="22"
+                    fill="url(#badge-grad)"
+                    stroke="rgba(255,255,255,0.5)"
+                    strokeWidth="1.5"
+                    filter="url(#glow)"
                   />
 
-                  {/* Number text - Fancy, bold, high-contrast */}
+                  {/* Restored Hit Progress Ring */}
+                  {!isClosed && player.hits[pos.number] > 0 && (
+                    <circle
+                      cx={x} cy={y} r="26"
+                      fill="none"
+                      stroke={pos.color === 'red' ? '#e63946' : '#2a9d8f'}
+                      strokeWidth="4"
+                      strokeDasharray={`${(Math.min(player.hits[pos.number] / pos.number, 1)) * (2 * Math.PI * 26)} ${2 * Math.PI * 26}`}
+                      transform={`rotate(-90 ${x} ${y})`}
+                      strokeLinecap="round"
+                      filter="url(#glow)"
+                    />
+                  )}
+
+                  {/* Number text - Fancy Playfair serif */}
                   <text
                     x={x}
                     y={y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isClosed ? "#888" : pos.color === 'red' ? '#e63946' : '#2a9d8f'}
-                    fontSize="24"
+                    fill={isClosed ? "#888" : "#222"}
+                    fontSize="22"
                     fontWeight="900"
                     fontFamily="'Playfair Display', serif"
                   >

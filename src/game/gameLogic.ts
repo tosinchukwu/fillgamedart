@@ -192,22 +192,16 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
   const cp = currentState.currentPlayer;
   const player = currentState.players[cp];
 
+  let pointsEarnedInHit = 0;
   for (const num of ringNumbers) {
-    if (currentState.closedNumbers.has(num)) {
-      messages.push(`Number ${num} is fully closed. No ring points.`);
-      continue;
-    }
+    if (currentState.closedNumbers.has(num)) continue;
 
-    // Award +2 filler points per number, but don't increment hits
-    // Respect the cap: if they already have max filler points, no more points.
     const currentFillerTotal = (player.hits[num] * 2) + player.bonusPoints[num];
     const maxFiller = num * 2;
 
     if (currentFillerTotal < maxFiller) {
       player.bonusPoints[num] += 2;
-      messages.push(`Ring Hit: +2 bonus points for Number ${num}!`);
-    } else {
-      messages.push(`Number ${num} already at max filler points.`);
+      pointsEarnedInHit += 2;
     }
   }
 
@@ -217,7 +211,7 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
 
   currentState.dartsRemaining--;
   const totalScore = currentState.players[cp].totalScore;
-  currentState.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! Affecting: ${ringNumbers.join(', ')} [Total: ${totalScore} pts]`;
+  currentState.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${pointsEarnedInHit} pts`;
 
   if (currentState.dartsRemaining <= 0) {
     if (!currentState.gameOver) {

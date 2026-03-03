@@ -205,10 +205,12 @@ const Index = () => {
     const nums = RING_NUMBERS[ringIdx];
     const result = hitRing(gameState, ringIdx, nums);
     setGameState(result.state);
-    if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!, ...result.messages.map(m => ` → ${m}`)]);
+    if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
     if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
     prevBatchRef.current = result.state.batch;
   }, [gameState]);
+
+  const cpuActionBuffer = useRef<string[]>([]);
 
   useEffect(() => {
     if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0) {
@@ -221,8 +223,33 @@ const Index = () => {
 
         // Wait for throw animation (1s) before processing the hit
         setTimeout(() => {
-          if (move.type === 'number') handleHitNumber(move.index);
-          else handleHitRing(move.index);
+          let updatedState: GameState;
+          let summary = '';
+
+          if (move.type === 'number') {
+            const result = hitNumber(gameState, move.index);
+            updatedState = result.state;
+            summary = `Hit #${move.index}`;
+          } else {
+            const result = hitRing(gameState, move.index, RING_NUMBERS[move.index]);
+            updatedState = result.state;
+            // Extract point value from simplified message "Total: X pts"
+            const match = updatedState.lastAction?.match(/Total: (\d+) pts/);
+            summary = `Ring ${move.index + 1} (${match ? match[1] : 0} pts)`;
+          }
+
+          cpuActionBuffer.current.push(summary);
+
+          if (updatedState.dartsRemaining === 0 || updatedState.gameOver) {
+            // Consolidate logs at end of turn
+            const combinedLog = `[PLAYER B (CPU)]: Turn - ${cpuActionBuffer.current.join(', ')}. [Total: ${updatedState.players[1].totalScore} pts]`;
+            setLogMessages(p => [...p, combinedLog]);
+            cpuActionBuffer.current = []; // Clear buffer
+          }
+
+          setGameState(updatedState);
+          if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+          prevBatchRef.current = updatedState.batch;
         }, 1000);
       }, delay);
 

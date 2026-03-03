@@ -35,9 +35,9 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
             }
         }
 
-        // Top Filler bonus (Highest hits)
+        // Top Filler bonus (Highest hits) - Only for 2-14
         let tfpEarner = '-';
-        if (p1.hits[n] > 0 || p2.hits[n] > 0) {
+        if (n >= 2 && (p1.hits[n] > 0 || p2.hits[n] > 0)) {
             if (p1.hits[n] > p2.hits[n]) tfpEarner = 'A';
             else if (p2.hits[n] > p1.hits[n]) tfpEarner = 'B';
             else tfpEarner = 'A, B';
@@ -74,8 +74,8 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
             // Filler
             score += Math.min(player.hits[n], n) * 2;
 
-            // TFP
-            if (player.hits[n] > 0 || opponent.hits[n] > 0) {
+            // TFP (Only for 2-14)
+            if (n >= 2 && (player.hits[n] > 0 || opponent.hits[n] > 0)) {
                 if (player.hits[n] > opponent.hits[n]) score += 7;
                 else if (player.hits[n] === opponent.hits[n]) score += 3.5;
             }

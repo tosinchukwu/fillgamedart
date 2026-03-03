@@ -202,9 +202,11 @@ function checkBatchConditions(state: GameState) {
   if (state.batch === 1) {
     if (p1Score >= TARGET_SCORE || p2Score >= TARGET_SCORE) {
       const b1w = p1Score >= TARGET_SCORE ? 0 : 1;
+      const benchmark = b1w === 0 ? p1Score : p2Score;
+
       state.batch = 2;
       state.batch1Winner = b1w;
-      state.batch1Score = 250; // New target for Batch 2
+      state.batch1Score = benchmark; // Set the dynamic benchmark (The Bar)
 
       // Score and Board Reset for Batch 2
       state.players.forEach(p => {
@@ -212,7 +214,6 @@ function checkBatchConditions(state: GameState) {
         p.topFillerBonuses = 0;
         p.fillUpBonuses = 0;
         p.totalScore = 0;
-        // Reset hits and completion for fresh start
         for (let i = 1; i <= TOTAL_NUMBERS; i++) {
           p.hits[i] = 0;
           p.completed[i] = false;
@@ -220,24 +221,41 @@ function checkBatchConditions(state: GameState) {
       });
       state.closedNumbers = new Set();
 
-      state.lastAction = `[SYSTEM]: 🚀 ${state.players[b1w].name} achieved Batch 1 target! SCORE RESET. Batch 2 starts! First to 250 wins!`;
+      // Qualification Round: Turn immediately goes to the opponent
+      const opponentIdx = 1 - b1w;
+      state.currentPlayer = opponentIdx as (0 | 1);
+      state.dartsRemaining = 3;
+
+      state.lastAction = `[SYSTEM]: 🚀 ${state.players[b1w].name} set the Bar at ${benchmark}! SCORE RESET. ${state.players[opponentIdx].name}'s turn to beat it!`;
       state.lastHit = {
-        type: 'number', // Use 'number' for general system alerts
-        value: "BATCH 2 STARTED!",
+        type: 'number',
+        value: "QUALIFICATION ROUND!",
         player: "SYSTEM",
         timestamp: Date.now()
       };
     }
-  } else if (state.batch === 2) {
-    // In Batch 2, first to 250 wins
-    if (p1Score >= 250) {
+  } else if (state.batch === 2 && state.batch1Winner !== null) {
+    const b1w = state.batch1Winner;
+    const opponentIdx = 1 - b1w;
+    const opponentScore = recalcTotalScore(state.players[opponentIdx]);
+    const benchmark = state.batch1Score!;
+
+    // Opponent wins if they surpass the benchmark
+    if (opponentScore > benchmark) {
       state.gameOver = true;
-      state.winner = 0;
-      state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} reached 250 points and wins the game!`;
-    } else if (p2Score >= 250) {
-      state.gameOver = true;
-      state.winner = 1;
-      state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} reached 250 points and wins the game!`;
+      state.winner = opponentIdx as (0 | 1);
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[opponentIdx].name} surpassed the Benchmark of ${benchmark} and WINS!`;
+    } else {
+      // Check if opponent has finished all numbers but failed to beat the benchmark
+      const allCompleted = Object.values(state.players[opponentIdx].completed).every(v => v === true);
+      // Also consider if they have no more darts and no more potential to score? 
+      // Simplified: if both players completed all numbers (board closed), and opponent is still lower.
+      if (allCompleted && opponentScore <= benchmark) {
+        state.gameOver = true;
+        state.winner = b1w;
+        state.lastAction = `[SYSTEM]: 🏆 ${state.players[opponentIdx].name} failed to beat the Bar. ${state.players[b1w].name} WINS!`;
+      }
     }
   }
 }
+```

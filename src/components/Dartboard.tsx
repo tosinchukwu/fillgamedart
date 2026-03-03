@@ -164,11 +164,16 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 <feGaussianBlur stdDeviation="3.5" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
-              <radialGradient id="badge-grad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="rgba(255,255,255,1)" />
-                <stop offset="70%" stopColor="rgba(255,255,255,0.9)" />
-                <stop offset="100%" stopColor="rgba(240,240,255,0.7)" />
+              <radialGradient id="badge-grad" cx="40%" cy="40%" r="60%" fx="30%" fy="30%">
+                <stop offset="0%" stopColor="#FFF8E1" />
+                <stop offset="30%" stopColor="#FFD700" />
+                <stop offset="70%" stopColor="#B8860B" />
+                <stop offset="100%" stopColor="#8B6914" />
               </radialGradient>
+              <filter id="inner-glow">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
             </defs>
 
             {/* Golden Base background */}
@@ -223,13 +228,20 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Glazed Badge - Premium white background with glow */}
+                  {/* Glazed/Golden Badge - Premium golden background with glow */}
                   <circle
                     cx={x} cy={y} r="22"
                     fill="url(#badge-grad)"
-                    stroke="rgba(255,255,255,0.5)"
+                    stroke="#FFD700"
                     strokeWidth="1.5"
                     filter="url(#glow)"
+                  />
+                  {/* Inner shine for extra "pop" */}
+                  <circle
+                    cx={x - 4} cy={y - 4} r="8"
+                    fill="rgba(255,255,255,0.4)"
+                    filter="url(#inner-glow)"
+                    pointerEvents="none"
                   />
 
                   {/* Restored Hit Progress Ring */}
@@ -252,10 +264,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                     y={y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isClosed ? "#888" : "#222"}
+                    fill={isClosed ? "#444" : "#000"}
                     fontSize="22"
                     fontWeight="900"
                     fontFamily="'Playfair Display', serif"
+                    style={{ textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}
                   >
                     {pos.number}
                   </text>

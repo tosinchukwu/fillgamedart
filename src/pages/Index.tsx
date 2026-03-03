@@ -21,7 +21,6 @@ const Index = () => {
   const [p2Name, setP2Name] = useState('Player 2');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
-  const [activeNotification, setActiveNotification] = useState<{ message: string, detail: string, timestamp: number } | null>(null);
 
   const startGame = () => {
     setGameState(createInitialGameState(p1Name || 'Player 1', p2Name || 'Player 2'));
@@ -42,13 +41,6 @@ const Index = () => {
     if (result.state.lastAction) {
       setLogMessages(prev => [...prev, result.state.lastAction!]);
     }
-    if (result.state.lastHit) {
-      setActiveNotification({
-        message: result.state.lastHit.value === "BATCH 2 STARTED!" ? "BATCH 2 STARTED!" : `DIRECT HIT: ${result.state.lastHit.value}`,
-        detail: result.state.lastHit.value === "BATCH 2 STARTED!" ? "First to 250 wins! Scores reset." : result.state.lastHit.player,
-        timestamp: result.state.lastHit.timestamp
-      });
-    }
   }, [gameState]);
 
   const handleHitRing = useCallback((ringIndex: number) => {
@@ -59,13 +51,6 @@ const Index = () => {
     setGameState(result.state);
     if (result.state.lastAction) {
       setLogMessages(prev => [...prev, result.state.lastAction!, ...result.messages.map(m => `  → ${m}`)]);
-    }
-    if (result.state.lastHit) {
-      setActiveNotification({
-        message: `RING ${ringIndex + 1} HIT!`,
-        detail: result.state.lastHit.player,
-        timestamp: result.state.lastHit.timestamp
-      });
     }
   }, [gameState]);
 
@@ -214,9 +199,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-
-      {/* Hit Notification Overlay */}
-      <HitNotification notification={activeNotification} onComplete={() => setActiveNotification(null)} />
     </div>
   );
 };
@@ -293,9 +275,9 @@ const PlayerPanel: React.FC<{
             className={`w-full aspect-square rounded-md text-[9px] font-mono-game flex items-center justify-center font-bold transition-all ${closedNumbers.has(num)
               ? 'bg-white/5 text-white/20 line-through'
               : player.completed[num]
-                ? 'bg-primary/30 text-primary shadow-[inset_0_0_10px_rgba(232,65,66,0.2)]'
+                ? 'bg-primary text-white scale-110 shadow-[0_0_15px_rgba(232,65,66,0.6)] z-10'
                 : player.hits[num] > 0
-                  ? 'bg-white/10 text-white shadow-[inset_0_0_8px_rgba(255,255,255,0.1)]'
+                  ? 'bg-secondary text-black scale-105 shadow-[0_0_10px_rgba(255,180,0,0.4)]'
                   : 'bg-white/5 text-white/30'
               }`}
           >
@@ -339,38 +321,6 @@ const ThemeSwitcher = ({ current, onSelect }: { current: string, onSelect: (t: a
           ))}
         </SelectContent>
       </Select>
-    </div>
-  );
-};
-
-const HitNotification = ({ notification, onComplete }: { notification: any, onComplete: () => void }) => {
-  const [visible, setVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    if (notification) {
-      setVisible(true);
-      const timer = setTimeout(() => {
-        setVisible(false);
-        setTimeout(onComplete, 500); // Wait for fade out
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [notification, onComplete]);
-
-  if (!notification || !visible) return null;
-
-  const isBatch = notification.message === "BATCH 2 STARTED!";
-
-  return (
-    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-[100] animate-in fade-in zoom-in duration-300">
-      <div className={`p-12 rounded-[3rem] glass-panel border-2 ${isBatch ? 'border-secondary neon-border-secondary' : 'border-primary neon-border-theme'} flex flex-col items-center gap-4 transition-all scale-110 shadow-2xl bg-black/40 backdrop-blur-xl`}>
-        <h2 className={`text-7xl font-black italic tracking-tighter ${isBatch ? 'text-secondary text-glow-secondary' : 'text-primary text-glow-theme'} animate-bounce`}>
-          {notification.message}
-        </h2>
-        <p className="text-white/80 font-mono-game uppercase tracking-[0.4em] text-lg">
-          {notification.detail}
-        </p>
-      </div>
     </div>
   );
 };

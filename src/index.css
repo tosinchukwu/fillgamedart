@@ -90,6 +90,21 @@
   --ring-4: rgba(0, 255, 136, 0.3);
 }
 
+/* ☁️ Theme: Ethereal Sky */
+.theme-sky {
+  --theme-bg: #e0f2fe;
+  --theme-accent: #0ea5e9;
+  --theme-glow: rgba(14, 165, 233, 0.4);
+  --primary: 199 89% 48%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100% / 0.8;
+  --border: 199 89% 48% / 0.2;
+  --ring-1: #0ea5e9;
+  --ring-2: #38bdf8;
+  --ring-3: #7dd3fc;
+  --ring-4: rgba(14, 165, 233, 0.3);
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -115,9 +130,16 @@
       radial-gradient(1.5px 1.5px at 45% 85%, rgba(255, 255, 255, 0.4) 100%, transparent),
       radial-gradient(1px 1px at 85% 45%, rgba(255, 255, 255, 0.4) 100%, transparent);
     background-position: center;
+    background-size: cover;
     pointer-events: none;
     z-index: -1;
-    transition: background-image 0.7s ease;
+    transition: all 0.7s ease;
+  }
+
+  .theme-sky body::before {
+    background-image: url('/sky-bg.png');
+    background-blend-mode: normal;
+    opacity: 0.9;
   }
 
   h1,

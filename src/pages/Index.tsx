@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const Index = () => {
-  const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight'>('neon');
+  const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight' | 'sky'>('sky');
   const [gameStarted, setGameStarted] = useState(false);
   const [p1Name, setP1Name] = useState('Player 1');
   const [p2Name, setP2Name] = useState('Player 2');
@@ -262,8 +262,14 @@ const PlayerPanel: React.FC<{
             }}
             playerIdx={playerIdx}
           />
-          <div className="text-center glass-panel px-6 py-3 rounded-xl border-white/10 hover:bg-white/5 transition-colors cursor-pointer group"
-            onClick={() => isActive && dartsRemaining > 0 && window.dispatchEvent(new CustomEvent('THROW_DART'))}>
+          <div className="text-center glass-panel px-6 py-3 rounded-xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isActive && dartsRemaining > 0) {
+                console.log("Dispatching THROW_DART from button");
+                window.dispatchEvent(new CustomEvent('THROW_DART'));
+              }
+            }}>
             <span className="text-[11px] font-bold leading-tight tracking-[0.25em] text-primary uppercase group-hover:text-glow-theme transition-all">
               {isActive && dartsRemaining > 0 ? 'Launch Dart' : 'Reloading...'}
             </span>
@@ -280,6 +286,7 @@ const ThemeSwitcher = ({ current, onSelect }: { current: string, onSelect: (t: a
     { id: 'avalanche', label: 'Avalanche', color: '#E84142' },
     { id: 'gold', label: 'Cyber Gold', color: '#ffb400' },
     { id: 'midnight', label: 'Deep Sea', color: '#00ff88' },
+    { id: 'sky', label: 'Ethereal Sky', color: '#0ea5e9' },
   ];
 
   return (

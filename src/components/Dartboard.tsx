@@ -310,7 +310,13 @@ export const DartArrow: React.FC<{
         ${canClick ? 'hover:scale-110 active:scale-90' : ''}
       `}
     >
-      <div className="relative">
+      <div className="relative" onClick={(e) => {
+        e.stopPropagation();
+        if (canClick) {
+          console.log("Dispatching THROW_DART from DartArrow image");
+          window.dispatchEvent(new CustomEvent('THROW_DART'));
+        }
+      }}>
         <img
           src={playerIdx === 0 ? "/red_dart.png" : "/green_dart.png"}
           alt="Dart arrow"

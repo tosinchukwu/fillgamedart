@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/**
+ * @title FillingGameScoreboard
+ * @dev A simple contract to record and verify Filling Game results on Avalanche.
+ */
+contract FillingGameScoreboard {
+    
+    struct GameResult {
+        address winner;
+        string winnerName;
+        uint256 score;
+        uint256 timestamp;
+    }
+
+    GameResult[] public history;
+    
+    event ScoreRecorded(address indexed winner, string winnerName, uint256 score, uint256 timestamp);
+
+    /**
+     * @dev Records a new game result on the blockchain.
+     * @param _winnerName The name of the winning player.
+     * @param _score The final score of the winner.
+     */
+    function recordScore(string memory _winnerName, uint256 _score) public {
+        GameResult memory newResult = GameResult({
+            winner: msg.sender,
+            winnerName: _winnerName,
+            score: _score,
+            timestamp: block.timestamp
+        });
+
+        history.push(newResult);
+        
+        emit ScoreRecorded(msg.sender, _winnerName, _score, block.timestamp);
+    }
+
+    /**
+     * @dev Returns the total number of games recorded.
+     */
+    function getGameCount() public view returns (uint256) {
+        return history.length;
+    }
+
+    /**
+     * @dev Returns a specific game result by index.
+     */
+    function getGameResult(uint256 _index) public view returns (address, string memory, uint256, uint256) {
+        require(_index < history.length, "Index out of bounds");
+        GameResult storage result = history[_index];
+        return (result.winner, result.winnerName, result.score, result.timestamp);
+    }
+}
+
+/* 
+================================================================================
+DEPLOYMENT INSTRUCTIONS (REMIX)
+================================================================================
+1. Go to https://remix.ethereum.org/
+2. Create a new file named 'FillingGameScoreboard.sol' and paste the code above.
+3. Go to the 'Solidity Compiler' tab and click 'Compile FillingGameScoreboard.sol'.
+4. Go to the 'Deploy & Run Transactions' tab.
+5. In the 'Environment' dropdown, select 'Injected Provider - MetaMask' (ensure your MetaMask is on Avalanche Mainnet).
+6. Click 'Deploy'.
+7. Once deployed, copy the 'Contract Address' from the 'Deployed Contracts' section.
+
+================================================================================
+INTEGRATION INSTRUCTIONS (PROJECT)
+================================================================================
+1. Copy the 'Contract Address' from Remix.
+2. In your `src/pages/Index.tsx` (the file we've been working on), find the `broadcastScore` function.
+3. I have updated the code below to use a standard contract call. You will just need to paste the address.
+
+*/

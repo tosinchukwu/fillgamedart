@@ -211,22 +211,50 @@ const Index = () => {
     setGameStarted(true);
   };
 
+  // Smart Contract Configuration (Avalanche Mainnet)
+  const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000'; // REPLACE THIS after deployment
+  const CONTRACT_ABI = [
+    {
+      "inputs": [
+        { "internalType": "string", "name": "_winnerName", "type": "string" },
+        { "internalType": "uint256", "name": "_score", "type": "uint256" }
+      ],
+      "name": "recordScore",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ] as const;
+
   const broadcastScore = async () => {
     if (!gameState || gameState.winner === null || isVsCPU) return;
 
     const winner = gameState.players[gameState.winner!];
-    const scoreData = `Winner: ${winner.name}, Score: ${winner.totalScore}, Wallet: ${winner.address}`;
 
-    // We broadcast the data by sending a self-transaction or a transaction to an empty address 
-    // with the score data encoded in the HEX data field.
     try {
+      // 1. Prepare the transaction data for the 'recordScore' function
+      const data = encodeFunctionData({
+        abi: CONTRACT_ABI,
+        functionName: 'recordScore',
+        args: [winner.name, BigInt(Math.floor(winner.totalScore))],
+      });
+
+      // 2. Send the transaction to the contract
       sendTransaction({
-        to: winner.address as `0x${string}`, // Sending to self to record data
-        data: stringToHex(scoreData),
+        to: CONTRACT_ADDRESS as `0x${string}`,
+        data: data,
         value: parseEther('0'), // 0 AVAX
       });
     } catch (error) {
-      console.error("Broadcast failed", error);
+      console.error("Contract broadcast failed", error);
+
+      // Fallback: Original self-send method if contract isn't ready
+      const scoreData = `Winner: ${winner.name}, Score: ${winner.totalScore}`;
+      sendTransaction({
+        to: winner.address as `0x${string}`,
+        data: stringToHex(scoreData),
+        value: parseEther('0'),
+      });
     }
   };
 

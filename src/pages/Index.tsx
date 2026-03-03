@@ -247,8 +247,8 @@ const Index = () => {
               } else {
                 const result = hitRing(prevState, move.index, RING_NUMBERS[move.index]);
                 updated = result.state;
-                const match = updated.lastAction?.match(/Total: (\d+) pts/);
-                summary = `Ring ${move.index + 1} (${match ? match[1] : 0} pts)`;
+                const match = updated.lastAction?.match(/Total: ([\d.]+) pts/);
+                summary = `Ring ${move.index + 1} (${RING_NUMBERS[move.index].join(', ')}) [${match ? match[1] : 0} pts]`;
               }
 
               cpuActionBuffer.current.push(summary);

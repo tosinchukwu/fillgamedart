@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import Dartboard, { DartArrow } from '../components/Dartboard';
 import GameLog from '../components/GameLog';
-import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState } from '../game/gameLogic';
+import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState, computeCPUMove } from '../game/gameLogic';
 import { RING_NUMBERS, TARGET_SCORE, TOTAL_NUMBERS } from '../game/boardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,9 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Palette, Settings, Volume2, Music as MusicIcon } from 'lucide-react';
+import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2 } from 'lucide-react';
 import SettingsDialog from '../components/SettingsDialog';
 import { useEffect, useRef } from 'react';
+import { useAccount, useDisconnect, useSendTransaction } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+import { encodeFunctionData, parseEther, stringToHex } from 'viem';
 
 // Audio assets (Placeholders)
 // Audio assets (Local paths in public/audio/)
@@ -101,6 +104,9 @@ const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [p1Name, setP1Name] = useState('Player 1');
   const [p2Name, setP2Name] = useState('Player 2');
+  const [p1Address, setP1Address] = useState<string | null>(null);
+  const [p2Address, setP2Address] = useState<string | null>(null);
+  const [isVsCPU, setIsVsCPU] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [showBatchOverlay, setShowBatchOverlay] = useState(false);
@@ -110,6 +116,11 @@ const Index = () => {
   const [musicEnabled, setMusicEnabled] = useState(false);
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const [selectedMusic, setSelectedMusic] = useState('synth_wave');
+
+  const { address, isConnected } = useAccount();
+  const { open } = useWeb3Modal();
+  const { disconnect } = useDisconnect();
+  const { sendTransaction, data: txHash, isPending: isBroadcasting, isSuccess: isBroadcasted } = useSendTransaction();
 
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const prevBatchRef = React.useRef<number>(1);
@@ -176,9 +187,47 @@ const Index = () => {
   }, [playSFX]);
 
   const startGame = () => {
-    setGameState(createInitialGameState(p1Name || 'Player 1', p2Name || 'Player 2'));
+    if (!p1Address || !p2Address) return;
+    setIsVsCPU(false);
+    setGameState(createInitialGameState(
+      p1Name || 'Player 1', p1Address,
+      p2Name || 'Player 2', p2Address,
+      false
+    ));
     setLogMessages([]);
     setGameStarted(true);
+  };
+
+  const startSoloGame = () => {
+    setIsVsCPU(true);
+    const guestAddr = '0xGUEST' + Math.random().toString(16).slice(2, 8);
+    const cpuAddr = '0xCOMPUTER';
+    setGameState(createInitialGameState(
+      'Guest', guestAddr,
+      'Computer AI', cpuAddr,
+      true
+    ));
+    setLogMessages([]);
+    setGameStarted(true);
+  };
+
+  const broadcastScore = async () => {
+    if (!gameState || gameState.winner === null || isVsCPU) return;
+
+    const winner = gameState.players[gameState.winner!];
+    const scoreData = `Winner: ${winner.name}, Score: ${winner.totalScore}, Wallet: ${winner.address}`;
+
+    // We broadcast the data by sending a self-transaction or a transaction to an empty address 
+    // with the score data encoded in the HEX data field.
+    try {
+      sendTransaction({
+        to: winner.address as `0x${string}`, // Sending to self to record data
+        data: stringToHex(scoreData),
+        value: parseEther('0'), // 0 AVAX
+      });
+    } catch (error) {
+      console.error("Broadcast failed", error);
+    }
   };
 
   const resetGame = () => {
@@ -217,6 +266,32 @@ const Index = () => {
     prevBatchRef.current = result.state.batch;
   }, [gameState]);
 
+  // Handle CPU Moves
+  useEffect(() => {
+    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver) {
+      console.log("CPU Thinking...");
+      const timer = setTimeout(() => {
+        const move = computeCPUMove(gameState);
+
+        // 1. Visual Throw Animation
+        window.dispatchEvent(new CustomEvent('THROW_DART'));
+
+        // 2. Physical Impact on Data
+        const impactTimer = setTimeout(() => {
+          if (move.type === 'number') {
+            handleHitNumber(move.index);
+          } else {
+            handleHitRing(move.index);
+          }
+        }, 1000); // Wait for animation to "land"
+
+        return () => clearTimeout(impactTimer);
+      }, 2000); // Thinking time
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameStarted, gameState, handleHitNumber, handleHitRing]);
+
   if (!gameStarted || !gameState) {
     return (
       <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
@@ -239,25 +314,85 @@ const Index = () => {
 
             <div className="space-y-6 pt-4">
               <div className="space-y-4">
-                <div className="text-left">
-                  <label className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game ml-2">Player 1 Name</label>
-                  <Input value={p1Name} onChange={(e) => setP1Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-primary h-12 rounded-xl" placeholder="Player 1" />
+                {/* Player 1 Wallet Section */}
+                <div className={`p-4 rounded-2xl border transition-all ${p1Address ? 'bg-primary/10 border-primary/30' : 'bg-white/5 border-white/10'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game">Player 1 (Green)</span>
+                    {p1Address ? <CheckCircle2 className="w-4 h-4 text-primary" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />}
+                  </div>
+                  {p1Address ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white font-mono text-xs truncate max-w-[150px]">{p1Address}</span>
+                      <Button variant="ghost" size="sm" onClick={() => setP1Address(null)} className="h-7 text-[9px] text-white/40 hover:text-red-500">Unlink</Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => !isConnected ? open() : setP1Address(address!)}
+                      variant="outline"
+                      className="w-full h-10 border-white/10 text-white/60 hover:border-primary/50 hover:text-primary rounded-xl"
+                    >
+                      <Wallet className="w-3.5 h-3.5 mr-2" />
+                      {!isConnected ? 'Connect Wallet' : 'Register Current Wallet'}
+                    </Button>
+                  )}
                 </div>
-                <div className="text-left">
-                  <label className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game ml-2">Player 2 Name</label>
-                  <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-primary h-12 rounded-xl" placeholder="Player 2" />
+
+                {/* Player 2 Wallet Section */}
+                <div className={`p-4 rounded-2xl border transition-all ${p2Address ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/10'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game">Player 2 (Red)</span>
+                    {p2Address ? <CheckCircle2 className="w-4 h-4 text-secondary" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />}
+                  </div>
+                  {p2Address ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white font-mono text-xs truncate max-w-[150px]">{p2Address}</span>
+                      <Button variant="ghost" size="sm" onClick={() => setP2Address(null)} className="h-7 text-[9px] text-white/40 hover:text-red-500">Unlink</Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => !isConnected ? open() : setP2Address(address!)}
+                      variant="outline"
+                      className="w-full h-10 border-white/10 text-white/60 hover:border-secondary/50 hover:text-secondary rounded-xl"
+                      disabled={p1Address === address && isConnected}
+                    >
+                      <Wallet className="w-3.5 h-3.5 mr-2" />
+                      {!isConnected ? 'Connect Wallet' : 'Register Current Wallet'}
+                    </Button>
+                  )}
                 </div>
+
+                {isConnected && !p1Address && !p2Address && (
+                  <p className="text-[9px] text-white/30 italic">Connected: {address?.slice(0, 6)}...{address?.slice(-4)}. Register to player slot above.</p>
+                )}
+                {isConnected && (
+                  <Button variant="ghost" size="sm" onClick={() => disconnect()} className="w-full h-6 text-[9px] text-white/20 hover:text-white/60">Disconnect Current Wallet</Button>
+                )}
               </div>
 
               <div className="flex flex-col gap-3">
-                <Button onClick={startGame} className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-white font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] border-none" size="lg">🎯 Start Game</Button>
                 <Button
-                  variant="outline"
-                  onClick={() => setShowRules(!showRules)}
-                  className="w-full text-xs h-10 rounded-xl border-white/10 text-white/60 hover:text-primary hover:border-primary/40 hover:bg-white/5 font-mono-game uppercase tracking-[0.2em]"
+                  onClick={startGame}
+                  disabled={!p1Address || !p2Address}
+                  className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-white font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] border-none disabled:opacity-30 disabled:grayscale"
+                  size="lg"
                 >
-                  {showRules ? 'Hide Rules 📜' : 'How to Play 📜'}
+                  🎯 Start PVP Match
                 </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={startSoloGame}
+                    className="flex-1 text-xs h-10 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 font-mono-game uppercase tracking-[0.2em]"
+                  >
+                    🤖 Solo (Vs CPU)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRules(!showRules)}
+                    className="flex-1 text-xs h-10 rounded-xl border-white/10 text-white/60 hover:text-primary hover:border-primary/40 hover:bg-white/5 font-mono-game uppercase tracking-[0.2em]"
+                  >
+                    {showRules ? 'Rules 📜' : 'Rules 📜'}
+                  </Button>
+                </div>
               </div>
 
               {showRules && <RulesScroll />}
@@ -311,7 +446,24 @@ const Index = () => {
           <p className="text-white/60 font-mono-game uppercase tracking-widest text-sm mb-6">
             Final Score: {gameState.players[gameState.winner].totalScore} pts
           </p>
-          <Button onClick={resetGame} className="bg-primary hover:bg-primary/80 font-bold px-8 py-6 text-lg rounded-xl">Play Again</Button>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button onClick={resetGame} className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-8 py-6 text-lg rounded-xl">New Match</Button>
+            {!isVsCPU && (
+              <Button
+                onClick={broadcastScore}
+                disabled={isBroadcasting || isBroadcasted}
+                className="bg-primary hover:bg-primary/80 font-black px-8 py-6 text-lg rounded-xl shadow-lg shadow-primary/20"
+              >
+                {isBroadcasting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Share2 className="w-5 h-5 mr-2" />}
+                {isBroadcasted ? 'Score Broadcasted!' : 'Broadcast to Avalanche'}
+              </Button>
+            )}
+          </div>
+          {isBroadcasted && txHash && (
+            <p className="mt-4 text-[10px] text-white/40 font-mono">
+              TX: <a href={`https://snowtrace.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{txHash}</a>
+            </p>
+          )}
         </div>
       )}
 

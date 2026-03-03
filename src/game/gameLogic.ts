@@ -1,7 +1,8 @@
-import { TOTAL_NUMBERS, TARGET_SCORE } from './boardLayout';
+import { TOTAL_NUMBERS, TARGET_SCORE, RING_NUMBERS } from './boardLayout';
 
 export interface PlayerState {
   name: string;
+  address: string;
   hits: Record<number, number>; // number -> current hits
   completed: Record<number, boolean>; // number -> completed?
   fillerPoints: number;
@@ -22,6 +23,7 @@ export interface GameState {
   gameOver: boolean;
   winner: 0 | 1 | null;
   lastAction: string | null;
+  isVsCPU: boolean;
 }
 
 export interface TurnAction {
@@ -31,19 +33,19 @@ export interface TurnAction {
   pointsEarned: number;
 }
 
-export function createInitialPlayer(name: string): PlayerState {
+export function createInitialPlayer(name: string, address: string): PlayerState {
   const hits: Record<number, number> = {};
   const completed: Record<number, boolean> = {};
   for (let i = 1; i <= TOTAL_NUMBERS; i++) {
     hits[i] = 0;
     completed[i] = false;
   }
-  return { name, hits, completed, fillerPoints: 0, topFillerBonuses: 0, fillUpBonuses: 0, totalScore: 0 };
+  return { name, address, hits, completed, fillerPoints: 0, topFillerBonuses: 0, fillUpBonuses: 0, totalScore: 0 };
 }
 
-export function createInitialGameState(p1Name: string, p2Name: string): GameState {
+export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: string, p2Addr: string, isVsCPU = false): GameState {
   return {
-    players: [createInitialPlayer(p1Name), createInitialPlayer(p2Name)],
+    players: [createInitialPlayer(p1Name, p1Addr), createInitialPlayer(p2Name, p2Addr)],
     currentPlayer: 0,
     dartsRemaining: 3,
     turnHistory: [],
@@ -54,6 +56,7 @@ export function createInitialGameState(p1Name: string, p2Name: string): GameStat
     gameOver: false,
     winner: null,
     lastAction: null,
+    isVsCPU,
   };
 }
 
@@ -243,4 +246,49 @@ function checkBatchConditions(state: GameState) {
       }
     }
   }
+}
+
+/**
+ * AI Logic: Computes the best move for the CPU
+ * Priority: 1. Rings with many high-value targets. 2. Numbers nearing completion. 3. Highest value uncompleted.
+ */
+export function computeCPUMove(state: GameState): { type: 'number' | 'ring'; index: number } {
+  const cpu = state.players[1];
+  const closed = state.closedNumbers;
+
+  // 1. Check rings (Indices 0-3)
+  const ringScores = Object.values(RING_NUMBERS).map((nums, idx) => {
+    let score = 0;
+    nums.forEach(n => {
+      if (!closed.has(n) && !cpu.completed[n]) {
+        score += n; // Simple weighting by number value
+      }
+    });
+    return { idx, score };
+  });
+
+  const bestRing = ringScores.reduce((prev, curr) => (curr.score > prev.score ? curr : prev), { idx: -1, score: 0 });
+
+  if (bestRing.score > 20) { // Threshold to prefer ring over single number
+    return { type: 'ring', index: bestRing.idx };
+  }
+
+  // 2. Check individual numbers 14 down to 1
+  for (let n = TOTAL_NUMBERS; n >= 1; n--) {
+    if (!closed.has(n) && !cpu.completed[n]) {
+      // If we are close to completing, focus on it
+      if (cpu.hits[n] >= n - 2) {
+        return { type: 'number', index: n };
+      }
+    }
+  }
+
+  // 3. Just pick highest available
+  for (let n = TOTAL_NUMBERS; n >= 1; n--) {
+    if (!closed.has(n) && !cpu.completed[n]) {
+      return { type: 'number', index: n };
+    }
+  }
+
+  return { type: 'number', index: 1 }; // Fallback
 }

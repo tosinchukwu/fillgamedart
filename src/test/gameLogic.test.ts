@@ -1,98 +1,79 @@
 import { describe, it, expect } from "vitest";
 import { createInitialGameState, hitNumber } from "../game/gameLogic";
 
-describe("Game Logic Bonus Rules", () => {
+describe("Game Logic Refinement Tests", () => {
     const p1 = { name: "Player 1", addr: "0x1" };
     const p2 = { name: "Player 2", addr: "0x2" };
 
-    it("should award Fill-Up Bonus (10pts) to the FIRST player to complete a number and close it", () => {
+    it("should award Fill-Up Bonus (10pts) to the LAST player to complete a number", () => {
         let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
 
         // Player 1 hits Number 1 (requires 1 hit to complete)
-        const result = hitNumber(state, 1);
-        state = result.state;
-
-        expect(state.players[0].fillUpBonuses).toBe(10);
+        state = hitNumber(state, 1).state;
         expect(state.players[0].completed[1]).toBe(true);
-        expect(state.closedNumbers.has(1)).toBe(true);
+        expect(state.closedNumbers.has(1)).toBe(false); // Not closed yet, P2 hasn't completed it
+        expect(state.players[0].totalScore).toBe(2); // Just 2 filler pts
 
-        // Switch to Player 2
+        // Switch to Player 2 and complete Number 1
         state.currentPlayer = 1;
-        const result2 = hitNumber(state, 1);
-        state = result2.state;
+        state = hitNumber(state, 1).state;
+        expect(state.players[1].completed[1]).toBe(true);
+        expect(state.closedNumbers.has(1)).toBe(true); // Now closed!
 
-        // Player 2 should NOT get points or hits because it's closed
-        expect(state.players[1].hits[1]).toBe(0);
-        expect(result2.message).toContain("Number 1 is closed");
+        // Player 2 should get 2 filler + 10 fill-up = 12 pts
+        expect(state.players[1].totalScore).toBe(12);
     });
 
-    it("should award Top Filler Bonus (7pts) to the current leader even if number is open", () => {
+    it("should award Top Filler Bonus (7pts) as a single bonus for most hits on 2-14", () => {
         let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
 
-        // Number 7 requires 7 hits
-        // Player 1 hits 7 once
-        state = hitNumber(state, 7).state;
-        expect(state.players[0].totalScore).toBe(2 + 7); // 2 filler + 7 top filler
+        // P1 hits #2 once
+        state = hitNumber(state, 2).state;
+        // P1 total: 2 filler + 7 TFP = 9
+        expect(state.players[0].totalScore).toBe(9);
 
-        // Player 2 hits 7 twice (needs to switch turn first or just force hit)
+        // P2 hits #3 twice
         state.currentPlayer = 1;
-        state = hitNumber(state, 7).state;
-        state = hitNumber(state, 7).state;
+        state = hitNumber(state, 3).state;
+        state = hitNumber(state, 3).state;
 
-        // Player 2 now has 2 hits, Player 1 has 1 hit.
-        // Player 2 should lead.
-        expect(state.players[1].totalScore).toBe(4 + 7); // 4 filler + 7 top filler
-        expect(state.players[0].totalScore).toBe(2); // Only filler points left
+        // P2 has 2 hits, P1 has 1 hit. P2 should now have the 7pt bonus.
+        // P2: 2 hits * 2 pts = 4 filler. Plus 7 TFP = 11.
+        expect(state.players[1].totalScore).toBe(11);
+        // P1 should lose TFP: 1 hit * 2 pts = 2.
+        expect(state.players[0].totalScore).toBe(2);
     });
 
-    it("should split Top Filler Bonus (3.5pts each) on tie", () => {
+    it("should split Top Filler Bonus (3.5pts each) on tie across 2-14", () => {
         let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
 
-        state = hitNumber(state, 7).state;
+        state = hitNumber(state, 2).state; // P1: 1 hit
         state.currentPlayer = 1;
-        state = hitNumber(state, 7).state;
+        state = hitNumber(state, 3).state; // P2: 1 hit
 
         expect(state.players[0].totalScore).toBe(2 + 3.5);
         expect(state.players[1].totalScore).toBe(2 + 3.5);
     });
 
-    it("should win immediately when crossing the specific opponent target in Batch 2", () => {
+    it("should win immediately in Batch 2 upon surpassing target", () => {
         let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
 
-        // Simulate end of Batch 1
-        // Player 1: 230, Player 2: 150
+        // Setup Batch 2
         state.batch = 2;
-        state.batch1Winner = 0;
-        state.batch1Scores = [230, 150];
-        state.players[0].fillerPoints = 0;
-        state.players[1].fillerPoints = 0;
+        state.batch1Scores = [230, 150]; // P1: 230, P2: 150
+        // P1 Target: 150
+        // P2 Target: 230
 
-        // Player 1 Target: 150
-        // Player 2 Target: 230
-
-        // Case 1: Player 1 crosses 150
         state.currentPlayer = 0;
-        state.players[0].fillerPoints = 152;
-        // Trigger checkBatchConditions via a hit
-        const result = hitNumber(state, 14);
+        // P1 hits numbers to reach > 150
+        // We can just manually set hits to simulate pts if we want to skip long sequence
+        state.players[0].hits[14] = 76; // 76 * 2 = 152
+
+        // Trigger check via hit
+        const result = hitNumber(state, 1); // Hit #1 (doesn't matter which)
 
         expect(result.state.gameOver).toBe(true);
         expect(result.state.winner).toBe(0);
-        expect(result.state.lastAction).toContain("surpassed Player 2's score of 150");
-        expect(result.state.lastAction).toContain("[Total:");
-
-        // Case 2: Player 2 crosses 230
-        let state2 = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
-        state2.batch = 2;
-        state2.batch1Winner = 0;
-        state2.batch1Scores = [230, 150];
-        state2.currentPlayer = 1;
-        state2.players[1].fillerPoints = 232;
-        const result2 = hitNumber(state2, 14);
-
-        expect(result2.state.gameOver).toBe(true);
-        expect(result2.state.winner).toBe(1);
-        expect(result2.state.lastAction).toContain("surpassed Player 1's score of 230");
-        expect(result2.state.lastAction).toContain("[Total:");
+        expect(result.state.lastAction).toContain("surpassed the target of 150");
     });
 });

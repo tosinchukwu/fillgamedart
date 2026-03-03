@@ -43,6 +43,14 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   const phaseRef = useRef<BoardPhase>('idle');
   useEffect(() => { phaseRef.current = boardPhase; }, [boardPhase]);
 
+  // Sync stuck darts with game state resets
+  useEffect(() => {
+    const totalHits = Object.values(gameState.hitSequences).reduce((acc, seq) => acc + seq.length, 0);
+    if (totalHits === 0 && stuckDarts.length > 0) {
+      setStuckDarts([]);
+    }
+  }, [gameState.hitSequences]);
+
   const prevCpRef = useRef(cp);
   useEffect(() => {
     if (prevCpRef.current !== cp) {

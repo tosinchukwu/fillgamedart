@@ -38,7 +38,9 @@ const Index = () => {
     if (!gameState || gameState.gameOver) return;
     const result = hitNumber(gameState, num);
     setGameState(result.state);
-    setLogMessages(prev => [...prev, `[${result.state.players[gameState.currentPlayer].name}] ${result.message}`]);
+    if (result.state.lastAction) {
+      setLogMessages(prev => [...prev, result.state.lastAction!]);
+    }
   }, [gameState]);
 
   const handleHitRing = useCallback((ringIndex: number) => {
@@ -47,8 +49,9 @@ const Index = () => {
     if (!nums || nums.length === 0) return;
     const result = hitRing(gameState, ringIndex, nums);
     setGameState(result.state);
-    const playerName = gameState.players[gameState.currentPlayer].name;
-    setLogMessages(prev => [...prev, `[${playerName}] ${result.state.lastAction}`, ...result.messages.map(m => `  → ${m}`)]);
+    if (result.state.lastAction) {
+      setLogMessages(prev => [...prev, result.state.lastAction!, ...result.messages.map(m => `  → ${m}`)]);
+    }
   }, [gameState]);
 
   if (!gameStarted || !gameState) {

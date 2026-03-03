@@ -64,7 +64,7 @@ function recalcTotalScore(player: PlayerState): number {
 export function hitNumber(state: GameState, targetNumber: number): { state: GameState; message: string } {
   const newState = structuredClone(state) as GameState;
   newState.closedNumbers = new Set(state.closedNumbers);
-  
+
   const cp = newState.currentPlayer;
   const player = newState.players[cp];
   const opponent = newState.players[cp === 0 ? 1 : 0];
@@ -76,7 +76,7 @@ export function hitNumber(state: GameState, targetNumber: number): { state: Game
     message = `You already completed ${targetNumber}! No points.`;
   } else {
     player.hits[targetNumber]++;
-    
+
     // Filler points: 2 per hit while not completed
     if (player.hits[targetNumber] <= targetNumber) {
       player.fillerPoints += 2;
@@ -111,12 +111,13 @@ export function hitNumber(state: GameState, targetNumber: number): { state: Game
 
   // Dart management
   newState.dartsRemaining--;
-  newState.lastAction = message;
+  const finalMessage = `[${player.name}]: ${message}`;
+  newState.lastAction = finalMessage;
 
   if (newState.dartsRemaining <= 0) {
     // Check batch conditions before switching
     checkBatchConditions(newState);
-    
+
     if (!newState.gameOver) {
       newState.currentPlayer = cp === 0 ? 1 : 0;
       newState.dartsRemaining = 3;
@@ -133,7 +134,7 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
   let currentState = structuredClone(state) as GameState;
   currentState.closedNumbers = new Set(state.closedNumbers);
   const messages: string[] = [];
-  
+
   // Temporarily increase darts so we don't auto-switch mid-ring
   const originalDarts = currentState.dartsRemaining;
   currentState.dartsRemaining = 999;
@@ -147,7 +148,8 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
 
   // Restore proper dart count (ring hit = 1 dart)
   currentState.dartsRemaining = originalDarts - 1;
-  currentState.lastAction = `🔵 Ring ${ringIndex + 1} hit! Affected: ${ringNumbers.join(', ')}`;
+  const pName = currentState.players[currentState.currentPlayer].name;
+  currentState.lastAction = `[${pName}]: 🔵 Ring ${ringIndex + 1} hit! Affected: ${ringNumbers.join(', ')}`;
 
   if (currentState.dartsRemaining <= 0) {
     checkBatchConditions(currentState);
@@ -163,13 +165,13 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
 function checkTopFillerBonus(state: GameState, num: number) {
   const p1 = state.players[0];
   const p2 = state.players[1];
-  
+
   // Only award when both have completed the number
   if (!p1.completed[num] || !p2.completed[num]) return;
-  
+
   const p1Hits = p1.hits[num];
   const p2Hits = p2.hits[num];
-  
+
   if (p1Hits > p2Hits) {
     p1.topFillerBonuses += 7;
   } else if (p2Hits > p1Hits) {
@@ -189,12 +191,12 @@ function checkBatchConditions(state: GameState) {
       state.batch = 2;
       state.batch1Score = p1Score;
       state.batch1Winner = 0;
-      state.lastAction = `🏆 Player 1 exceeded ${TARGET_SCORE}! Batch 2 begins. Target: ${p1Score}`;
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} exceeded ${TARGET_SCORE}! Batch 2 begins. Target: ${p1Score}`;
     } else if (p2Score > TARGET_SCORE) {
       state.batch = 2;
       state.batch1Score = p2Score;
       state.batch1Winner = 1;
-      state.lastAction = `🏆 Player 2 exceeded ${TARGET_SCORE}! Batch 2 begins. Target: ${p2Score}`;
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} exceeded ${TARGET_SCORE}! Batch 2 begins. Target: ${p2Score}`;
     }
   } else if (state.batch === 2 && state.batch1Winner !== null) {
     const opponentIdx = state.batch1Winner === 0 ? 1 : 0;
@@ -202,7 +204,7 @@ function checkBatchConditions(state: GameState) {
     if (opponentScore > state.batch1Score!) {
       state.gameOver = true;
       state.winner = opponentIdx;
-      state.lastAction = `🎉 ${state.players[opponentIdx].name} wins by surpassing Batch 1 score!`;
+      state.lastAction = `[SYSTEM]: 🎉 ${state.players[opponentIdx].name} wins by surpassing Batch 1 score!`;
     }
   }
 }

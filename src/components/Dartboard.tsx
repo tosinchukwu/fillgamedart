@@ -21,6 +21,7 @@ interface DartStuck {
   id: number;
   x: number;
   y: number;
+  playerIdx: number;
 }
 
 let dartIdCounter = 0;
@@ -104,7 +105,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       phaseRef.current = 'idle';
 
       const id = ++dartIdCounter;
-      setStuckDarts(prev => [...prev, { id, x: lx, y: ly }]);
+      setStuckDarts(prev => [...prev, { id, x: lx, y: ly, playerIdx: cp }]);
       // Permanent markers: do not remove them after 2.5s
 
       if (hitRingLine && hitRingLineIdx >= 0) {
@@ -218,8 +219,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 r={ring.outer * SCALE}
                 fill="none"
                 stroke="#ffffff"
-                strokeWidth="3"
-                filter="url(#glow)"
+                strokeWidth="2"
+                opacity="0.6"
               />
             ))}
 
@@ -235,19 +236,18 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Outer Orbit Glow */}
-                  <circle cx={x} cy={y} r={DOT_R + 6} fill="none" stroke={ringColors[pos.ring]} strokeWidth="1" strokeDasharray="2 2" opacity="0.3" />
+                  {/* Outer Orbit */}
+                  <circle cx={x} cy={y} r={DOT_R + 6} fill="none" stroke={ringColors[pos.ring]} strokeWidth="1" strokeDasharray="3 3" opacity="0.2" />
 
                   {/* Gem Dot */}
-                  <circle cx={x} cy={y} r={DOT_R} fill={`url(#${gemId})`} filter={!isClosed ? "url(#glow)" : "none"} />
+                  <circle cx={x} cy={y} r={DOT_R} fill={`url(#${gemId})`} />
 
                   {/* Inner Shine */}
                   {!isClosed && <circle cx={x - 4} cy={y - 4} r={4} fill="white" opacity="0.3" />}
 
                   {/* Number text */}
                   <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central"
-                    fill={isClosed ? "#666" : "#fff"} fontSize="16" fontWeight="bold" fontFamily="'JetBrains Mono', monospace"
-                    style={{ textShadow: '0 0 10px rgba(0,0,0,0.8)' }}
+                    fill={isClosed ? "#666" : "#fff"} fontSize="17" fontWeight="900" fontFamily="sans-serif"
                   >{pos.number}</text>
 
                   {/* Progress Ring */}
@@ -270,11 +270,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
                 <image
-                  href={cp === 0 ? "/green_dart.png" : "/red_dart.png"}
-                  x={dart.x - 75}
-                  y={dart.y - 280}
-                  width="150"
-                  height="300"
+                  href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
+                  x={dart.x - 90}
+                  y={dart.y - 350}
+                  width="180"
+                  height="360"
                 />
               </g>
             ))}

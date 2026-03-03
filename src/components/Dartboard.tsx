@@ -308,10 +308,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 */}
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
-                  x={dart.x - 50}
-                  y={dart.y - 210} // Tip at BOTTOM of image sits exactly at (x,y)
-                  width="100"
-                  height="210"
+                  x={dart.x - 57.5}
+                  y={dart.y - 270 + 15} // 270 height, 15px pierce into board
+                  width="115"
+                  height="270"
                   transform={`rotate(${dart.angle + dart.tilt} ${dart.x} ${dart.y})`}
                   style={{
                     filter: 'drop-shadow(0 15px 15px rgba(0,0,0,0.6))'
@@ -360,7 +360,7 @@ export const DartArrow: React.FC<{
         <img
           src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
           alt="Dart arrow"
-          className="w-[100px] md:w-[130px] rounded"
+          className="w-[120px] md:w-[150px] rounded"
         />
       </div>
     </div>

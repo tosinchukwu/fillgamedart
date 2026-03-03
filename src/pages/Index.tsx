@@ -21,6 +21,8 @@ const Index = () => {
   const [p2Name, setP2Name] = useState('Player 2');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [showBatchOverlay, setShowBatchOverlay] = useState(false);
+  const prevBatchRef = React.useRef<number>(1);
 
   const startGame = () => {
     setGameState(createInitialGameState(p1Name || 'Player 1', p2Name || 'Player 2'));
@@ -41,6 +43,11 @@ const Index = () => {
     if (result.state.lastAction) {
       setLogMessages(prev => [...prev, result.state.lastAction!]);
     }
+
+    if (result.state.batch === 2 && prevBatchRef.current === 1) {
+      setShowBatchOverlay(true);
+    }
+    prevBatchRef.current = result.state.batch;
   }, [gameState]);
 
   const handleHitRing = useCallback((ringIndex: number) => {
@@ -52,6 +59,11 @@ const Index = () => {
     if (result.state.lastAction) {
       setLogMessages(prev => [...prev, result.state.lastAction!, ...result.messages.map(m => `  → ${m}`)]);
     }
+
+    if (result.state.batch === 2 && prevBatchRef.current === 1) {
+      setShowBatchOverlay(true);
+    }
+    prevBatchRef.current = result.state.batch;
   }, [gameState]);
 
   if (!gameStarted || !gameState) {
@@ -199,6 +211,15 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Batch Transition Overlay */}
+      <BatchTransitionOverlay
+        show={showBatchOverlay}
+        benchmark={gameState.batch1Score || 0}
+        winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''}
+        opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''}
+        onClose={() => setShowBatchOverlay(false)}
+      />
     </div>
   );
 };
@@ -284,6 +305,62 @@ const PlayerPanel: React.FC<{
             {num}
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+const BatchTransitionOverlay = ({ show, benchmark, winnerName, opponentName, onClose }: {
+  show: boolean,
+  benchmark: number,
+  winnerName: string,
+  opponentName: string,
+  onClose: () => void
+}) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-500">
+      <div className="max-w-2xl w-full glass-panel p-12 rounded-[3rem] border-2 border-primary neon-border-theme flex flex-col items-center text-center gap-8 shadow-2xl animate-in zoom-in slide-in-from-bottom-12 duration-700">
+        <div className="space-y-2">
+          <h2 className="text-6xl font-black italic tracking-tighter text-primary text-glow-theme animate-bounce">
+            BATCH 1 ACHIEVED!
+          </h2>
+          <p className="text-white/60 font-mono-game uppercase tracking-[0.4em] text-sm">Target {TARGET_SCORE} exceeded</p>
+        </div>
+
+        <div className="w-full h-px bg-white/10" />
+
+        <div className="space-y-6">
+          <p className="text-2xl text-white font-bold leading-relaxed px-4">
+            <span className="text-secondary">{winnerName}</span> set the Benchmark Bar at <span className="text-primary text-3xl">{benchmark}</span>!
+          </p>
+
+          <div className="glass-panel p-8 rounded-2xl border-white/5 bg-white/5 space-y-4">
+            <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-bold">Batch 2 Instructions (Qualification Round)</h3>
+            <ul className="text-white/80 text-sm space-y-3 font-medium leading-relaxed">
+              <li className="flex items-start gap-3 justify-center">
+                <span className="text-primary font-bold">1.</span>
+                <span>{opponentName} takes the turn from 0 points.</span>
+              </li>
+              <li className="flex items-start gap-3 justify-center">
+                <span className="text-primary font-bold">2.</span>
+                <span>Surpass the target of <span className="text-primary font-bold">{benchmark}</span> to WIN immediately!</span>
+              </li>
+              <li className="flex items-start gap-3 justify-center">
+                <span className="text-primary font-bold">3.</span>
+                <span>If board closes before beating the target, <span className="text-primary font-bold">{winnerName}</span> wins the game.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <Button
+          onClick={onClose}
+          className="bg-primary hover:bg-primary/80 text-white font-black px-12 py-8 text-2xl rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all animate-pulse"
+        >
+          GO BATCH 2! 🎯
+        </Button>
       </div>
     </div>
   );

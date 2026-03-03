@@ -8,7 +8,7 @@ import { ReactNode } from 'react'
 import { WALLET_CONNECT_PROJECT_ID } from '../lib/constants'
 
 // 1. Get projectId from https://cloud.walletconnect.com
-const projectId = 'df9103b089fad4ac16226c9ea96a15aa' // Placeholder - user needs to provide this
+const projectId = WALLET_CONNECT_PROJECT_ID
 
 // 2. Create wagmiConfig
 const metadata = {

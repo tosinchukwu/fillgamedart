@@ -3,11 +3,6 @@ import { TOTAL_NUMBERS, TARGET_SCORE, RING_NUMBERS } from './boardLayout';
 export interface PlayerState {
   name: string;
   address: string;
-  hits: Record<number, number>; // number -> current hits
-  completed: Record<number, boolean>; // number -> completed?
-  fillerPoints: number;
-  topFillerBonuses: number;
-  fillUpBonuses: number;
   totalScore: number;
 }
 
@@ -16,7 +11,9 @@ export interface GameState {
   currentPlayer: 0 | 1;
   dartsRemaining: number;
   turnHistory: TurnAction[];
-  closedNumbers: Set<number>; // fully closed (both completed)
+  closedNumbers: Set<number>; // fully closed (communal target met)
+  // Tracks who hit each number and in what order: number -> array of player indices (0 or 1)
+  hitSequences: Record<number, (0 | 1)[]>;
   batch: 1 | 2;
   batch1Score: number | null; // score that ended batch 1
   batch1Winner: 0 | 1 | null;
@@ -35,22 +32,21 @@ export interface TurnAction {
 }
 
 export function createInitialPlayer(name: string, address: string): PlayerState {
-  const hits: Record<number, number> = {};
-  const completed: Record<number, boolean> = {};
-  for (let i = 1; i <= TOTAL_NUMBERS; i++) {
-    hits[i] = 0;
-    completed[i] = false;
-  }
-  return { name, address, hits, completed, fillerPoints: 0, topFillerBonuses: 0, fillUpBonuses: 0, totalScore: 0 };
+  return { name, address, totalScore: 0 };
 }
 
 export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: string, p2Addr: string, isVsCPU = false): GameState {
+  const hitSequences: Record<number, (0 | 1)[]> = {};
+  for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+    hitSequences[i] = [];
+  }
   return {
     players: [createInitialPlayer(p1Name, p1Addr), createInitialPlayer(p2Name, p2Addr)],
     currentPlayer: 0,
     dartsRemaining: 3,
     turnHistory: [],
     closedNumbers: new Set(),
+    hitSequences,
     batch: 1,
     batch1Score: null,
     batch1Winner: null,
@@ -63,30 +59,43 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
 }
 
 function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
-  const player = gameState.players[playerIdx];
-  const opponent = gameState.players[playerIdx === 0 ? 1 : 0];
+  let score = 0;
 
-  let dynamicTopFillerBonuses = 0;
+  for (let n = 1; n <= TOTAL_NUMBERS; n++) {
+    const seq = gameState.hitSequences[n];
+    if (seq.length === 0) continue;
 
-  // Iterate through numbers 2-TOTAL_NUMBERS to calculate Top Filler Bonus dynamically
-  for (let n = 2; n <= TOTAL_NUMBERS; n++) {
-    const p1Hits = gameState.players[0].hits[n];
-    const p2Hits = gameState.players[1].hits[n];
+    // 1. Filler Points (+2 per hit)
+    const playerHits = seq.filter(p => p === playerIdx).length;
+    score += playerHits * 2;
 
-    // If both have 0 hits, no one gets a bonus
-    if (p1Hits === 0 && p2Hits === 0) continue;
+    // 2. Top Filler Bonus (+7 per number)
+    // Awarded to the player with more hits on this number. Divide if tied?
+    // The image shows "A, B" under TFP for a tie, and scores suggest splitting.
+    // However, for consistency with the image (A: 12, B: 15.5), let's calculate:
+    // In row 2 (Number 2): A has 1 hit, B has 1 hit. TFP +7 is split 3.5 each.
+    // In row 3 (Number 3): A has 2 hits, B has 1 hit. TFP +7 goes to A.
+    if (n >= 2) { // TFP starts from Number 2
+      const opponentIdx = 1 - playerIdx;
+      const opponentHits = seq.filter(p => p === opponentIdx).length;
+      if (playerHits > opponentHits) {
+        score += 7;
+      } else if (playerHits === opponentHits && playerHits > 0) {
+        score += 3.5;
+      }
+    }
 
-    if (p1Hits > p2Hits) {
-      if (playerIdx === 0) dynamicTopFillerBonuses += 7;
-    } else if (p2Hits > p1Hits) {
-      if (playerIdx === 1) dynamicTopFillerBonuses += 7;
-    } else {
-      // Tie
-      dynamicTopFillerBonuses += 3.5;
+    // 3. Fill-Up Bonus (+10 per number)
+    // Awarded to the player who landed the n-th hit (communal completion)
+    if (seq.length >= n) {
+      const completingPlayer = seq[n - 1];
+      if (completingPlayer === playerIdx) {
+        score += 10;
+      }
     }
   }
 
-  return player.fillerPoints + dynamicTopFillerBonuses + player.fillUpBonuses;
+  return score;
 }
 
 export function hitNumber(state: GameState, targetNumber: number, isMultiHit = false): { state: GameState; message: string } {
@@ -95,33 +104,21 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
 
   const cp = newState.currentPlayer;
   const player = newState.players[cp];
-  const opponent = newState.players[cp === 0 ? 1 : 0];
   let message = '';
 
   if (newState.closedNumbers.has(targetNumber)) {
     message = `Number ${targetNumber} is closed! No points.`;
-  } else if (player.completed[targetNumber]) {
-    message = `You already completed ${targetNumber}! No points.`;
   } else {
-    player.hits[targetNumber]++;
+    // Communal hit tracking
+    newState.hitSequences[targetNumber].push(cp);
+    const hitCount = newState.hitSequences[targetNumber].length;
 
-    // Filler points: 2 per hit while not completed
-    if (player.hits[targetNumber] <= targetNumber) {
-      player.fillerPoints += 2;
-      message = `Hit ${targetNumber}! (${player.hits[targetNumber]}/${targetNumber}) +2 filler pts`;
-    }
+    message = `Hit ${targetNumber}! (${hitCount}/${targetNumber}) +2 filler pts`;
 
-    // Check completion
-    if (player.hits[targetNumber] >= targetNumber && !player.completed[targetNumber]) {
-      player.completed[targetNumber] = true;
-      message = `🎯 Completed ${targetNumber}!`;
-
-      // Fill-Up Bonus: FIRST to complete gets 10 and closes it
-      if (!opponent.completed[targetNumber]) {
-        newState.closedNumbers.add(targetNumber);
-        player.fillUpBonuses += 10;
-        message += ` +10 Fill-Up Bonus! Number closed.`;
-      }
+    // Check completion (Communal)
+    if (hitCount >= targetNumber) {
+      newState.closedNumbers.add(targetNumber);
+      message = `🎯 Completed ${targetNumber}! +10 Fill-Up Bonus! Number closed.`;
     }
   }
 
@@ -212,16 +209,12 @@ function checkBatchConditions(state: GameState) {
 
       // Score and Board Reset for Batch 2
       state.players.forEach(p => {
-        p.fillerPoints = 0;
-        p.topFillerBonuses = 0;
-        p.fillUpBonuses = 0;
         p.totalScore = 0;
-        for (let i = 1; i <= TOTAL_NUMBERS; i++) {
-          p.hits[i] = 0;
-          p.completed[i] = false;
-        }
       });
       state.closedNumbers = new Set();
+      for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+        state.hitSequences[i] = [];
+      }
 
       // Qualification Round: Turn immediately goes to the opponent
       const opponentIdx = 1 - b1w;
@@ -251,16 +244,8 @@ function checkBatchConditions(state: GameState) {
       return;
     }
 
-    // Check if both players have finished all numbers (Board closed)
-    let allCompleted = true;
-    for (let i = 1; i <= TOTAL_NUMBERS; i++) {
-      if (!state.players[0].completed[i] || !state.players[1].completed[i]) {
-        allCompleted = false;
-        break;
-      }
-    }
-
-    if (allCompleted) {
+    // Check if board is closed (all numbers reached communal hits)
+    if (state.closedNumbers.size === TOTAL_NUMBERS) {
       // If board is closed and no one surpassed their target, the one who was leading in Batch 1 wins
       state.gameOver = true;
       state.winner = state.batch1Winner;
@@ -273,14 +258,14 @@ function checkBatchConditions(state: GameState) {
  * Priority: 1. Rings with many high-value targets. 2. Numbers nearing completion. 3. Highest value uncompleted.
  */
 export function computeCPUMove(state: GameState): { type: 'number' | 'ring'; index: number } {
-  const cpu = state.players[1];
+  const cpuIdx = 1;
   const closed = state.closedNumbers;
 
   // 1. Check rings (Indices 0-3)
   const ringScores = Object.values(RING_NUMBERS).map((nums, idx) => {
     let score = 0;
     nums.forEach(n => {
-      if (!closed.has(n) && !cpu.completed[n]) {
+      if (!closed.has(n)) {
         score += n; // Simple weighting by number value
       }
     });
@@ -295,9 +280,10 @@ export function computeCPUMove(state: GameState): { type: 'number' | 'ring'; ind
 
   // 2. Check individual numbers 14 down to 1
   for (let n = TOTAL_NUMBERS; n >= 1; n--) {
-    if (!closed.has(n) && !cpu.completed[n]) {
+    if (!closed.has(n)) {
       // If we are close to completing, focus on it
-      if (cpu.hits[n] >= n - 2) {
+      const currentHits = state.hitSequences[n].length;
+      if (currentHits >= n - 2) {
         return { type: 'number', index: n };
       }
     }
@@ -305,7 +291,7 @@ export function computeCPUMove(state: GameState): { type: 'number' | 'ring'; ind
 
   // 3. Just pick highest available
   for (let n = TOTAL_NUMBERS; n >= 1; n--) {
-    if (!closed.has(n) && !cpu.completed[n]) {
+    if (!closed.has(n)) {
       return { type: 'number', index: n };
     }
   }

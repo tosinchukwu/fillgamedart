@@ -22,6 +22,7 @@ interface DartStuck {
   x: number;
   y: number;
   angle: number;
+  tilt: number;
   playerIdx: number;
 }
 
@@ -114,8 +115,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       window.dispatchEvent(new CustomEvent('DART_HIT_IMPACT'));
 
       const id = ++dartIdCounter;
+      // Random tilt for realistic dart landing (±20°)
+      const tilt = (Math.random() - 0.5) * 40;
       // Single-dart visibility: only keep the most recent dart
-      setStuckDarts([{ id, x: lx, y: ly, angle, playerIdx: cp }]);
+      setStuckDarts([{ id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
       // Permanent markers: do not remove them after 2.5s
 
       if (hitRingLine && hitRingLineIdx >= 0) {
@@ -305,11 +308,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 */}
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
-                  x={dart.x - 40}
-                  y={dart.y} // Tip at top of image sits exactly at (x,y)
-                  width="80"
-                  height="160"
-                  transform={`rotate(${dart.angle + 180} ${dart.x} ${dart.y})`}
+                  x={dart.x - 50}
+                  y={dart.y - 210} // Tip at BOTTOM of image sits exactly at (x,y)
+                  width="100"
+                  height="210"
+                  transform={`rotate(${dart.angle + dart.tilt} ${dart.x} ${dart.y})`}
                   style={{
                     filter: 'drop-shadow(0 15px 15px rgba(0,0,0,0.6))'
                   }}

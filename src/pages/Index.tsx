@@ -298,7 +298,7 @@ const Index = () => {
 
     try {
       writeContract({
-        address: CONTRACT_ADDRESS,
+        address: CONTRACT_ADDRESS as `0x${string}`,
         abi: CONTRACT_ABI,
         functionName: 'recordScore',
         args: [
@@ -310,6 +310,7 @@ const Index = () => {
           BigInt(gameState.players[1].totalScore),
           BigInt(Math.floor(Date.now() / 1000))
         ],
+        account: address as `0x${string}`,
       });
     } catch (error) {
       console.error("Broadcast failed:", error);

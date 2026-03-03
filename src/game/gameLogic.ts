@@ -20,6 +20,7 @@ export interface GameState {
   batch: 1 | 2;
   batch1Score: number | null; // score that ended batch 1
   batch1Winner: 0 | 1 | null;
+  batch1Scores: [number, number] | null; // Preservation of both final scores from Batch 1
   gameOver: boolean;
   winner: 0 | 1 | null;
   lastAction: string | null;
@@ -53,6 +54,7 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
     batch: 1,
     batch1Score: null,
     batch1Winner: null,
+    batch1Scores: null,
     gameOver: false,
     winner: null,
     lastAction: null,
@@ -60,8 +62,31 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
   };
 }
 
-function recalcTotalScore(player: PlayerState): number {
-  return player.fillerPoints + player.topFillerBonuses + player.fillUpBonuses;
+function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
+  const player = gameState.players[playerIdx];
+  const opponent = gameState.players[playerIdx === 0 ? 1 : 0];
+
+  let dynamicTopFillerBonuses = 0;
+
+  // Iterate through all numbers to calculate Top Filler Bonus dynamically
+  for (let n = 1; n <= TOTAL_NUMBERS; n++) {
+    const p1Hits = gameState.players[0].hits[n];
+    const p2Hits = gameState.players[1].hits[n];
+
+    // If both have 0 hits, no one gets a bonus
+    if (p1Hits === 0 && p2Hits === 0) continue;
+
+    if (p1Hits > p2Hits) {
+      if (playerIdx === 0) dynamicTopFillerBonuses += 7;
+    } else if (p2Hits > p1Hits) {
+      if (playerIdx === 1) dynamicTopFillerBonuses += 7;
+    } else {
+      // Tie
+      dynamicTopFillerBonuses += 3.5;
+    }
+  }
+
+  return player.fillerPoints + dynamicTopFillerBonuses + player.fillUpBonuses;
 }
 
 export function hitNumber(state: GameState, targetNumber: number, isMultiHit = false): { state: GameState; message: string } {
@@ -91,26 +116,18 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
       player.completed[targetNumber] = true;
       message = `🎯 Completed ${targetNumber}!`;
 
-      // Fill-Up Bonus: last to complete gets 10
-      if (opponent.completed[targetNumber]) {
-        // Both done - close it, current player was last
+      // Fill-Up Bonus: FIRST to complete gets 10 and closes it
+      if (!opponent.completed[targetNumber]) {
         newState.closedNumbers.add(targetNumber);
         player.fillUpBonuses += 10;
         message += ` +10 Fill-Up Bonus! Number closed.`;
-      } else {
-        message += ` Waiting for opponent to close it.`;
-      }
-
-      // Check Top Filler Bonus for numbers 2-14
-      if (targetNumber >= 2) {
-        checkTopFillerBonus(newState, targetNumber);
       }
     }
   }
 
-  // Update scores
-  player.totalScore = recalcTotalScore(player);
-  opponent.totalScore = recalcTotalScore(opponent);
+  // Update scores using the dynamic calculator
+  newState.players[0].totalScore = recalcTotalScore(newState, 0);
+  newState.players[1].totalScore = recalcTotalScore(newState, 1);
 
   if (!isMultiHit) {
     // Dart management
@@ -166,29 +183,11 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
   return { state: currentState, messages };
 }
 
-function checkTopFillerBonus(state: GameState, num: number) {
-  const p1 = state.players[0];
-  const p2 = state.players[1];
-
-  // Only award when both have completed the number
-  if (!p1.completed[num] || !p2.completed[num]) return;
-
-  const p1Hits = p1.hits[num];
-  const p2Hits = p2.hits[num];
-
-  if (p1Hits > p2Hits) {
-    p1.topFillerBonuses += 7;
-  } else if (p2Hits > p1Hits) {
-    p2.topFillerBonuses += 7;
-  } else {
-    p1.topFillerBonuses += 3.5;
-    p2.topFillerBonuses += 3.5;
-  }
-}
+// Removed checkTopFillerBonus as it's now handled dynamically in recalcTotalScore
 
 function checkBatchConditions(state: GameState) {
-  const p1Score = recalcTotalScore(state.players[0]);
-  const p2Score = recalcTotalScore(state.players[1]);
+  const p1Score = recalcTotalScore(state, 0);
+  const p2Score = recalcTotalScore(state, 1);
 
   if (state.batch === 1) {
     if (p1Score >= TARGET_SCORE || p2Score >= TARGET_SCORE) {
@@ -198,6 +197,7 @@ function checkBatchConditions(state: GameState) {
       state.batch = 2;
       state.batch1Winner = b1w;
       state.batch1Score = benchmark; // Set the dynamic benchmark (The Bar)
+      state.batch1Scores = [p1Score, p2Score];
 
       // Score and Board Reset for Batch 2
       state.players.forEach(p => {
@@ -222,7 +222,7 @@ function checkBatchConditions(state: GameState) {
   } else if (state.batch === 2 && state.batch1Winner !== null) {
     const b1w = state.batch1Winner;
     const opponentIdx = 1 - b1w;
-    const opponentScore = recalcTotalScore(state.players[opponentIdx]);
+    const opponentScore = recalcTotalScore(state, opponentIdx as 0 | 1);
     const benchmark = state.batch1Score!;
 
     // Opponent wins if they surpass the benchmark

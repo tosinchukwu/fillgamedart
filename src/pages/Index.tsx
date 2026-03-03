@@ -505,6 +505,7 @@ const Index = () => {
             dartsRemaining={gameState.dartsRemaining}
             batch={gameState.batch}
             batch1Score={gameState.batch1Score}
+            batch1Scores={gameState.batch1Scores}
             closedNumbers={gameState.closedNumbers}
             playerIdx={0}
           />
@@ -556,13 +557,26 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3 space-y-6">
+        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3 space-y-6 relative">
+          {/* Floating Benchmark Banner */}
+          {gameState.batch === 2 && gameState.batch1Score !== null && (
+            <div className="absolute -top-12 left-0 right-0 animate-in fade-in slide-in-from-bottom-2 duration-500 z-20">
+              <div className="glass-panel py-2 px-4 rounded-xl border-primary/30 bg-primary/10 shadow-[0_0_20px_rgba(232,65,66,0.2)] flex flex-col items-center justify-center">
+                <span className="text-[9px] font-mono-game uppercase tracking-[0.3em] text-primary font-bold">Benchmark Bar</span>
+                <span className="text-xl font-mono-game font-black text-white text-glow-white leading-none">
+                  {gameState.batch1Score} <span className="text-[10px] text-white/40 font-normal">PTS</span>
+                </span>
+              </div>
+            </div>
+          )}
+
           <PlayerPanel
             player={gameState.players[1]}
             isActive={gameState.currentPlayer === 1}
             dartsRemaining={gameState.dartsRemaining}
             batch={gameState.batch}
             batch1Score={gameState.batch1Score}
+            batch1Scores={gameState.batch1Scores}
             closedNumbers={gameState.closedNumbers}
             playerIdx={1}
           />
@@ -625,9 +639,10 @@ const PlayerPanel: React.FC<{
   dartsRemaining: number;
   batch: number;
   batch1Score: number | null;
+  batch1Scores: [number, number] | null;
   closedNumbers: Set<number>;
   playerIdx: number;
-}> = ({ player, isActive, dartsRemaining, batch, batch1Score, closedNumbers, playerIdx }) => {
+}> = ({ player, isActive, dartsRemaining, batch, batch1Score, batch1Scores, closedNumbers, playerIdx }) => {
   return (
     <div className={`rounded-2xl p-6 transition-all space-y-5 glass-panel ${isActive ? 'neon-border-theme ring-1 ring-primary/20 scale-[1.02]' : 'border-white/10 opacity-60'}`}>
       <div className="flex items-center justify-between">
@@ -657,7 +672,7 @@ const PlayerPanel: React.FC<{
         <div className="flex flex-col items-end">
           <span className="text-[10px] font-mono-game uppercase tracking-[0.2em] text-white/40 mb-1">Batch {batch}</span>
           <span className="text-[10px] text-primary font-mono-game font-bold px-2 py-0.5 bg-primary/10 rounded">
-            Target: {batch === 1 ? TARGET_SCORE : 250}
+            {batch === 1 ? `Target: ${TARGET_SCORE}` : `Batch 1 Point: ${batch1Scores ? batch1Scores[playerIdx] : 0}`}
           </span>
         </div>
       </div>

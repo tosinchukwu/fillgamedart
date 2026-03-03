@@ -330,93 +330,90 @@ const Index = () => {
             playerIdx={0}
           />
 
-          <RingGuide />
-        </div>
-
-        {/* GameLog moved here */}
-        <div className="w-full mt-4">
-          <GameLog messages={logMessages} />
-        </div>
-      </div>
-
-      {/* ===== CENTER: Dartboard ===== */}
-      <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0">
-        <Dartboard
-          gameState={gameState}
-          onHitNumber={handleHitNumber}
-          onHitRing={handleHitRing}
-          disabled={gameState.gameOver}
-        />
-      </div>
-
-      {/* ===== RIGHT: Player 2 ===== */}
-      <div className="xl:w-72 w-full xl:flex-shrink-0 order-3">
-        <PlayerPanel
-          player={gameState.players[1]}
-          isActive={gameState.currentPlayer === 1}
-          dartsRemaining={gameState.dartsRemaining}
-          batch={gameState.batch}
-          batch1Score={gameState.batch1Score}
-          closedNumbers={gameState.closedNumbers}
-          playerIdx={1}
-        />
-
-        {/* Standalone Throwing Controls */}
-        <div className="pt-6 mt-2 flex flex-col items-center gap-6">
-          <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
-            <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
-              Current Weapon: {gameState.players[gameState.currentPlayer].name}
-            </span>
+          {/* GameLog moved here */}
+          <div className="w-full mt-4">
+            <GameLog messages={logMessages} p1Name={gameState.players[0].name} p2Name={gameState.players[1].name} />
           </div>
-          <DartArrow
-            boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
-            isFlying={false}
-            isVisible={!gameState.gameOver}
-            disabled={gameState.gameOver || gameState.dartsRemaining === 0}
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('THROW_DART'));
-            }}
-            playerIdx={gameState.currentPlayer}
+        </div>
+
+        {/* ===== CENTER: Dartboard ===== */}
+        <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0">
+          <Dartboard
+            gameState={gameState}
+            onHitNumber={handleHitNumber}
+            onHitRing={handleHitRing}
+            disabled={gameState.gameOver}
           />
-          <div className="text-center glass-panel px-8 py-4 rounded-2xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-xl"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!gameState.gameOver && gameState.dartsRemaining > 0) {
+        </div>
+
+        {/* ===== RIGHT: Player 2 ===== */}
+        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3">
+          <PlayerPanel
+            player={gameState.players[1]}
+            isActive={gameState.currentPlayer === 1}
+            dartsRemaining={gameState.dartsRemaining}
+            batch={gameState.batch}
+            batch1Score={gameState.batch1Score}
+            closedNumbers={gameState.closedNumbers}
+            playerIdx={1}
+          />
+
+          {/* Standalone Throwing Controls */}
+          <div className="pt-6 mt-2 flex flex-col items-center gap-6">
+            <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
+              <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
+                Current Weapon: {gameState.players[gameState.currentPlayer].name}
+              </span>
+            </div>
+            <DartArrow
+              boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
+              isFlying={false}
+              isVisible={!gameState.gameOver}
+              disabled={gameState.gameOver || gameState.dartsRemaining === 0}
+              onClick={() => {
                 window.dispatchEvent(new CustomEvent('THROW_DART'));
-              }
-            }}>
-            <span className="text-[12px] font-bold leading-tight tracking-[0.3em] text-primary uppercase group-hover:text-glow-theme transition-all">
-              {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
-            </span>
+              }}
+              playerIdx={gameState.currentPlayer}
+            />
+            <div className="text-center glass-panel px-8 py-4 rounded-2xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-xl"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!gameState.gameOver && gameState.dartsRemaining > 0) {
+                  window.dispatchEvent(new CustomEvent('THROW_DART'));
+                }
+              }}>
+              <span className="text-[12px] font-bold leading-tight tracking-[0.3em] text-primary uppercase group-hover:text-glow-theme transition-all">
+                {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Batch Transition Overlay */}
+        <BatchTransitionOverlay
+          show={showBatchOverlay}
+          benchmark={gameState.batch1Score || 0}
+          winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''}
+          opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''}
+          onClose={() => setShowBatchOverlay(false)}
+        />
+
+        <SettingsDialog
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          theme={theme}
+          onThemeChange={setTheme}
+          volume={volume}
+          onVolumeChange={setVolume}
+          musicEnabled={musicEnabled}
+          onMusicToggle={setMusicEnabled}
+          sfxEnabled={sfxEnabled}
+          onSfxToggle={setSfxEnabled}
+          selectedMusic={selectedMusic}
+          onMusicChange={setSelectedMusic}
+        />
       </div>
     </div>
-
-      {/* Batch Transition Overlay */ }
-      <BatchTransitionOverlay
-        show={showBatchOverlay}
-        benchmark={gameState.batch1Score || 0}
-        winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''}
-        opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''}
-        onClose={() => setShowBatchOverlay(false)}
-      />
-
-      <SettingsDialog
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        theme={theme}
-        onThemeChange={setTheme}
-        volume={volume}
-        onVolumeChange={setVolume}
-        musicEnabled={musicEnabled}
-        onMusicToggle={setMusicEnabled}
-        sfxEnabled={sfxEnabled}
-        onSfxToggle={setSfxEnabled}
-        selectedMusic={selectedMusic}
-        onMusicChange={setSelectedMusic}
-      />
-    </div >
   );
 };
 

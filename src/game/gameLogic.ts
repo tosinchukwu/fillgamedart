@@ -112,7 +112,7 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
   if (!isMultiHit) {
     // Dart management
     newState.dartsRemaining--;
-    const finalMessage = `[player.name]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
+    const finalMessage = `[${player.name}]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
     newState.lastAction = finalMessage;
 
     if (newState.dartsRemaining <= 0) {

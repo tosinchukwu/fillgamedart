@@ -122,7 +122,6 @@ const Index = () => {
   const { address, isConnected } = useAccount();
   const { open } = useWeb3Modal();
   const { disconnect } = useDisconnect();
-  const { sendTransaction, data: txHash, isPending: isBroadcasting, isSuccess: isBroadcasted } = useSendTransaction();
 
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const prevBatchRef = useRef<number>(1);
@@ -259,6 +258,27 @@ const Index = () => {
     }
   }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, handleHitNumber, handleHitRing]);
 
+  const shareGame = async () => {
+    const shareData = {
+      title: 'Filling Game Darts',
+      text: 'Join me for a strategic game of Filling Game Darts!',
+      url: window.location.origin
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.origin);
+        toast.success("Link copied to clipboard!", {
+          description: "Send this to your friend to invite them to play."
+        });
+      }
+    } catch (err) {
+      console.log('Error sharing:', err);
+    }
+  };
+
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isWaitingForTx, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({ hash });
 
@@ -322,8 +342,12 @@ const Index = () => {
               <Button onClick={startGame} disabled={!p1Address || !p2Address} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl">🎯 Start Match</Button>
               <div className="flex gap-2">
                 <Button onClick={startSoloGame} className="flex-1 bg-white/10 text-white font-mono-game uppercase tracking-widest text-xs">🤖 Solo vs CPU</Button>
-                <Button onClick={() => setShowRules(!showRules)} variant="outline" className="flex-1 border-white/10 text-white/60 text-xs">📜 Rules</Button>
+                <Button onClick={shareGame} className="flex-1 bg-white/5 border border-white/10 text-white/80 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
+                  <Share2 className="w-3 h-3 text-primary" />
+                  Invite Friend
+                </Button>
               </div>
+              <Button onClick={() => setShowRules(!showRules)} variant="ghost" className="w-full text-white/40 text-[10px] uppercase tracking-widest h-8 mt-2">📜 Game Rules & Strategy</Button>
               {showRules && <RulesScroll />}
             </div>
           </div>

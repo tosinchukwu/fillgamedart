@@ -240,19 +240,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                   <circle
                     cx={x} cy={y} r="21"
                     fill={isClosed ? "#333" : (pos.color === 'red' ? 'url(#ruby-grad)' : 'url(#emerald-grad)')}
-                    stroke={isClosed ? "#555" : (pos.color === 'red' ? '#FF9999' : '#99FF99')}
-                    strokeWidth="1.5"
                     filter="url(#glow)"
                   />
-                  {/* High-gloss shine highlight */}
-                  {!isClosed && (
-                    <circle
-                      cx={x - 6} cy={y - 6} r="4.5"
-                      fill="rgba(255,255,255,0.6)"
-                      filter="url(#crystal-shine)"
-                      pointerEvents="none"
-                    />
-                  )}
+
 
                   {/* Restored Hit Progress Ring */}
                   {!isClosed && player.hits[pos.number] > 0 && (
@@ -276,12 +266,12 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                     dominantBaseline="central"
                     fill={isClosed ? "#888" : "#FFFFFF"}
                     fontSize="22"
-                    fontWeight="900"
-                    fontFamily="'Playfair Display', serif"
+                    fontWeight="800"
+                    fontFamily="'Orbitron', sans-serif"
                     style={{
                       textShadow: isClosed
                         ? 'none'
-                        : `0 1px 2px rgba(0, 0, 0, 0.5), 0 0 5px rgba(255, 255, 255, 0.3)`
+                        : `0 2px 4px rgba(0, 0, 0, 0.4)`
                     }}
                   >
                     {pos.number}

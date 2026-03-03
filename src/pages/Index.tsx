@@ -184,7 +184,7 @@ const PlayerPanel: React.FC<{
   batch1Score: number | null;
   closedNumbers: Set<number>;
   playerIdx: number;
-}> = ({ player, isActive, dartsRemaining, batch, batch1Score, closedNumbers }) => {
+}> = ({ player, isActive, dartsRemaining, batch, batch1Score, closedNumbers, playerIdx }) => {
   return (
     <div className={`rounded-2xl p-6 transition-all space-y-5 glass-panel ${isActive ? 'neon-border-theme ring-1 ring-primary/20 scale-[1.02]' : 'border-white/10 opacity-60'}`}>
       <div className="flex items-center justify-between">

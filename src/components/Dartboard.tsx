@@ -57,8 +57,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
     if (hitNumberMode) {
       // Pick a random number from layout
       const targetPos = BOARD_LAYOUT[Math.floor(Math.random() * BOARD_LAYOUT.length)];
+      // ALIGN TO BADGE CENTER: 
+      // Important - number badges are rendered at targetPos.angle and ring.outer
       const ring = RING_RADII[targetPos.ring];
-      // ALIGN TO RING CIRCLE: Always land exactly on the white boundary line
       const r = ring.outer;
       const [lx, ly] = polarToXY(targetPos.angle, r);
 
@@ -76,8 +77,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       const ringIdx = Math.floor(Math.random() * RING_RADII.length);
       const ring = RING_RADII[ringIdx];
       const landAngle = Math.random() * 360;
-      // Hit the exact line
-      const [lx, ly] = polarToXY(landAngle, ring.outer);
+      // Hit the EXACT radius line
+      const r = ring.outer;
+      const [lx, ly] = polarToXY(landAngle, r);
 
       return {
         lx, ly,
@@ -109,6 +111,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       setDartVisible(true);
       setBoardPhase('idle');
       phaseRef.current = 'idle';
+      window.dispatchEvent(new CustomEvent('DART_HIT_IMPACT'));
 
       const id = ++dartIdCounter;
       // Single-dart visibility: only keep the most recent dart
@@ -303,7 +306,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
                   x={dart.x - 40}
-                  y={dart.y - 160}
+                  y={dart.y - 150} // Fine-tuned so tip is at dart.y
                   width="80"
                   height="160"
                   transform={`rotate(${dart.angle} ${dart.x} ${dart.y})`}

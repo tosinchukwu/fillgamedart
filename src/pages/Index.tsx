@@ -12,7 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Palette } from 'lucide-react';
+import { Palette, Settings, Volume2, Music as MusicIcon } from 'lucide-react';
+import SettingsDialog from '../components/SettingsDialog';
+import { useEffect, useRef } from 'react';
+
+// Audio assets (Placeholders)
+const AUDIO_ASSETS = {
+  throw: 'https://assets.mixkit.co/sfx/preview/mixkit-fast-arrow-flight-1541.mp3',
+  hit: 'https://assets.mixkit.co/sfx/preview/mixkit-wooden-shield-hit-1581.mp3',
+  music: {
+    synth_wave: 'https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3',
+    lofi_chill: 'https://cdn.pixabay.com/download/audio/2022/02/22/audio_d1be822201.mp3?filename=lofi-chill-medium-version-12652.mp3',
+    high_energy: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_3ea3931448.mp3?filename=aggressive-industrial-cyberpunk-121576.mp3'
+  }
+};
 
 const RulesScroll = () => (
   <div className="mt-2 text-left glass-panel p-6 rounded-2xl border-white/10 bg-black/40 space-y-4 max-h-72 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-4 duration-500">
@@ -91,7 +104,75 @@ const Index = () => {
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [showBatchOverlay, setShowBatchOverlay] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [volume, setVolume] = useState(0.5);
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [sfxEnabled, setSfxEnabled] = useState(true);
+  const [selectedMusic, setSelectedMusic] = useState('synth_wave');
+
+  const musicRef = useRef<HTMLAudioElement | null>(null);
   const prevBatchRef = React.useRef<number>(1);
+
+  // Audio Logic
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (musicRef.current && musicEnabled && gameStarted && musicRef.current.paused) {
+        console.log("Unlocking audio via interaction...");
+        musicRef.current.play().catch(e => console.error("Unlock failed", e));
+      }
+      window.removeEventListener('click', unlockAudio);
+    };
+    window.addEventListener('click', unlockAudio);
+    return () => window.removeEventListener('click', unlockAudio);
+  }, [musicEnabled, gameStarted]);
+
+  useEffect(() => {
+    if (musicEnabled && gameStarted) {
+      console.log("Initializing music track:", selectedMusic);
+      if (!musicRef.current) {
+        musicRef.current = new Audio((AUDIO_ASSETS.music as any)[selectedMusic]);
+        musicRef.current.loop = true;
+      } else {
+        musicRef.current.src = (AUDIO_ASSETS.music as any)[selectedMusic];
+      }
+      musicRef.current.volume = volume * 0.4;
+      musicRef.current.play().catch(e => console.warn("Music play delayed until click", e));
+    } else {
+      if (musicRef.current) {
+        musicRef.current.pause();
+      }
+    }
+    return () => {
+      if (musicRef.current) musicRef.current.pause();
+    };
+  }, [musicEnabled, gameStarted, selectedMusic]);
+
+  useEffect(() => {
+    if (musicRef.current) {
+      musicRef.current.volume = volume * 0.4;
+    }
+  }, [volume]);
+
+  const playSFX = useCallback((type: 'throw' | 'hit') => {
+    if (!sfxEnabled) return;
+    console.log("Playing SFX:", type);
+    const audio = new Audio(AUDIO_ASSETS[type]);
+    audio.volume = volume;
+    audio.play().catch(e => console.error("SFX playback failed", e));
+  }, [sfxEnabled, volume]);
+
+  useEffect(() => {
+    const handleThrowSound = () => playSFX('throw');
+    const handleHitSound = () => playSFX('hit');
+
+    window.addEventListener('THROW_DART', handleThrowSound);
+    window.addEventListener('DART_HIT_IMPACT', handleHitSound);
+
+    return () => {
+      window.removeEventListener('THROW_DART', handleThrowSound);
+      window.removeEventListener('DART_HIT_IMPACT', handleHitSound);
+    };
+  }, [playSFX]);
 
   const startGame = () => {
     setGameState(createInitialGameState(p1Name || 'Player 1', p2Name || 'Player 2'));
@@ -138,7 +219,16 @@ const Index = () => {
   if (!gameStarted || !gameState) {
     return (
       <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
-        <ThemeSwitcher current={theme} onSelect={setTheme} />
+        <div className="fixed top-6 right-6 z-50 flex gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSettingsOpen(true)}
+            className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white hover:bg-white/10"
+          >
+            <Settings className="w-6 h-6" />
+          </Button>
+        </div>
         <div className="flex items-center justify-center min-h-screen p-4">
           <div className="w-full max-w-md space-y-8 text-center glass-panel p-10 rounded-[2rem] neon-border-theme">
             <div>
@@ -185,7 +275,16 @@ const Index = () => {
 
   return (
     <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans`}>
-      <ThemeSwitcher current={theme} onSelect={setTheme} />
+      <div className="fixed top-6 right-6 z-50 flex gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSettingsOpen(true)}
+          className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white hover:bg-white/10"
+        >
+          <Settings className="w-6 h-6" />
+        </Button>
+      </div>
 
       {/* Header */}
       <div className="w-full max-w-7xl flex flex-col items-center gap-4 mb-8">
@@ -300,6 +399,21 @@ const Index = () => {
         winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''}
         opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''}
         onClose={() => setShowBatchOverlay(false)}
+      />
+
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        theme={theme}
+        onThemeChange={setTheme}
+        volume={volume}
+        onVolumeChange={setVolume}
+        musicEnabled={musicEnabled}
+        onMusicToggle={setMusicEnabled}
+        sfxEnabled={sfxEnabled}
+        onSfxToggle={setSfxEnabled}
+        selectedMusic={selectedMusic}
+        onMusicChange={setSelectedMusic}
       />
     </div>
   );

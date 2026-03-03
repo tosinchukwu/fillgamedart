@@ -21,6 +21,7 @@ interface DartStuck {
   id: number;
   x: number;
   y: number;
+  angle: number;
   playerIdx: number;
 }
 
@@ -63,6 +64,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       return {
         lx,
         ly,
+        angle: targetPos.angle,
         hitRingIdx: targetPos.ring,
         closestNum: targetPos.number,
         hitRingLine: false,
@@ -78,6 +80,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
       return {
         lx, ly,
+        angle: landAngle,
         hitRingIdx: ringIdx,
         closestNum: -1,
         hitRingLine: true,
@@ -95,7 +98,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       setStuckDarts([]);
     }
 
-    const { lx, ly, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = resolveDartLanding();
+    const { lx, ly, angle, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = resolveDartLanding();
 
     setDartFlying(true);
     setDartVisible(false);
@@ -108,7 +111,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
       const id = ++dartIdCounter;
       // Single-dart visibility: only keep the most recent dart
-      setStuckDarts([{ id, x: lx, y: ly, playerIdx: cp }]);
+      setStuckDarts([{ id, x: lx, y: ly, angle, playerIdx: cp }]);
       // Permanent markers: do not remove them after 2.5s
 
       if (hitRingLine && hitRingLineIdx >= 0) {
@@ -283,12 +286,22 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {/* Stuck dart impact spots - Permanent Image Markers */}
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
+                {/* 
+                  The dart image is 80x160. 
+                  The TIP is roughly at (x+40, y+150).
+                  We rotate it so it points towards the center radial line.
+                */}
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
                   x={dart.x - 40}
                   y={dart.y - 160}
                   width="80"
                   height="160"
+                  style={{
+                    transform: `rotate(${dart.angle}deg)`,
+                    transformOrigin: `${dart.x}px ${dart.y}px`,
+                    filter: 'drop-shadow(0 15px 15px rgba(0,0,0,0.6))'
+                  }}
                 />
               </g>
             ))}

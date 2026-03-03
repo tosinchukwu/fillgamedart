@@ -7,7 +7,7 @@ interface GameLogProps {
 
 const GameLog: React.FC<GameLogProps> = ({ messages }) => {
   return (
-    <div className="bg-card border border-border rounded-lg p-4 max-h-48 overflow-y-auto shadow-sm">
+    <div className="bg-card border border-border rounded-lg p-4 max-h-[500px] min-h-[300px] overflow-y-auto shadow-sm">
       <h4 className="text-sm text-foreground font-bold uppercase tracking-widest mb-3 font-mono-game border-b border-border pb-2">Game Log</h4>
       <div className="space-y-2">
         {messages.length === 0 ? (

@@ -62,7 +62,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[450px] glass-panel border-white/10 bg-black/90 text-white backdrop-blur-2xl rounded-[2rem] p-8 shadow-2xl">
+            <DialogContent className="sm:max-w-[450px] glass-panel border-white/10 bg-sky-400/90 text-white backdrop-blur-2xl rounded-[2rem] p-8 shadow-2xl">
                 <DialogHeader className="mb-6">
                     <DialogTitle className="text-3xl font-black italic tracking-tighter text-primary text-glow-theme flex items-center gap-3">
                         MISSION CONTROL
@@ -135,7 +135,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                                                 <SelectValue placeholder="Select Track" />
                                             </div>
                                         </SelectTrigger>
-                                        <SelectContent className="glass-panel border-white/10 text-white bg-black/95">
+                                        <SelectContent className="glass-panel border-white/10 text-white bg-sky-500/95">
                                             {musicTracks.map(track => (
                                                 <SelectItem key={track.id} value={track.id} className="text-[10px] font-mono uppercase tracking-widest focus:text-primary focus:bg-white/5">
                                                     {track.label}

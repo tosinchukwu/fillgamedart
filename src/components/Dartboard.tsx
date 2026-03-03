@@ -306,7 +306,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
                   x={dart.x - 40}
-                  y={dart.y - 150} // Fine-tuned so tip is at dart.y
+                  y={dart.y - 160} // If dart image height is 160, -160 puts tip exactly at (x,y)
                   width="80"
                   height="160"
                   transform={`rotate(${dart.angle} ${dart.x} ${dart.y})`}
@@ -320,14 +320,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
         </div>
       </div>
 
-      {/* Mission log hint */}
-      {/* Game hint */}
-      <div className="text-center glass-panel px-8 py-3 rounded-full border-white/5 min-w-[300px]">
-        <span className="text-xs tracking-[0.3em] font-mono font-bold uppercase"
-          style={{ color: 'var(--theme-accent)' }}>
-          {getHint()}
-        </span>
-      </div>
+
     </div>
   );
 };

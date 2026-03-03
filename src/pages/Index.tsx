@@ -17,13 +17,14 @@ import SettingsDialog from '../components/SettingsDialog';
 import { useEffect, useRef } from 'react';
 
 // Audio assets (Placeholders)
+// Audio assets (Local paths in public/audio/)
 const AUDIO_ASSETS = {
-  throw: 'https://assets.mixkit.co/sfx/preview/mixkit-fast-arrow-flight-1541.mp3',
-  hit: 'https://assets.mixkit.co/sfx/preview/mixkit-wooden-shield-hit-1581.mp3',
+  throw: '/audio/throw.mp3',
+  hit: '/audio/hit.mp3',
   music: {
-    synth_wave: 'https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3',
-    lofi_chill: 'https://cdn.pixabay.com/download/audio/2022/02/22/audio_d1be822201.mp3?filename=lofi-chill-medium-version-12652.mp3',
-    high_energy: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_3ea3931448.mp3?filename=aggressive-industrial-cyberpunk-121576.mp3'
+    synth_wave: '/audio/music_synth.mp3',
+    lofi_chill: '/audio/music_lofi.mp3',
+    high_energy: '/audio/music_energy.mp3'
   }
 };
 

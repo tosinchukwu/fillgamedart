@@ -181,6 +181,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               </filter>
             </defs>
 
+            {/* Golden Base background */}
+            <circle cx={CENTER} cy={CENTER} r="255" fill="#C5A059" opacity="0.15" filter="url(#glow)" />
+            <circle cx={CENTER} cy={CENTER} r="248" fill="none" stroke="#C5A059" strokeWidth="4" opacity="0.3" filter="url(#glow)" />
+
             {/* Dartboard Slices */}
             {Array.from({ length: 20 }).map((_, i) => {
               const startAngle = (i * 18 - 9 - 90) * Math.PI / 180;
@@ -265,10 +269,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               <g key={dart.id}>
                 <image
                   href={cp === 0 ? "/red_dart.png" : "/green_dart.png"}
-                  x={dart.x - 15}
-                  y={dart.y - 45}
-                  width="30"
-                  height="60"
+                  x={dart.x - 25}
+                  y={dart.y - 75}
+                  width="50"
+                  height="100"
                 />
               </g>
             ))}

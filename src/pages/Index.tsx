@@ -5,9 +5,17 @@ import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState } fr
 import { RING_NUMBERS, TARGET_SCORE, TOTAL_NUMBERS } from '../game/boardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Palette } from 'lucide-react';
 
 const Index = () => {
-  const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight' | 'sky'>('sky');
+  const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight'>('neon');
   const [gameStarted, setGameStarted] = useState(false);
   const [p1Name, setP1Name] = useState('Player 1');
   const [p2Name, setP2Name] = useState('Player 2');
@@ -156,6 +164,36 @@ const Index = () => {
             closedNumbers={gameState.closedNumbers}
             playerIdx={1}
           />
+
+          {/* Standalone Throwing Controls */}
+          <div className="pt-6 mt-2 flex flex-col items-center gap-6">
+            <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
+              <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
+                Current Weapon: {gameState.players[gameState.currentPlayer].name}
+              </span>
+            </div>
+            <DartArrow
+              boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
+              isFlying={false}
+              isVisible={!gameState.gameOver}
+              disabled={gameState.gameOver || gameState.dartsRemaining === 0}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('THROW_DART'));
+              }}
+              playerIdx={gameState.currentPlayer}
+            />
+            <div className="text-center glass-panel px-8 py-4 rounded-2xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-xl"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!gameState.gameOver && gameState.dartsRemaining > 0) {
+                  window.dispatchEvent(new CustomEvent('THROW_DART'));
+                }
+              }}>
+              <span className="text-[12px] font-bold leading-tight tracking-[0.3em] text-primary uppercase group-hover:text-glow-theme transition-all">
+                {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -244,38 +282,6 @@ const PlayerPanel: React.FC<{
           </div>
         ))}
       </div>
-
-      {playerIdx === 1 && (
-        <div className="pt-4 mt-4 border-t border-white/5 flex flex-col items-center gap-4">
-          <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
-            <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
-              Weapon System
-            </span>
-          </div>
-          <DartArrow
-            boardPhase={isActive && dartsRemaining > 0 ? 'idle' : 'throwing'}
-            isFlying={false}
-            isVisible={true}
-            disabled={!isActive || dartsRemaining === 0}
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('THROW_DART'));
-            }}
-            playerIdx={playerIdx}
-          />
-          <div className="text-center glass-panel px-6 py-3 rounded-xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isActive && dartsRemaining > 0) {
-                console.log("Dispatching THROW_DART from button");
-                window.dispatchEvent(new CustomEvent('THROW_DART'));
-              }
-            }}>
-            <span className="text-[11px] font-bold leading-tight tracking-[0.25em] text-primary uppercase group-hover:text-glow-theme transition-all">
-              {isActive && dartsRemaining > 0 ? 'Launch Dart' : 'Reloading...'}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -286,27 +292,32 @@ const ThemeSwitcher = ({ current, onSelect }: { current: string, onSelect: (t: a
     { id: 'avalanche', label: 'Avalanche', color: '#E84142' },
     { id: 'gold', label: 'Cyber Gold', color: '#ffb400' },
     { id: 'midnight', label: 'Deep Sea', color: '#00ff88' },
-    { id: 'sky', label: 'Ethereal Sky', color: '#0ea5e9' },
   ];
 
   return (
-    <div className="fixed top-8 right-8 flex flex-col md:flex-row gap-3 z-50 glass-panel p-2 rounded-2xl border-white/10">
-      {themes.map(t => (
-        <button
-          key={t.id}
-          onClick={() => onSelect(t.id)}
-          className={`
-            group relative px-4 py-2 rounded-xl transition-all duration-300 flex items-center gap-3
-            ${current === t.id ? 'bg-white/10 shadow-lg' : 'hover:bg-white/5'}
-          `}
-          title={t.label}
-        >
-          <div className="w-3 h-3 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: t.color, color: t.color }} />
-          <span className={`text-[10px] font-mono-game uppercase tracking-[0.2em] transition-all ${current === t.id ? 'text-white opacity-100' : 'text-white/40 opacity-0 group-hover:opacity-100'}`}>
-            {t.label}
-          </span>
-        </button>
-      ))}
+    <div className="fixed top-6 right-6 z-50">
+      <Select value={current} onValueChange={onSelect}>
+        <SelectTrigger className="w-[180px] glass-panel border-white/10 text-white rounded-xl h-11 focus:ring-primary/50">
+          <div className="flex items-center gap-2">
+            <Palette className="w-4 h-4 text-primary" />
+            <SelectValue placeholder="Select Theme" />
+          </div>
+        </SelectTrigger>
+        <SelectContent className="glass-panel border-white/10 text-white rounded-xl overflow-hidden">
+          {themes.map((t) => (
+            <SelectItem
+              key={t.id}
+              value={t.id}
+              className="focus:bg-white/10 focus:text-white cursor-pointer py-3 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: t.color, color: t.color }} />
+                <span className="text-[11px] font-mono-game uppercase tracking-widest">{t.label}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 };

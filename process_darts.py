@@ -10,10 +10,16 @@ def process_image(input_path, output_path):
     
     new_data = []
     for item in data:
-        # Change all pixels that are white (or close to white) to transparent
-        # Threshold: 240, 240, 240
-        if item[0] > 240 and item[1] > 240 and item[2] > 240:
-            new_data.append((255, 255, 255, 0))
+        # Aggressive threshold for "white"
+        # If all components are above 200, assume it's background
+        r, g, b, a = item
+        if r > 200 and g > 200 and b > 200:
+            # Check for "whiteness" - low variance between channels
+            avg = (r + g + b) / 3
+            if abs(r - avg) < 20 and abs(g - avg) < 20 and abs(b - avg) < 20:
+                new_data.append((255, 255, 255, 0))
+            else:
+                new_data.append(item)
         else:
             new_data.append(item)
             

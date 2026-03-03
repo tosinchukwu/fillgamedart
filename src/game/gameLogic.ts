@@ -68,8 +68,8 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
 
   let dynamicTopFillerBonuses = 0;
 
-  // Iterate through all numbers to calculate Top Filler Bonus dynamically
-  for (let n = 1; n <= TOTAL_NUMBERS; n++) {
+  // Iterate through numbers 2-TOTAL_NUMBERS to calculate Top Filler Bonus dynamically
+  for (let n = 2; n <= TOTAL_NUMBERS; n++) {
     const p1Hits = gameState.players[0].hits[n];
     const p2Hits = gameState.players[1].hits[n];
 
@@ -165,6 +165,10 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
     currentState = result.state;
     currentState.closedNumbers = new Set(currentState.closedNumbers);
     messages.push(result.message);
+
+    // Check for immediate win conditions during the ring sequence
+    checkBatchConditions(currentState);
+    if (currentState.gameOver) break;
   }
 
   // Restore proper dart count (ring hit = 1 dart)

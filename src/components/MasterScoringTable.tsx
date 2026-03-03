@@ -29,20 +29,24 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
         const fillerEarners = seq.map(p => p === 0 ? 'A' : 'B').join(', ');
 
         // Top Filler bonus (Highest hits) - Only for 2-14
+        // CONDITION: Only awarded once BOTH players have hit more than half of the number
         let tfpEarner = '-';
         let tfpA = 0;
         let tfpB = 0;
-        if (n >= 2 && (p1.hits[n] > 0 || p2.hits[n] > 0)) {
-            if (p1.hits[n] > p2.hits[n]) {
-                tfpEarner = 'A';
-                tfpA = 7;
-            } else if (p2.hits[n] > p1.hits[n]) {
-                tfpEarner = 'B';
-                tfpB = 7;
-            } else {
-                tfpEarner = 'A, B';
-                tfpA = 3.5;
-                tfpB = 3.5;
+        if (n >= 2) {
+            const threshold = n / 2;
+            if (p1.hits[n] > threshold && p2.hits[n] > threshold) {
+                if (p1.hits[n] > p2.hits[n]) {
+                    tfpEarner = 'A';
+                    tfpA = 7;
+                } else if (p2.hits[n] > p1.hits[n]) {
+                    tfpEarner = 'B';
+                    tfpB = 7;
+                } else {
+                    tfpEarner = 'A, B';
+                    tfpA = 3.5;
+                    tfpB = 3.5;
+                }
             }
         }
 

@@ -84,11 +84,13 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
 
     // 2. Top Filler Bonus (+7 per number, split if tied)
     // Awarded based on highest total hits for THIS number (Only for 2-14)
+    // CONDITION: Only awarded once BOTH players have hit more than half of the number
     if (n >= 2) {
       const pHits = player.hits[n];
       const oHits = opponent.hits[n];
+      const threshold = n / 2;
 
-      if (pHits > 0 || oHits > 0) {
+      if (pHits > threshold && oHits > threshold) {
         if (pHits > oHits) {
           score += 7;
         } else if (pHits === oHits) {

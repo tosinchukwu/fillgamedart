@@ -5,27 +5,39 @@ describe("Game Logic Per-Number Bonus Tests", () => {
     const p1 = { name: "Player 1", addr: "0x1" };
     const p2 = { name: "Player 2", addr: "0x2" };
 
-    it("should award Top Filler Bonus (+7) per number to the player with more hits (Only for 2-14)", () => {
+    it("should award Top Filler Bonus (+7) only when both players have hit more than half (Only for 2-14)", () => {
         let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
 
-        // P1 hits #1 once. TFP for #1 should be 0.
-        state = hitNumber(state, 1).state;
+        // P1 hits #2 once. Threshold for #2 is 1. P2 hits: 0. TFP should be 0.
+        state = hitNumber(state, 2).state;
+        // P1 Score: 2 (filler #2). TFP: 0. 
         expect(state.players[0].totalScore).toBe(2);
 
-        // P1 hits #2 once. TFP for #2 should go to P1.
-        state = hitNumber(state, 2).state;
-
-        // P1 Score: 2 (filler #1) + 2 (filler #2) + 7 (TFP #2) = 11
-        expect(state.players[0].totalScore).toBe(11);
-
-        // P2 hits #2 twice. TFP for #2 should shift to P2.
+        // P2 hits #2 once. Hits are [1, 1]. Threshold: 1. Still no TFP (must be > 1).
         state.currentPlayer = 1;
         state = hitNumber(state, 2).state;
+        expect(state.players[1].totalScore).toBe(2);
+
+        // P1 hits #2 again. Hits are [2, 1]. Threshold: 1. P2 still at 1. No TFP.
+        state.currentPlayer = 0;
+        state = hitNumber(state, 2).state;
+        expect(state.players[0].totalScore).toBe(4); // 2 hits * 2
+
+        // P2 hits #2 again. Hits are [2, 2]. Threshold: 1. BOTH > 1.
+        // TFP for #2 should be split (3.5 each).
+        state.currentPlayer = 1;
         state = hitNumber(state, 2).state;
 
-        // P2 hits: 2. Filler: 2*2=4. TFP: 7. Total: 11.
+        // P1: 4 filler + 3.5 TFP = 7.5
+        expect(state.players[0].totalScore).toBe(7.5);
+        // P2: 4 filler + 3.5 TFP = 7.5
+        expect(state.players[1].totalScore).toBe(7.5);
+
+        // P2 hits #2 a 3rd time. Hits are [2, 3]. Both still > 1. TFP goes to P2 (+7).
+        state = hitNumber(state, 2).state;
+        // P2: 4 filler (capped) + 7 TFP = 11.
         expect(state.players[1].totalScore).toBe(11);
-        // P1 hits: 1 for #1, 1 for #2. Filler: 2 + 2 = 4. TFP: 0. Total: 4.
+        // P1: 4 filler + 0 TFP = 4.
         expect(state.players[0].totalScore).toBe(4);
     });
 

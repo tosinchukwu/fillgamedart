@@ -495,8 +495,8 @@ const RingGuide = () => (
     <h4 className="text-[10px] font-bold text-primary tracking-[0.2em] mb-4 font-mono-game uppercase opacity-80">Ring Layout Guide</h4>
     <div className="flex flex-col gap-3 text-[10px] font-mono-game uppercase tracking-widest text-white/50">
       <div className="flex justify-between items-center"><span className="text-white/70">Ring 1 (Inner):</span> <span className="text-primary">14, 13</span></div>
-      <div className="flex justify-between items-center"><span className="text-white/70">Ring 2:</span> <span className="text-primary">5, 9, 10, 11</span></div>
-      <div className="flex justify-between items-center"><span className="text-white/70">Ring 3:</span> <span className="text-primary">1, 3, 12, 8</span></div>
+      <div className="flex justify-between items-center"><span className="text-white/70">Ring 2:</span> <span className="text-primary">9, 5, 10</span></div>
+      <div className="flex justify-between items-center"><span className="text-white/70">Ring 3:</span> <span className="text-primary">12, 11, 1, 3, 8</span></div>
       <div className="flex justify-between items-center"><span className="text-white/70">Ring 4 (Outer):</span> <span className="text-primary">7, 4, 2, 6</span></div>
       <div className="h-px bg-white/5 my-2" />
       <p className="text-[9px] leading-relaxed italic opacity-60">Impacts on boundary lines award the entire ring group.</p>

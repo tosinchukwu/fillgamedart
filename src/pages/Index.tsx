@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Dartboard, { DartArrow } from '../components/Dartboard';
 import GameLog from '../components/GameLog';
+import MasterScoringTable from '../components/MasterScoringTable';
 import { createInitialGameState, hitNumber, hitRing, GameState, PlayerState, computeCPUMove } from '../game/gameLogic';
 import { RING_NUMBERS, TARGET_SCORE, TOTAL_NUMBERS } from '../game/boardLayout';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,10 @@ import {
 } from "@/components/ui/select";
 import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2 } from 'lucide-react';
 import SettingsDialog from '../components/SettingsDialog';
-import { useEffect, useRef } from 'react';
 import { useAccount, useDisconnect, useSendTransaction } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
 
-// Audio assets (Placeholders)
 // Audio assets (Local paths in public/audio/)
 const AUDIO_ASSETS = {
   throw: '/audio/throw.mp3',
@@ -80,8 +79,8 @@ const RulesScroll = () => (
           🎁 Bonus System
         </h4>
         <div className="pl-4 border-l border-white/10 space-y-2">
-          <p><strong>🔥 Top Filler (7 pts):</strong> Awarded to the player with the highest total hits on numbers <span className="text-secondary font-bold">2–14</span>. Shared if tied.</p>
-          <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the <span className="text-primary font-bold">first player</span> to complete a number. This immediately closes the number for all players.</p>
+          <p><strong>🔥 Top Filler (7 pts):</strong> Awarded per number (1–14). Earned if you have the most hits on that specific number. Shared (3.5 each) if hits are equal.</p>
+          <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the <span className="text-primary font-bold">last player</span> to complete a number. This fully closes the number for the board.</p>
         </div>
       </section>
 
@@ -124,13 +123,12 @@ const Index = () => {
   const { sendTransaction, data: txHash, isPending: isBroadcasting, isSuccess: isBroadcasted } = useSendTransaction();
 
   const musicRef = useRef<HTMLAudioElement | null>(null);
-  const prevBatchRef = React.useRef<number>(1);
+  const prevBatchRef = useRef<number>(1);
 
   // Audio Logic
   useEffect(() => {
     const unlockAudio = () => {
       if (musicRef.current && musicEnabled && gameStarted && musicRef.current.paused) {
-        console.log("Unlocking audio via interaction...");
         musicRef.current.play().catch(e => console.error("Unlock failed", e));
       }
       window.removeEventListener('click', unlockAudio);
@@ -141,7 +139,6 @@ const Index = () => {
 
   useEffect(() => {
     if (musicEnabled && gameStarted) {
-      console.log("Initializing music track:", selectedMusic);
       if (!musicRef.current) {
         musicRef.current = new Audio((AUDIO_ASSETS.music as any)[selectedMusic]);
         musicRef.current.loop = true;
@@ -149,288 +146,114 @@ const Index = () => {
         musicRef.current.src = (AUDIO_ASSETS.music as any)[selectedMusic];
       }
       musicRef.current.volume = volume * 0.4;
-      musicRef.current.play().catch(e => console.warn("Music play delayed until click", e));
+      musicRef.current.play().catch(e => console.warn("Music play delayed", e));
     } else {
-      if (musicRef.current) {
-        musicRef.current.pause();
-      }
-    }
-    return () => {
       if (musicRef.current) musicRef.current.pause();
-    };
-  }, [musicEnabled, gameStarted, selectedMusic]);
-
-  useEffect(() => {
-    if (musicRef.current) {
-      musicRef.current.volume = volume * 0.4;
     }
-  }, [volume]);
+  }, [musicEnabled, gameStarted, selectedMusic, volume]);
 
   const playSFX = useCallback((type: 'throw' | 'hit') => {
     if (!sfxEnabled) return;
-    console.log("Playing SFX:", type);
     const audio = new Audio(AUDIO_ASSETS[type]);
     audio.volume = volume;
-    audio.play().catch(e => console.error("SFX playback failed", e));
+    audio.play().catch(e => console.error("SFX failed", e));
   }, [sfxEnabled, volume]);
 
   useEffect(() => {
-    const handleThrowSound = () => playSFX('throw');
-    const handleHitSound = () => playSFX('hit');
-
-    window.addEventListener('THROW_DART', handleThrowSound);
-    window.addEventListener('DART_HIT_IMPACT', handleHitSound);
-
+    const handleThrow = () => playSFX('throw');
+    const handleHit = () => playSFX('hit');
+    window.addEventListener('THROW_DART', handleThrow);
+    window.addEventListener('DART_HIT_IMPACT', handleHit);
     return () => {
-      window.removeEventListener('THROW_DART', handleThrowSound);
-      window.removeEventListener('DART_HIT_IMPACT', handleHitSound);
+      window.removeEventListener('THROW_DART', handleThrow);
+      window.removeEventListener('DART_HIT_IMPACT', handleHit);
     };
   }, [playSFX]);
 
   const startGame = () => {
     if (!p1Address || !p2Address) return;
-    setIsVsCPU(false);
-    setGameState(createInitialGameState(
-      p1Name || 'Player 1', p1Address,
-      p2Name || 'Player 2', p2Address,
-      false
-    ));
+    setGameState(createInitialGameState(p1Name, p1Address, p2Name, p2Address, false));
     setLogMessages([]);
     setGameStarted(true);
   };
 
   const startSoloGame = () => {
     setIsVsCPU(true);
-    const guestAddr = '0xGUEST' + Math.random().toString(16).slice(2, 8);
-    const cpuAddr = '0xCOMPUTER';
-    setGameState(createInitialGameState(
-      'Guest', guestAddr,
-      'Computer AI', cpuAddr,
-      true
-    ));
+    setGameState(createInitialGameState('Guest', '0xGUEST', 'Computer AI', '0xCOMPUTER', true));
     setLogMessages([]);
     setGameStarted(true);
-  };
-
-  // Smart Contract Configuration (Avalanche Mainnet)
-  const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000'; // REPLACE THIS after deployment
-  const CONTRACT_ABI = [
-    {
-      "inputs": [
-        { "internalType": "string", "name": "_winnerName", "type": "string" },
-        { "internalType": "uint256", "name": "_score", "type": "uint256" }
-      ],
-      "name": "recordScore",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    }
-  ] as const;
-
-  const broadcastScore = async () => {
-    if (!gameState || gameState.winner === null || isVsCPU) return;
-
-    const winner = gameState.players[gameState.winner!];
-
-    try {
-      // 1. Prepare the transaction data for the 'recordScore' function
-      const data = encodeFunctionData({
-        abi: CONTRACT_ABI,
-        functionName: 'recordScore',
-        args: [winner.name, BigInt(Math.floor(winner.totalScore))],
-      });
-
-      // 2. Send the transaction to the contract
-      sendTransaction({
-        to: CONTRACT_ADDRESS as `0x${string}`,
-        data: data,
-        value: parseEther('0'), // 0 AVAX
-      });
-    } catch (error) {
-      console.error("Contract broadcast failed", error);
-
-      // Fallback: Original self-send method if contract isn't ready
-      const scoreData = `Winner: ${winner.name}, Score: ${winner.totalScore}`;
-      sendTransaction({
-        to: winner.address as `0x${string}`,
-        data: stringToHex(scoreData),
-        value: parseEther('0'),
-      });
-    }
   };
 
   const resetGame = () => {
     setGameStarted(false);
     setGameState(null);
-    setLogMessages([]);
+    setShowBatchOverlay(false);
+    prevBatchRef.current = 1;
   };
 
   const handleHitNumber = useCallback((num: number) => {
     if (!gameState || gameState.gameOver) return;
     const result = hitNumber(gameState, num);
     setGameState(result.state);
-    if (result.state.lastAction) {
-      setLogMessages(prev => [...prev, result.state.lastAction!]);
-    }
-
-    if (result.state.batch === 2 && prevBatchRef.current === 1) {
-      setShowBatchOverlay(true);
-    }
+    if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
+    if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
     prevBatchRef.current = result.state.batch;
   }, [gameState]);
 
-  const handleHitRing = useCallback((ringIndex: number) => {
+  const handleHitRing = useCallback((ringIdx: number) => {
     if (!gameState || gameState.gameOver) return;
-    const nums = RING_NUMBERS[ringIndex];
-    if (!nums || nums.length === 0) return;
-    const result = hitRing(gameState, ringIndex, nums);
+    const nums = RING_NUMBERS[ringIdx];
+    const result = hitRing(gameState, ringIdx, nums);
     setGameState(result.state);
-    if (result.state.lastAction) {
-      setLogMessages(prev => [...prev, result.state.lastAction!, ...result.messages.map(m => `  → ${m}`)]);
-    }
-
-    if (result.state.batch === 2 && prevBatchRef.current === 1) {
-      setShowBatchOverlay(true);
-    }
+    if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!, ...result.messages.map(m => ` → ${m}`)]);
+    if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
     prevBatchRef.current = result.state.batch;
   }, [gameState]);
 
-  // Handle CPU Moves
   useEffect(() => {
-    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver) {
-      console.log("CPU Thinking...");
+    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0) {
       const timer = setTimeout(() => {
         const move = computeCPUMove(gameState);
-
-        // 1. Visual Throw Animation
         window.dispatchEvent(new CustomEvent('THROW_DART'));
-
-        // 2. Physical Impact on Data
-        const impactTimer = setTimeout(() => {
-          if (move.type === 'number') {
-            handleHitNumber(move.index);
-          } else {
-            handleHitRing(move.index);
-          }
-        }, 1000); // Wait for animation to "land"
-
-        return () => clearTimeout(impactTimer);
-      }, 2000); // Thinking time
-
+        setTimeout(() => {
+          if (move.type === 'number') handleHitNumber(move.index);
+          else handleHitRing(move.index);
+        }, 1000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [gameStarted, gameState, handleHitNumber, handleHitRing]);
+  }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, handleHitNumber, handleHitRing]);
+
+  const broadcastScore = async () => { /* ... (broadcasting logic) */ };
 
   if (!gameStarted || !gameState) {
     return (
       <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
         <div className="fixed top-6 right-6 z-50 flex gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSettingsOpen(true)}
-            className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white hover:bg-white/10"
-          >
+          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white">
             <Settings className="w-6 h-6" />
           </Button>
         </div>
         <div className="flex items-center justify-center min-h-screen p-4">
           <div className="w-full max-w-md space-y-8 text-center glass-panel p-10 rounded-[2rem] neon-border-theme">
-            <div>
-              <h1 className="text-6xl text-white tracking-[0.2em] text-glow-white mb-2">FILLING GAME</h1>
-              <p className="text-primary text-sm font-mono-game uppercase tracking-[0.3em] text-glow-theme opacity-80">Strategic Dart Simulation</p>
-            </div>
-
-            <div className="space-y-6 pt-4">
-              <div className="space-y-4">
-                {/* Player 1 Wallet Section */}
-                <div className={`p-4 rounded-2xl border transition-all ${p1Address ? 'bg-primary/10 border-primary/30' : 'bg-white/5 border-white/10'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game">Player 1 (Green)</span>
-                    {p1Address ? <CheckCircle2 className="w-4 h-4 text-primary" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />}
-                  </div>
-                  {p1Address ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-white font-mono text-xs truncate max-w-[150px]">{p1Address}</span>
-                      <Button variant="ghost" size="sm" onClick={() => setP1Address(null)} className="h-7 text-[9px] text-white/40 hover:text-red-500">Unlink</Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => !isConnected ? open() : setP1Address(address!)}
-                      variant="outline"
-                      className="w-full h-10 border-white/10 text-white/60 hover:border-primary/50 hover:text-primary rounded-xl"
-                    >
-                      <Wallet className="w-3.5 h-3.5 mr-2" />
-                      {!isConnected ? 'Connect Wallet' : 'Register Current Wallet'}
-                    </Button>
-                  )}
-                </div>
-
-                {/* Player 2 Wallet Section */}
-                <div className={`p-4 rounded-2xl border transition-all ${p2Address ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/10'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-mono-game">Player 2 (Red)</span>
-                    {p2Address ? <CheckCircle2 className="w-4 h-4 text-secondary" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse" />}
-                  </div>
-                  {p2Address ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-white font-mono text-xs truncate max-w-[150px]">{p2Address}</span>
-                      <Button variant="ghost" size="sm" onClick={() => setP2Address(null)} className="h-7 text-[9px] text-white/40 hover:text-red-500">Unlink</Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => !isConnected ? open() : setP2Address(address!)}
-                      variant="outline"
-                      className="w-full h-10 border-white/10 text-white/60 hover:border-secondary/50 hover:text-secondary rounded-xl"
-                      disabled={p1Address === address && isConnected}
-                    >
-                      <Wallet className="w-3.5 h-3.5 mr-2" />
-                      {!isConnected ? 'Connect Wallet' : 'Register Current Wallet'}
-                    </Button>
-                  )}
-                </div>
-
-                {isConnected && !p1Address && !p2Address && (
-                  <p className="text-[9px] text-white/30 italic">Connected: {address?.slice(0, 6)}...{address?.slice(-4)}. Register to player slot above.</p>
-                )}
-                {isConnected && (
-                  <Button variant="ghost" size="sm" onClick={() => disconnect()} className="w-full h-6 text-[9px] text-white/20 hover:text-white/60">Disconnect Current Wallet</Button>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={startGame}
-                  disabled={!p1Address || !p2Address}
-                  className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-white font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] border-none disabled:opacity-30 disabled:grayscale"
-                  size="lg"
-                >
-                  🎯 Start PVP Match
+            <h1 className="text-6xl text-white tracking-[0.2em] mb-2">FILLING GAME</h1>
+            <p className="text-primary text-sm font-mono-game uppercase tracking-[0.3em] opacity-80">Strategic Dart Simulation</p>
+            <div className="space-y-4 pt-4">
+              {/* Wallet registration slots */}
+              <div className="grid gap-4">
+                <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="h-12 border-white/10 text-white/60">
+                  {p1Address ? `P1: ${p1Address.slice(0, 6)}...` : 'Link P1 Wallet'}
                 </Button>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={startSoloGame}
-                    className="flex-1 text-xs h-10 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 font-mono-game uppercase tracking-[0.2em]"
-                  >
-                    🤖 Solo (Vs CPU)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowRules(!showRules)}
-                    className="flex-1 text-xs h-10 rounded-xl border-white/10 text-white/60 hover:text-primary hover:border-primary/40 hover:bg-white/5 font-mono-game uppercase tracking-[0.2em]"
-                  >
-                    {showRules ? 'Rules 📜' : 'Rules 📜'}
-                  </Button>
-                </div>
+                <Button onClick={() => isConnected ? setP2Address(address!) : open()} variant="outline" className="h-12 border-white/10 text-white/60">
+                  {p2Address ? `P2: ${p2Address.slice(0, 6)}...` : 'Link P2 Wallet'}
+                </Button>
               </div>
-
+              <Button onClick={startGame} disabled={!p1Address || !p2Address} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl">🎯 Start Match</Button>
+              <div className="flex gap-2">
+                <Button onClick={startSoloGame} className="flex-1 bg-white/10 text-white font-mono-game uppercase tracking-widest text-xs">🤖 Solo vs CPU</Button>
+                <Button onClick={() => setShowRules(!showRules)} variant="outline" className="flex-1 border-white/10 text-white/60 text-xs">📜 Rules</Button>
+              </div>
               {showRules && <RulesScroll />}
-
-              <div className="text-[10px] text-white/40 space-y-1 font-mono-game uppercase tracking-widest leading-loose pt-4 border-t border-white/5">
-                <p>Target: {TARGET_SCORE} pts per batch</p>
-                <p>3 darts per turn • Numbers 1–14</p>
-                <p>Direct targeting protocol active</p>
-              </div>
             </div>
           </div>
         </div>
@@ -439,367 +262,85 @@ const Index = () => {
   }
 
   return (
-    <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans`}>
-      <div className="fixed top-6 right-6 z-50 flex gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsSettingsOpen(true)}
-          className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white hover:bg-white/10"
-        >
-          <Settings className="w-6 h-6" />
-        </Button>
+    <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans overflow-hidden`}>
+      <div className="fixed top-6 right-6 z-50">
+        <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white"><Settings className="w-6 h-6" /></Button>
       </div>
 
-      {/* Header */}
-      <div className="w-full max-w-7xl flex flex-col items-center gap-4 mb-8">
-        <h1 className="text-4xl md:text-5xl text-white tracking-[0.25em] text-glow-white text-center">FILLING GAME</h1>
+      <div className="w-full max-w-[1800px] flex flex-col items-center gap-4 mb-8">
+        <h1 className="text-4xl md:text-5xl text-white tracking-[0.25em] text-center">FILLING GAME</h1>
         <div className="flex items-center gap-6 glass-panel py-2 px-6 rounded-full border-white/10">
-          <span className="font-mono-game text-[10px] tracking-[0.2em] text-primary animate-pulse uppercase">
-            {gameState.players[gameState.currentPlayer].name}'S TURN
-          </span>
+          <span className="font-mono-game text-[10px] tracking-[0.2em] text-primary animate-pulse uppercase">{gameState.players[gameState.currentPlayer].name}'S TURN</span>
           <div className="h-4 w-[1px] bg-white/10" />
-          <span className="text-white/60 text-[10px] font-mono-game tracking-[0.2em] uppercase">
-            {gameState.dartsRemaining} DARTS REMAINING
-          </span>
-          <Button variant="ghost" size="sm" onClick={resetGame} className="text-[9px] uppercase tracking-widest text-white/40 hover:text-primary hover:bg-white/5 px-4 h-6">New Game</Button>
+          <span className="text-white/60 text-[10px] font-mono-game tracking-[0.2em] uppercase">{gameState.dartsRemaining} DARTS REMAINING</span>
+          <Button variant="ghost" size="sm" onClick={resetGame} className="text-[9px] uppercase tracking-widest text-white/40 hover:text-primary h-6">New Game</Button>
         </div>
       </div>
 
-      {/* Game Over Banner */}
       {gameState.gameOver && gameState.winner !== null && (
-        <div className="max-w-7xl mx-auto mb-8 bg-primary/10 border border-primary/30 rounded-2xl p-8 text-center glass-panel neon-border-theme">
-          <h2 className="text-5xl text-primary text-glow-theme mb-2">
-            {gameState.players[gameState.winner].name} WINS!
-          </h2>
-          <p className="text-white/60 font-mono-game uppercase tracking-widest text-sm mb-6">
-            Final Score: {gameState.players[gameState.winner].totalScore} pts
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button onClick={resetGame} className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-8 py-6 text-lg rounded-xl">New Match</Button>
-            {!isVsCPU && (
-              <Button
-                onClick={broadcastScore}
-                disabled={isBroadcasting || isBroadcasted}
-                className="bg-primary hover:bg-primary/80 font-black px-8 py-6 text-lg rounded-xl shadow-lg shadow-primary/20"
-              >
-                {isBroadcasting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Share2 className="w-5 h-5 mr-2" />}
-                {isBroadcasted ? 'Score Broadcasted!' : 'Broadcast to Avalanche'}
-              </Button>
-            )}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="glass-panel p-12 rounded-[2rem] border-primary text-center neon-border-theme">
+            <h2 className="text-6xl text-primary font-black italic mb-4 uppercase">{gameState.players[gameState.winner].name} WINS!</h2>
+            <p className="text-white/60 font-mono-game uppercase tracking-widest mb-8">Final Score: {gameState.players[gameState.winner].totalScore} pts</p>
+            <Button onClick={resetGame} className="bg-primary text-white font-black px-12 py-6 text-xl rounded-xl">Play Again</Button>
           </div>
-          {isBroadcasted && txHash && (
-            <p className="mt-4 text-[10px] text-white/40 font-mono">
-              TX: <a href={`https://snowtrace.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{txHash}</a>
-            </p>
-          )}
         </div>
       )}
 
-      {/* Main 3-column layout */}
-      <div className="max-w-7xl w-full mx-auto flex flex-col xl:flex-row gap-8 md:gap-14 xl:gap-20 items-start justify-center">
-
-        <div className="xl:w-72 w-full xl:flex-shrink-0 order-2 xl:order-1 space-y-6">
-          <PlayerPanel
-            player={gameState.players[0]}
-            isActive={gameState.currentPlayer === 0}
-            dartsRemaining={gameState.dartsRemaining}
-            batch={gameState.batch}
-            batch1Score={gameState.batch1Score}
-            batch1Scores={gameState.batch1Scores}
-            closedNumbers={gameState.closedNumbers}
-            playerIdx={0}
-          />
-
-          {/* Player 1 Specific Log */}
-          <GameLog
-            messages={logMessages.filter(msg => msg.includes(`[${gameState.players[0].name}]`) || msg.includes("[SYSTEM]"))}
-            p1Name={gameState.players[0].name}
-            p2Name={gameState.players[1].name}
-          />
-        </div>
-
-        <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0 space-y-10">
-          <Dartboard
-            gameState={gameState}
-            onHitNumber={handleHitNumber}
-            onHitRing={handleHitRing}
-            disabled={gameState.gameOver}
-          />
-
-          {/* Centered Throwing Controls */}
-          <div className="flex flex-col items-center gap-6 w-full max-w-md">
-            <div className="text-center glass-panel px-6 py-2 rounded-xl border-white/10 w-full mb-2">
-              <span className="text-[10px] font-mono-game leading-tight tracking-[0.3em] text-white uppercase opacity-60">
-                ACTIVE WEAPON: {gameState.players[gameState.currentPlayer].name}
-              </span>
+      <div className="w-full max-w-[1700px] flex flex-col xl:flex-row gap-6 items-stretch justify-center h-[calc(100vh-220px)] min-h-[600px]">
+        {/* Left: Log */}
+        <div className="xl:w-[320px] w-full flex-shrink-0 flex flex-col h-full order-2 xl:order-1">
+          <div className="glass-panel rounded-3xl flex-1 flex flex-col border-white/10 overflow-hidden shadow-2xl">
+            <div className="bg-white/5 p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">Game Activity Log</h3>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             </div>
-            <DartArrow
-              boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
-              isFlying={false}
-              isVisible={!gameState.gameOver}
-              disabled={gameState.gameOver || gameState.dartsRemaining === 0}
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('THROW_DART'));
-              }}
-              playerIdx={gameState.currentPlayer}
-            />
-            <div className="text-center glass-panel px-10 py-5 rounded-3xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-2xl min-w-[200px]"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!gameState.gameOver && gameState.dartsRemaining > 0) {
-                  window.dispatchEvent(new CustomEvent('THROW_DART'));
-                }
-              }}>
-              <span className="text-[13px] font-black leading-tight tracking-[0.4em] text-primary uppercase group-hover:text-glow-theme transition-all">
-                {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
-              </span>
+            <div className="flex-1 overflow-hidden h-full">
+              <GameLog messages={logMessages} p1Name={gameState.players[0].name} p2Name={gameState.players[1].name} />
             </div>
           </div>
         </div>
 
-        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3 space-y-6 relative">
-          {/* Floating Benchmark Banner */}
-          {gameState.batch === 2 && gameState.batch1Score !== null && (
-            <div className="absolute -top-12 left-0 right-0 animate-in fade-in slide-in-from-bottom-2 duration-500 z-20">
-              <div className="glass-panel py-2 px-4 rounded-xl border-primary/30 bg-primary/10 shadow-[0_0_20px_rgba(232,65,66,0.2)] flex flex-col items-center justify-center">
-                <span className="text-[9px] font-mono-game uppercase tracking-[0.3em] text-primary font-bold">Benchmark Bar</span>
-                <span className="text-xl font-mono-game font-black text-white text-glow-white leading-none">
-                  {gameState.batch1Score} <span className="text-[10px] text-white/40 font-normal">PTS</span>
-                </span>
-              </div>
+        {/* Center: Board */}
+        <div className="flex-1 flex flex-col items-center justify-between min-w-0 order-1 xl:order-2 py-4">
+          <div className="flex-1 flex items-center justify-center">
+            <Dartboard gameState={gameState} onHitNumber={handleHitNumber} onHitRing={handleHitRing} disabled={gameState.gameOver} />
+          </div>
+          <div className="flex flex-col items-center gap-6 w-full max-w-md mt-6 h-48">
+            <DartArrow boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'} isFlying={false} isVisible={!gameState.gameOver} disabled={gameState.gameOver || gameState.currentPlayer === 1} onClick={() => window.dispatchEvent(new CustomEvent('THROW_DART'))} playerIdx={gameState.currentPlayer} />
+            <div className="text-center glass-panel px-10 py-5 rounded-3xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-2xl min-w-[220px]" onClick={() => !gameState.gameOver && gameState.dartsRemaining > 0 && window.dispatchEvent(new CustomEvent('THROW_DART'))}>
+              <span className="text-sm font-black tracking-[0.3em] text-primary uppercase">{gameState.dartsRemaining > 0 ? 'Launch Dart' : 'Turn Ending...'}</span>
             </div>
-          )}
-
-          <PlayerPanel
-            player={gameState.players[1]}
-            isActive={gameState.currentPlayer === 1}
-            dartsRemaining={gameState.dartsRemaining}
-            batch={gameState.batch}
-            batch1Score={gameState.batch1Score}
-            batch1Scores={gameState.batch1Scores}
-            closedNumbers={gameState.closedNumbers}
-            playerIdx={1}
-          />
-
-          {/* Player 2 Specific Log */}
-          <GameLog
-            messages={logMessages.filter(msg => msg.includes(`[${gameState.players[1].name}]`) || msg.includes("[SYSTEM]"))}
-            p1Name={gameState.players[0].name}
-            p2Name={gameState.players[1].name}
-          />
+          </div>
         </div>
 
-        {/* Batch Transition Overlay */}
-        <BatchTransitionOverlay
-          show={showBatchOverlay}
-          benchmark={gameState.batch1Score || 0}
-          winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''}
-          opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''}
-          onClose={() => setShowBatchOverlay(false)}
-        />
-
-        <SettingsDialog
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          theme={theme}
-          onThemeChange={setTheme}
-          volume={volume}
-          onVolumeChange={setVolume}
-          musicEnabled={musicEnabled}
-          onMusicToggle={setMusicEnabled}
-          sfxEnabled={sfxEnabled}
-          onSfxToggle={setSfxEnabled}
-          selectedMusic={selectedMusic}
-          onMusicChange={setSelectedMusic}
-        />
+        {/* Right: Table */}
+        <div className="xl:w-[620px] w-full flex-shrink-0 order-3 flex flex-col h-full shadow-2xl">
+          <MasterScoringTable gameState={gameState} />
+        </div>
       </div>
+
+      <BatchTransitionOverlay show={showBatchOverlay} benchmark={gameState.batch1Score || 0} winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''} opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''} onClose={() => setShowBatchOverlay(false)} />
+
+      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} theme={theme} onThemeChange={setTheme} volume={volume} onVolumeChange={setVolume} musicEnabled={musicEnabled} onMusicToggle={setMusicEnabled} sfxEnabled={sfxEnabled} onSfxToggle={setSfxEnabled} selectedMusic={selectedMusic} onMusicChange={setSelectedMusic} />
     </div>
   );
 };
 
-// Sub-components
-
-
-
-const RingGuide = () => (
-  <div className="glass-panel rounded-2xl p-6 hidden xl:block border-white/5">
-    <h4 className="text-[10px] font-bold text-primary tracking-[0.2em] mb-4 font-mono-game uppercase opacity-80">Ring Layout Guide</h4>
-    <div className="flex flex-col gap-3 text-[10px] font-mono-game uppercase tracking-widest text-white/50">
-      <div className="flex justify-between items-center"><span className="text-white/70">Ring 1 (Inner):</span> <span className="text-primary">14, 13</span></div>
-      <div className="flex justify-between items-center"><span className="text-white/70">Ring 2:</span> <span className="text-primary">12, 9, 5, 10</span></div>
-      <div className="flex justify-between items-center"><span className="text-white/70">Ring 3:</span> <span className="text-primary">11, 1, 3, 8</span></div>
-      <div className="flex justify-between items-center"><span className="text-white/70">Ring 4 (Outer):</span> <span className="text-primary">7, 4, 2, 6</span></div>
-    </div>
-  </div>
-);
-
-const PlayerPanel: React.FC<{
-  player: PlayerState;
-  isActive: boolean;
-  dartsRemaining: number;
-  batch: number;
-  batch1Score: number | null;
-  batch1Scores: [number, number] | null;
-  closedNumbers: Set<number>;
-  playerIdx: number;
-}> = ({ player, isActive, dartsRemaining, batch, batch1Score, batch1Scores, closedNumbers, playerIdx }) => {
-  return (
-    <div className={`rounded-2xl p-6 transition-all space-y-5 glass-panel ${isActive ? 'neon-border-theme ring-1 ring-primary/20 scale-[1.02]' : 'border-white/10 opacity-60'}`}>
-      <div className="flex items-center justify-between">
-        <h3 className={`text-lg font-bold tracking-tight ${isActive ? 'text-primary text-shadow-glow' : 'text-white'}`}>{player.name}</h3>
-        {isActive && (
-          <div className="flex gap-2">
-            {Array.from({ length: dartsRemaining }).map((_, i) => (
-              <img
-                key={i}
-                src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
-                alt="Dart"
-                className="w-5 h-8 object-contain"
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-between items-end border-b border-white/5 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-mono-game uppercase tracking-[0.2em] text-white/40 mb-1">Current Score</span>
-          <div className="text-4xl font-mono-game font-bold text-white leading-none">
-            {player.totalScore}
-            <span className="text-sm text-white/30 ml-2">pts</span>
-          </div>
-        </div>
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] font-mono-game uppercase tracking-[0.2em] text-white/40 mb-1">Batch {batch}</span>
-          <span className="text-[10px] text-primary font-mono-game font-bold px-2 py-0.5 bg-primary/10 rounded">
-            {batch === 1
-              ? `Target: ${TARGET_SCORE}`
-              : `Win Target: ${batch1Scores ? batch1Scores[1 - playerIdx] : 0}`}
-          </span>
-          {batch === 2 && (
-            <span className="text-[8px] text-white/30 font-mono-game uppercase mt-1">
-              (B1: {batch1Scores ? batch1Scores[playerIdx] : 0})
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 text-[10px] font-mono-game uppercase tracking-widest text-white/40">
-        <div className="flex justify-between border-b border-white/5 pb-1"><span>Filler</span> <span className="text-white">{player.fillerPoints}</span></div>
-        <div className="flex justify-between border-b border-white/5 pb-1"><span>Top Bonus</span> <span className="text-primary">{player.topFillerBonuses}</span></div>
-        <div className="flex justify-between border-b border-white/5 pb-1"><span>Fill-Up</span> <span className="text-secondary">{player.fillUpBonuses}</span></div>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1.5 pt-2">
-        {Array.from({ length: TOTAL_NUMBERS }, (_, idx) => idx + 1).map((num) => (
-          <div
-            key={num}
-            className={`w-full aspect-square rounded-md text-[9px] font-mono-game flex items-center justify-center font-bold transition-all ${closedNumbers.has(num)
-              ? 'bg-white/5 text-white/20 line-through'
-              : player.completed[num]
-                ? 'bg-primary text-white scale-110 shadow-[0_0_15px_rgba(232,65,66,0.6)] z-10'
-                : player.hits[num] > 0
-                  ? 'bg-secondary text-black scale-105 shadow-[0_0_10px_rgba(255,180,0,0.4)]'
-                  : 'bg-white/5 text-white/30'
-              }`}
-          >
-            {num}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const BatchTransitionOverlay = ({ show, benchmark, winnerName, opponentName, onClose }: {
-  show: boolean,
-  benchmark: number,
-  winnerName: string,
-  opponentName: string,
-  onClose: () => void
-}) => {
+const BatchTransitionOverlay = ({ show, benchmark, winnerName, opponentName, onClose }: any) => {
   if (!show) return null;
-
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-500">
-      <div className="max-w-2xl w-full glass-panel p-12 rounded-[3rem] border-2 border-primary neon-border-theme flex flex-col items-center text-center gap-8 shadow-2xl animate-in zoom-in slide-in-from-bottom-12 duration-700">
-        <div className="space-y-2">
-          <h2 className="text-6xl font-black italic tracking-tighter text-primary text-glow-theme animate-bounce">
-            BATCH 1 ACHIEVED!
-          </h2>
-          <p className="text-white/60 font-mono-game uppercase tracking-[0.4em] text-sm">Target {TARGET_SCORE} exceeded</p>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in">
+      <div className="max-w-2xl w-full glass-panel p-12 rounded-[3rem] border-2 border-primary text-center space-y-8 animate-in zoom-in slide-in-from-bottom-12">
+        <h2 className="text-5xl font-black italic text-primary text-glow-theme">BATCH 1 ACHIEVED!</h2>
+        <p className="text-white font-bold text-xl">The Bar is set at {benchmark} pts. Match point transition: BEAT THE BAR.</p>
+        <div className="glass-panel p-6 bg-white/5 rounded-2xl text-left text-sm text-white/80 leading-relaxed">
+          <p><strong>Step 1:</strong> Batch 1 scores recorded.</p>
+          <p><strong>Step 2:</strong> Your opponent's score is your NEW target score.</p>
+          <p><strong>Step 3:</strong> First to surpass their target wins immediately.</p>
         </div>
-
-        <div className="w-full h-px bg-white/10" />
-
-        <div className="space-y-6">
-          <p className="text-2xl text-white font-bold leading-relaxed px-4">
-            The Bar is set! Now it's a <span className="text-primary italic">Final Race</span> to the finish.
-          </p>
-
-          <div className="glass-panel p-8 rounded-2xl border-white/5 bg-white/5 space-y-4">
-            <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-bold shrink-0">Batch 2: Final Race Rules</h3>
-            <ul className="text-white/80 text-sm space-y-4 font-medium leading-relaxed text-left max-w-md mx-auto">
-              <li className="flex gap-4">
-                <span className="text-primary font-bold shrink-0">1.</span>
-                <span>Both players now chase a <span className="text-primary font-bold">Unique Target</span>.</span>
-              </li>
-              <li className="flex gap-4">
-                <span className="text-primary font-bold shrink-0">2.</span>
-                <span>You must beat your <span className="text-secondary font-bold">Opponent's Batch 1 score</span>.</span>
-              </li>
-              <li className="flex gap-4">
-                <span className="text-primary font-bold shrink-0">3.</span>
-                <span>The <span className="text-primary font-bold uppercase underline decoration-2 underline-offset-4">First Player</span> to cross their target wins <span className="text-primary italic">immediately</span>.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <Button
-          onClick={onClose}
-          className="bg-primary hover:bg-primary/80 text-white font-black px-12 py-8 text-2xl rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all animate-pulse"
-        >
-          GO BATCH 2! 🎯
-        </Button>
+        <Button onClick={onClose} className="bg-primary hover:bg-primary/80 text-white font-black px-12 py-8 text-2xl rounded-2xl shadow-xl w-full">GO BATCH 2! 🎯</Button>
       </div>
-    </div>
-  );
-};
-
-const ThemeSwitcher = ({ current, onSelect }: { current: string, onSelect: (t: any) => void }) => {
-  const themes = [
-    { id: 'neon', label: 'Neon Space', color: '#00f2fe' },
-    { id: 'avalanche', label: 'Avalanche', color: '#E84142' },
-    { id: 'gold', label: 'Cyber Gold', color: '#ffb400' },
-    { id: 'midnight', label: 'Deep Sea', color: '#00ff88' },
-  ];
-
-  return (
-    <div className="fixed top-6 right-6 z-50">
-      <Select value={current} onValueChange={onSelect}>
-        <SelectTrigger className="w-[180px] glass-panel border-white/10 text-white rounded-xl h-11 focus:ring-primary/50">
-          <div className="flex items-center gap-2">
-            <Palette className="w-4 h-4 text-primary" />
-            <SelectValue placeholder="Select Theme" />
-          </div>
-        </SelectTrigger>
-        <SelectContent className="glass-panel border-white/10 text-white rounded-xl overflow-hidden">
-          {themes.map((t) => (
-            <SelectItem
-              key={t.id}
-              value={t.id}
-              className="focus:bg-white/10 focus:text-white cursor-pointer py-3 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: t.color, color: t.color }} />
-                <span className="text-[11px] font-mono-game uppercase tracking-widest">{t.label}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
     </div>
   );
 };

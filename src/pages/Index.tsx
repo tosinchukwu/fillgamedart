@@ -234,7 +234,7 @@ const PlayerPanel: React.FC<{
             {Array.from({ length: dartsRemaining }).map((_, i) => (
               <img
                 key={i}
-                src={playerIdx === 0 ? "/red_dart.png" : "/green_dart.png"}
+                src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
                 alt="Dart"
                 className="w-5 h-8 object-contain"
               />

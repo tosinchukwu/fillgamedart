@@ -14,9 +14,14 @@ const GameLog: React.FC<GameLogProps> = ({ messages }) => {
           <p className="text-sm text-muted-foreground italic font-medium">Throw your first dart!</p>
         ) : (
           [...messages].reverse().slice(0, 15).map((msg, i) => (
-            <p key={i} className={`text-sm font-bold font-mono-game leading-relaxed ${i === 0 ? 'text-primary' : 'text-foreground'}`}>
+            <div key={i} className={`text-sm font-bold font-mono-game leading-relaxed border-l-2 pl-3 py-1 bg-white/5 rounded-r ${msg.includes("[Player 1]") || msg.includes("Player 1 exceeded") || msg.includes("Player 1 wins")
+                ? "text-green-400 border-green-500/50"
+                : msg.includes("[Player 2]") || msg.includes("Player 2 exceeded") || msg.includes("Player 2 wins")
+                  ? "text-red-400 border-red-500/50"
+                  : "text-foreground border-white/10"
+              }`}>
               {msg}
-            </p>
+            </div>
           ))
         )}
       </div>

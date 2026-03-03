@@ -42,8 +42,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   const prevCpRef = useRef(cp);
   useEffect(() => {
     if (prevCpRef.current !== cp) {
-      setStuckDarts([]);
-      setBoardPhase('idle');
+      // Darts persist until the new player takes their first action
       prevCpRef.current = cp;
     }
   }, [cp]);
@@ -85,10 +84,13 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   }, []);
 
   const handleDartArrowClick = useCallback(() => {
-    if (disabled || gameState.gameOver || boardPhase === 'throwing') return;
-
     setBoardPhase('throwing');
     phaseRef.current = 'throwing';
+
+    // Clear previous player's darts on the current player's first throw
+    if (gameState.dartsRemaining === 3) {
+      setStuckDarts([]);
+    }
 
     const { lx, ly, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = resolveDartLanding();
 
@@ -182,8 +184,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             </defs>
 
             {/* Golden Base background */}
-            <circle cx={CENTER} cy={CENTER} r="255" fill="#C5A059" opacity="0.15" filter="url(#glow)" />
-            <circle cx={CENTER} cy={CENTER} r="248" fill="none" stroke="#C5A059" strokeWidth="4" opacity="0.3" filter="url(#glow)" />
+            <circle cx={CENTER} cy={CENTER} r="255" fill="#C5A059" opacity="1.0" />
+            <circle cx={CENTER} cy={CENTER} r="248" fill="none" stroke="#B08D43" strokeWidth="6" />
 
             {/* Dartboard Slices */}
             {Array.from({ length: 20 }).map((_, i) => {
@@ -268,11 +270,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
                 <image
-                  href={cp === 0 ? "/red_dart.png" : "/green_dart.png"}
-                  x={dart.x - 25}
-                  y={dart.y - 75}
-                  width="50"
-                  height="100"
+                  href={cp === 0 ? "/green_dart.png" : "/red_dart.png"}
+                  x={dart.x - 75}
+                  y={dart.y - 280}
+                  width="150"
+                  height="300"
                 />
               </g>
             ))}
@@ -322,7 +324,7 @@ export const DartArrow: React.FC<{
         }
       }}>
         <img
-          src={playerIdx === 0 ? "/red_dart.png" : "/green_dart.png"}
+          src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
           alt="Dart arrow"
           className="w-[100px] md:w-[130px] rounded"
         />

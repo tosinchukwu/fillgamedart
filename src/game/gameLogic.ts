@@ -187,42 +187,53 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
 }
 
 export function hitRing(state: GameState, ringIndex: number, ringNumbers: number[]): { state: GameState; messages: string[] } {
-  const currentState = structuredClone(state) as GameState;
-  const messages: string[] = [];
-  const cp = currentState.currentPlayer;
-  const player = currentState.players[cp];
+  const newState = structuredClone(state) as GameState;
+  const cp = newState.currentPlayer;
+  const player = newState.players[cp];
+  const oldScore = player.totalScore;
 
-  let pointsEarnedInHit = 0;
+  // Process each number in the ring as a "hit"
   for (const num of ringNumbers) {
-    if (currentState.closedNumbers.has(num)) continue;
+    if (newState.closedNumbers.has(num)) continue;
 
-    const currentFillerTotal = (player.hits[num] * 2) + player.bonusPoints[num];
-    const maxFiller = num * 2;
+    // 1. Record hit (similar to hitNumber)
+    player.hits[num]++;
+    newState.hitSequences[num].push(cp);
 
-    if (currentFillerTotal < maxFiller) {
-      player.bonusPoints[num] += 2;
-      pointsEarnedInHit += 2;
+    // 2. Check personal completion
+    if (player.hits[num] >= num) {
+      player.completed[num] = true;
+
+      // 3. Check board closure
+      const opponent = newState.players[1 - cp];
+      if (opponent.completed[num]) {
+        newState.closedNumbers.add(num);
+      }
     }
   }
 
-  // Update scores
-  currentState.players[0].totalScore = recalcTotalScore(currentState, 0);
-  currentState.players[1].totalScore = recalcTotalScore(currentState, 1);
+  // Update scores for both players
+  newState.players[0].totalScore = recalcTotalScore(newState, 0);
+  newState.players[1].totalScore = recalcTotalScore(newState, 1);
 
-  currentState.dartsRemaining--;
-  const totalScore = currentState.players[cp].totalScore;
-  currentState.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${pointsEarnedInHit} pts`;
+  // Calculate points gained in this specific hit
+  const pointsEarnedInHit = player.totalScore - oldScore;
 
-  if (currentState.dartsRemaining <= 0) {
-    if (!currentState.gameOver) {
-      currentState.currentPlayer = cp === 0 ? 1 : 0;
-      currentState.dartsRemaining = 3;
+  newState.dartsRemaining--;
+  newState.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${pointsEarnedInHit} pts`;
+
+  // Turn management
+  if (newState.dartsRemaining <= 0) {
+    if (!newState.gameOver) {
+      newState.currentPlayer = cp === 0 ? 1 : 0;
+      newState.dartsRemaining = 3;
     }
   }
 
-  checkBatchConditions(currentState);
+  // Final check for win conditions
+  checkBatchConditions(newState);
 
-  return { state: currentState, messages };
+  return { state: newState, messages: [] };
 }
 
 function checkBatchConditions(state: GameState) {

@@ -103,7 +103,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
       const id = ++dartIdCounter;
       setStuckDarts(prev => [...prev, { id, x: lx, y: ly }]);
-      setTimeout(() => setStuckDarts(prev => prev.filter(d => d.id !== id)), 2500);
+      // Permanent markers: do not remove them after 2.5s
 
       if (hitRingLine && hitRingLineIdx >= 0) {
         const rNums = RING_NUMBERS[hitRingLineIdx] ?? [];
@@ -144,6 +144,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             isVisible={dartVisible}
             disabled={disabled}
             onClick={handleDartArrowClick}
+            playerIdx={cp}
           />
           <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10">
             <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase">
@@ -248,15 +249,17 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               );
             })}
 
-            {/* Stuck dart impact spots - Highly Visible */}
+            {/* Stuck dart impact spots - Permanent Image Markers */}
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
-                {/* Impact Wave */}
-                <circle cx={dart.x} cy={dart.y} r={15} fill="none" stroke="var(--theme-accent)" strokeWidth="2" className="animate-ping" />
-                {/* Secondary Glow */}
-                <circle cx={dart.x} cy={dart.y} r={8} fill="var(--theme-glow)" filter="url(#glow)" />
-                {/* Impact point */}
-                <circle cx={dart.x} cy={dart.y} r={4} fill="#fff" filter="url(#glow)" />
+                <image
+                  href={cp === 0 ? "/red_dart.jpg" : "/green_dart.jpg"}
+                  x={dart.x - 15}
+                  y={dart.y - 45}
+                  width="30"
+                  height="60"
+                  style={{ mixBlendMode: 'multiply' }}
+                />
               </g>
             ))}
           </svg>
@@ -282,7 +285,8 @@ const DartArrow: React.FC<{
   isVisible: boolean;
   disabled: boolean;
   onClick: () => void;
-}> = ({ boardPhase, isFlying, isVisible, disabled, onClick }) => {
+  playerIdx: number;
+}> = ({ boardPhase, isFlying, isVisible, disabled, onClick, playerIdx }) => {
   const canClick = boardPhase === 'idle' && !disabled;
 
   return (
@@ -292,30 +296,17 @@ const DartArrow: React.FC<{
       className={`
         transition-all duration-300 select-none group
         ${!isVisible ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}
-        ${isFlying ? 'translate-x-48 opacity-0 duration-500 ease-in' : ''}
+        ${isFlying ? 'translate-x-[200px] translate-y-[100px] rotate-[60deg] opacity-0 duration-500 ease-in' : ''}
         ${canClick ? 'hover:scale-110 active:scale-90' : ''}
       `}
     >
-      <div className="relative" style={{ filter: 'drop-shadow(0 0 20px var(--theme-glow))' }}>
-        <svg viewBox="0 0 200 60" className="w-[100px] md:w-[130px]">
-          {/* Fletching (Back) */}
-          <path d="M10,10 L40,30 L10,50 Z" fill="var(--theme-accent)" stroke="#fff" strokeWidth="1" />
-          <path d="M20,10 L50,30 L20,50 Z" fill="var(--theme-accent)" stroke="#fff" strokeWidth="1" opacity="0.6" />
-
-          {/* Shaft */}
-          <rect x="50" y="27" width="100" height="6" fill="#fff" />
-
-          {/* Tip (Front) */}
-          <path d="M150,22 L190,30 L150,38 Z" fill="var(--theme-accent)" filter="url(#glow)" />
-
-          {/* Shine on Shaft */}
-          <rect x="60" y="28" width="40" height="2" fill="rgba(255,255,255,0.8)" />
-
-          {/* Indicator Pulse */}
-          {canClick && (
-            <circle cx="190" cy="30" r="10" fill="var(--theme-accent)" opacity="0.4" className="animate-ping" />
-          )}
-        </svg>
+      <div className="relative">
+        <img
+          src={playerIdx === 0 ? "/red_dart.jpg" : "/green_dart.jpg"}
+          alt="Dart arrow"
+          className="w-[100px] md:w-[130px] rounded"
+          style={{ mixBlendMode: 'multiply' }}
+        />
       </div>
     </div>
   );

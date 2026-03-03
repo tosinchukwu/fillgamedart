@@ -190,9 +190,15 @@ const PlayerPanel: React.FC<{
       <div className="flex items-center justify-between">
         <h3 className={`text-lg font-bold tracking-tight ${isActive ? 'text-primary text-shadow-glow' : 'text-white'}`}>{player.name}</h3>
         {isActive && (
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             {Array.from({ length: dartsRemaining }).map((_, i) => (
-              <div key={i} className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_var(--theme-glow)] animate-pulse" />
+              <img
+                key={i}
+                src={playerIdx === 0 ? "/red_dart.jpg" : "/green_dart.jpg"}
+                alt="Dart"
+                className="w-5 h-8 object-contain rounded"
+                style={{ mixBlendMode: 'multiply' }}
+              />
             ))}
           </div>
         )}
@@ -225,12 +231,12 @@ const PlayerPanel: React.FC<{
           <div
             key={num}
             className={`w-full aspect-square rounded-md text-[9px] font-mono-game flex items-center justify-center font-bold transition-all ${closedNumbers.has(num)
-                ? 'bg-white/5 text-white/20 line-through'
-                : player.completed[num]
-                  ? 'bg-primary/30 text-primary shadow-[inset_0_0_10px_rgba(232,65,66,0.2)]'
-                  : player.hits[num] > 0
-                    ? 'bg-white/10 text-white shadow-[inset_0_0_8px_rgba(255,255,255,0.1)]'
-                    : 'bg-white/5 text-white/30'
+              ? 'bg-white/5 text-white/20 line-through'
+              : player.completed[num]
+                ? 'bg-primary/30 text-primary shadow-[inset_0_0_10px_rgba(232,65,66,0.2)]'
+                : player.hits[num] > 0
+                  ? 'bg-white/10 text-white shadow-[inset_0_0_8px_rgba(255,255,255,0.1)]'
+                  : 'bg-white/5 text-white/30'
               }`}
           >
             {num}

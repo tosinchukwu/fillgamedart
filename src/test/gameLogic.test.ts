@@ -55,4 +55,42 @@ describe("Game Logic Bonus Rules", () => {
         expect(state.players[0].totalScore).toBe(2 + 3.5);
         expect(state.players[1].totalScore).toBe(2 + 3.5);
     });
+
+    it("should win immediately when crossing the specific opponent target in Batch 2", () => {
+        let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
+
+        // Simulate end of Batch 1
+        // Player 1: 230, Player 2: 150
+        state.batch = 2;
+        state.batch1Winner = 0;
+        state.batch1Scores = [230, 150];
+        state.players[0].fillerPoints = 0;
+        state.players[1].fillerPoints = 0;
+
+        // Player 1 Target: 150
+        // Player 2 Target: 230
+
+        // Case 1: Player 1 crosses 150
+        state.currentPlayer = 0;
+        state.players[0].fillerPoints = 152;
+        // Trigger checkBatchConditions via a hit
+        const result = hitNumber(state, 14);
+
+        expect(result.state.gameOver).toBe(true);
+        expect(result.state.winner).toBe(0);
+        expect(result.state.lastAction).toContain("surpassed Player 2's score of 150");
+
+        // Case 2: Player 2 crosses 230
+        let state2 = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
+        state2.batch = 2;
+        state2.batch1Winner = 0;
+        state2.batch1Scores = [230, 150];
+        state2.currentPlayer = 1;
+        state2.players[1].fillerPoints = 232;
+        const result2 = hitNumber(state2, 14);
+
+        expect(result2.state.gameOver).toBe(true);
+        expect(result2.state.winner).toBe(1);
+        expect(result2.state.lastAction).toContain("surpassed Player 1's score of 230");
+    });
 });

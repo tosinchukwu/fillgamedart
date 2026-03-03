@@ -219,31 +219,40 @@ function checkBatchConditions(state: GameState) {
 
       state.lastAction = `[SYSTEM]: 🚀 ${state.players[b1w].name} set the Bar at ${benchmark}! SCORE RESET. ${state.players[opponentIdx].name}'s turn to beat it!`;
     }
-  } else if (state.batch === 2 && state.batch1Winner !== null) {
-    const b1w = state.batch1Winner;
-    const opponentIdx = 1 - b1w;
-    const opponentScore = recalcTotalScore(state, opponentIdx as 0 | 1);
-    const benchmark = state.batch1Score!;
+  } else if (state.batch === 2 && state.batch1Scores !== null) {
+    const p1Score = recalcTotalScore(state, 0);
+    const p2Score = recalcTotalScore(state, 1);
+    const [p1Target, p2Target] = state.batch1Scores; // Inverse targets: P1 must beat P2's B1, P2 must beat P1's B1
 
-    // Opponent wins if they surpass the benchmark
-    if (opponentScore > benchmark) {
+    // Player 1 wins if they surpass Player 2's Batch 1 score
+    if (p1Score > p2Target) {
       state.gameOver = true;
-      state.winner = opponentIdx as (0 | 1);
-      state.lastAction = `[SYSTEM]: 🏆 ${state.players[opponentIdx].name} surpassed the Benchmark of ${benchmark} and WINS!`;
-    } else {
-      // Check if opponent has finished all numbers but failed to beat the benchmark
-      let allCompleted = true;
-      for (let i = 1; i <= TOTAL_NUMBERS; i++) {
-        if (!state.players[opponentIdx].completed[i]) {
-          allCompleted = false;
-          break;
-        }
-      }
+      state.winner = 0;
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} surpassed ${state.players[1].name}'s score of ${p2Target} and WINS!`;
+      return;
+    }
 
-      if (allCompleted && opponentScore <= benchmark) {
-        state.gameOver = true;
-        state.winner = b1w;
+    // Player 2 wins if they surpass Player 1's Batch 1 score
+    if (p2Score > p1Target) {
+      state.gameOver = true;
+      state.winner = 1;
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} surpassed ${state.players[0].name}'s score of ${p1Target} and WINS!`;
+      return;
+    }
+
+    // Check if both players have finished all numbers (Board closed)
+    let allCompleted = true;
+    for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+      if (!state.players[0].completed[i] || !state.players[1].completed[i]) {
+        allCompleted = false;
+        break;
       }
+    }
+
+    if (allCompleted) {
+      // If board is closed and no one surpassed their target, the one who was leading in Batch 1 wins
+      state.gameOver = true;
+      state.winner = state.batch1Winner;
     }
   }
 }

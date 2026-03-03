@@ -672,8 +672,15 @@ const PlayerPanel: React.FC<{
         <div className="flex flex-col items-end">
           <span className="text-[10px] font-mono-game uppercase tracking-[0.2em] text-white/40 mb-1">Batch {batch}</span>
           <span className="text-[10px] text-primary font-mono-game font-bold px-2 py-0.5 bg-primary/10 rounded">
-            {batch === 1 ? `Target: ${TARGET_SCORE}` : `Batch 1 Point: ${batch1Scores ? batch1Scores[playerIdx] : 0}`}
+            {batch === 1
+              ? `Target: ${TARGET_SCORE}`
+              : `Win Target: ${batch1Scores ? batch1Scores[1 - playerIdx] : 0}`}
           </span>
+          {batch === 2 && (
+            <span className="text-[8px] text-white/30 font-mono-game uppercase mt-1">
+              (B1: {batch1Scores ? batch1Scores[playerIdx] : 0})
+            </span>
+          )}
         </div>
       </div>
 
@@ -727,23 +734,23 @@ const BatchTransitionOverlay = ({ show, benchmark, winnerName, opponentName, onC
 
         <div className="space-y-6">
           <p className="text-2xl text-white font-bold leading-relaxed px-4">
-            <span className="text-secondary">{winnerName}</span> set the Benchmark Bar at <span className="text-primary text-3xl">{benchmark}</span>!
+            The Bar is set! Now it's a <span className="text-primary italic">Final Race</span> to the finish.
           </p>
 
           <div className="glass-panel p-8 rounded-2xl border-white/5 bg-white/5 space-y-4">
-            <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-bold">Batch 2 Instructions (Qualification Round)</h3>
-            <ul className="text-white/80 text-sm space-y-3 font-medium leading-relaxed">
-              <li className="flex items-start gap-3 justify-center">
-                <span className="text-primary font-bold">1.</span>
-                <span>{opponentName} takes the turn from 0 points.</span>
+            <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-bold shrink-0">Batch 2: Final Race Rules</h3>
+            <ul className="text-white/80 text-sm space-y-4 font-medium leading-relaxed text-left max-w-md mx-auto">
+              <li className="flex gap-4">
+                <span className="text-primary font-bold shrink-0">1.</span>
+                <span>Both players now chase a <span className="text-primary font-bold">Unique Target</span>.</span>
               </li>
-              <li className="flex items-start gap-3 justify-center">
-                <span className="text-primary font-bold">2.</span>
-                <span>Surpass the target of <span className="text-primary font-bold">{benchmark}</span> to WIN immediately!</span>
+              <li className="flex gap-4">
+                <span className="text-primary font-bold shrink-0">2.</span>
+                <span>You must beat your <span className="text-secondary font-bold">Opponent's Batch 1 score</span>.</span>
               </li>
-              <li className="flex items-start gap-3 justify-center">
-                <span className="text-primary font-bold">3.</span>
-                <span>If board closes before beating the target, <span className="text-primary font-bold">{winnerName}</span> wins the game.</span>
+              <li className="flex gap-4">
+                <span className="text-primary font-bold shrink-0">3.</span>
+                <span>The <span className="text-primary font-bold uppercase underline decoration-2 underline-offset-4">First Player</span> to cross their target wins <span className="text-primary italic">immediately</span>.</span>
               </li>
             </ul>
           </div>

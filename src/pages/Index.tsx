@@ -22,6 +22,7 @@ const Index = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [showBatchOverlay, setShowBatchOverlay] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const prevBatchRef = React.useRef<number>(1);
 
   const startGame = () => {
@@ -88,13 +89,25 @@ const Index = () => {
                   <Input value={p2Name} onChange={(e) => setP2Name(e.target.value)} className="mt-1 bg-white/5 border-white/10 text-white focus:border-primary h-12 rounded-xl" placeholder="Player 2" />
                 </div>
               </div>
-              <Button onClick={startGame} className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] border-none" size="lg">🎯 Start Game</Button>
-            </div>
 
-            <div className="text-[10px] text-white/40 space-y-1 font-mono-game uppercase tracking-widest leading-loose">
-              <p>Target: {TARGET_SCORE} pts per batch</p>
-              <p>3 darts per turn • Numbers 1–14</p>
-              <p>Direct targeting protocol active</p>
+              <div className="flex flex-col gap-3">
+                <Button onClick={startGame} className="w-full text-xl h-14 rounded-xl bg-primary hover:bg-primary/80 text-white font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] border-none" size="lg">🎯 Start Game</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRules(!showRules)}
+                  className="w-full text-xs h-10 rounded-xl border-white/10 text-white/60 hover:text-primary hover:border-primary/40 hover:bg-white/5 font-mono-game uppercase tracking-[0.2em]"
+                >
+                  {showRules ? 'Hide Rules 📜' : 'How to Play 📜'}
+                </Button>
+              </div>
+
+              {showRules && <RulesScroll />}
+
+              <div className="text-[10px] text-white/40 space-y-1 font-mono-game uppercase tracking-widest leading-loose pt-4 border-t border-white/5">
+                <p>Target: {TARGET_SCORE} pts per batch</p>
+                <p>3 darts per turn • Numbers 1–14</p>
+                <p>Direct targeting protocol active</p>
+              </div>
             </div>
           </div>
         </div>
@@ -225,6 +238,74 @@ const Index = () => {
 };
 
 // Sub-components
+
+const RulesScroll = () => (
+  <div className="mt-2 text-left glass-panel p-6 rounded-2xl border-white/10 bg-black/40 space-y-4 max-h-72 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-4 duration-500">
+    <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-black border-b border-white/10 pb-3 flex items-center justify-between">
+      Rules of Engagement
+      <span className="text-[9px] text-white/30 animate-pulse">Scroll to read more</span>
+    </h3>
+    <div className="text-white/80 text-[11px] space-y-5 font-medium leading-relaxed">
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🏹 Turn Structure
+        </h4>
+        <p className="pl-4 border-l border-white/10">Each player throws 3 darts per turn. Player A throws 3, then Player B. Turns alternate. Goal: Accumulate points and pass the target score.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          📊 Number Completion
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-1">
+          <p>Hit each number equal to its value (e.g., 14 hits for #14).</p>
+          <p>Once completed, no more filler points from that number.</p>
+          <p className="text-secondary/80">Fully closed when BOTH players complete it.</p>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          💰 Filler Points
+        </h4>
+        <p className="pl-4 border-l border-white/10">Every hit on an uncompleted number earns <span className="text-secondary font-bold">2 filler points</span> and counts toward its required total.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🔵 Circular Line Advantage
+        </h4>
+        <p className="pl-4 border-l border-white/10 italic text-white/60">Hitting a ring awards hits and filler points for ALL numbers on that ring simultaneously. Faster progress, higher strategy.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🎁 Bonus System
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-2">
+          <p><strong>🔥 Top Filler (7 pts):</strong> Highest total hits on numbers 2-14.</p>
+          <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the last player to complete a number.</p>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🏆 Batch System
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-2">
+          <p><strong>Batch 1:</strong> First to exceed <strong>221.5 pts</strong> ends Batch 1 and sets the <span className="text-primary font-bold">Benchmark Bar</span>.</p>
+          <p><strong>Batch 2:</strong> Opponent must surpass the Benchmark Score to win the game.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+);
 
 const RingGuide = () => (
   <div className="glass-panel rounded-2xl p-6 hidden xl:block border-white/5">

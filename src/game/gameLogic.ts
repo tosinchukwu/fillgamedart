@@ -111,7 +111,7 @@ export function hitNumber(state: GameState, targetNumber: number): { state: Game
 
   // Dart management
   newState.dartsRemaining--;
-  const finalMessage = `[${player.name}]: ${message}`;
+  const finalMessage = `[${player.name}]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
   newState.lastAction = finalMessage;
 
   if (newState.dartsRemaining <= 0) {
@@ -149,7 +149,7 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
   // Restore proper dart count (ring hit = 1 dart)
   currentState.dartsRemaining = originalDarts - 1;
   const pName = currentState.players[currentState.currentPlayer].name;
-  currentState.lastAction = `[${pName}]: 🔵 Ring ${ringIndex + 1} hit! Affected: ${ringNumbers.join(', ')}`;
+  currentState.lastAction = `[${pName}]: ⭕ Direct hit on Ring ${ringIndex + 1}! Affecting: ${ringNumbers.join(', ')}`;
 
   if (currentState.dartsRemaining <= 0) {
     checkBatchConditions(currentState);

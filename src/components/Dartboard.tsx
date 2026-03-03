@@ -219,8 +219,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 cx={CENTER} cy={CENTER}
                 r={ring.outer * SCALE}
                 fill="none"
-                stroke="rgba(255,255,255,0.4)"
-                strokeWidth="1.5"
+                stroke="rgba(255,255,255,0.7)"
+                strokeWidth="5"
               />
             ))}
 
@@ -236,20 +236,24 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Number text - Fancy, color-coded, clean */}
+                  {/* Badge Circle - White background for numbers */}
+                  <circle
+                    cx={x} cy={y} r="20"
+                    fill="white"
+                    opacity="0.9"
+                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                  />
+
+                  {/* Number text - Fancy, bold, high-contrast */}
                   <text
                     x={x}
-                    y={y}
+                    y={y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isClosed ? "#444" : pos.color === 'red' ? '#ff4d4d' : '#4dff88'}
-                    fontSize="28"
-                    fontWeight="800"
+                    fill={isClosed ? "#888" : pos.color === 'red' ? '#e63946' : '#2a9d8f'}
+                    fontSize="24"
+                    fontWeight="900"
                     fontFamily="'Playfair Display', serif"
-                    style={{
-                      filter: isClosed ? 'none' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-                      letterSpacing: '-0.02em'
-                    }}
                   >
                     {pos.number}
                   </text>
@@ -262,10 +266,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               <g key={dart.id}>
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
-                  x={dart.x - 70}
-                  y={dart.y - 280}
-                  width="140"
-                  height="280"
+                  x={dart.x - 40}
+                  y={dart.y - 160}
+                  width="80"
+                  height="160"
                 />
               </g>
             ))}

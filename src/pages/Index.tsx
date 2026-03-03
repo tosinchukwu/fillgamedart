@@ -316,7 +316,7 @@ const Index = () => {
       )}
 
       {/* Main 3-column layout */}
-      <div className="max-w-7xl w-full mx-auto flex flex-col xl:flex-row gap-6 items-start justify-center">
+      <div className="max-w-7xl w-full mx-auto flex flex-col xl:flex-row gap-8 md:gap-14 xl:gap-20 items-start justify-center">
 
         {/* ===== LEFT: Player 1 ===== */}
         <div className="xl:w-72 w-full xl:flex-shrink-0 order-2 xl:order-1 space-y-4">
@@ -333,67 +333,67 @@ const Index = () => {
           <RingGuide />
         </div>
 
-        {/* ===== CENTER: Dartboard & Logs ===== */}
-        <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0">
-          <Dartboard
-            gameState={gameState}
-            onHitNumber={handleHitNumber}
-            onHitRing={handleHitRing}
-            disabled={gameState.gameOver}
-          />
-
-          <div className="w-full mt-8 flex flex-row items-center gap-6 justify-center">
-            <div className="max-w-lg w-full flex-1">
-              <GameLog messages={logMessages} />
-            </div>
-          </div>
-        </div>
-
-        {/* ===== RIGHT: Player 2 ===== */}
-        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3">
-          <PlayerPanel
-            player={gameState.players[1]}
-            isActive={gameState.currentPlayer === 1}
-            dartsRemaining={gameState.dartsRemaining}
-            batch={gameState.batch}
-            batch1Score={gameState.batch1Score}
-            closedNumbers={gameState.closedNumbers}
-            playerIdx={1}
-          />
-
-          {/* Standalone Throwing Controls */}
-          <div className="pt-6 mt-2 flex flex-col items-center gap-6">
-            <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
-              <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
-                Current Weapon: {gameState.players[gameState.currentPlayer].name}
-              </span>
-            </div>
-            <DartArrow
-              boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
-              isFlying={false}
-              isVisible={!gameState.gameOver}
-              disabled={gameState.gameOver || gameState.dartsRemaining === 0}
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('THROW_DART'));
-              }}
-              playerIdx={gameState.currentPlayer}
-            />
-            <div className="text-center glass-panel px-8 py-4 rounded-2xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-xl"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!gameState.gameOver && gameState.dartsRemaining > 0) {
-                  window.dispatchEvent(new CustomEvent('THROW_DART'));
-                }
-              }}>
-              <span className="text-[12px] font-bold leading-tight tracking-[0.3em] text-primary uppercase group-hover:text-glow-theme transition-all">
-                {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
-              </span>
-            </div>
-          </div>
+        {/* GameLog moved here */}
+        <div className="w-full mt-4">
+          <GameLog messages={logMessages} />
         </div>
       </div>
 
-      {/* Batch Transition Overlay */}
+      {/* ===== CENTER: Dartboard ===== */}
+      <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0">
+        <Dartboard
+          gameState={gameState}
+          onHitNumber={handleHitNumber}
+          onHitRing={handleHitRing}
+          disabled={gameState.gameOver}
+        />
+      </div>
+
+      {/* ===== RIGHT: Player 2 ===== */}
+      <div className="xl:w-72 w-full xl:flex-shrink-0 order-3">
+        <PlayerPanel
+          player={gameState.players[1]}
+          isActive={gameState.currentPlayer === 1}
+          dartsRemaining={gameState.dartsRemaining}
+          batch={gameState.batch}
+          batch1Score={gameState.batch1Score}
+          closedNumbers={gameState.closedNumbers}
+          playerIdx={1}
+        />
+
+        {/* Standalone Throwing Controls */}
+        <div className="pt-6 mt-2 flex flex-col items-center gap-6">
+          <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
+            <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
+              Current Weapon: {gameState.players[gameState.currentPlayer].name}
+            </span>
+          </div>
+          <DartArrow
+            boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
+            isFlying={false}
+            isVisible={!gameState.gameOver}
+            disabled={gameState.gameOver || gameState.dartsRemaining === 0}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('THROW_DART'));
+            }}
+            playerIdx={gameState.currentPlayer}
+          />
+          <div className="text-center glass-panel px-8 py-4 rounded-2xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-xl"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!gameState.gameOver && gameState.dartsRemaining > 0) {
+                window.dispatchEvent(new CustomEvent('THROW_DART'));
+              }
+            }}>
+            <span className="text-[12px] font-bold leading-tight tracking-[0.3em] text-primary uppercase group-hover:text-glow-theme transition-all">
+              {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      {/* Batch Transition Overlay */ }
       <BatchTransitionOverlay
         show={showBatchOverlay}
         benchmark={gameState.batch1Score || 0}
@@ -416,7 +416,7 @@ const Index = () => {
         selectedMusic={selectedMusic}
         onMusicChange={setSelectedMusic}
       />
-    </div>
+    </div >
   );
 };
 
@@ -498,8 +498,6 @@ const RingGuide = () => (
       <div className="flex justify-between items-center"><span className="text-white/70">Ring 2:</span> <span className="text-primary">12, 9, 5, 10</span></div>
       <div className="flex justify-between items-center"><span className="text-white/70">Ring 3:</span> <span className="text-primary">11, 1, 3, 8</span></div>
       <div className="flex justify-between items-center"><span className="text-white/70">Ring 4 (Outer):</span> <span className="text-primary">7, 4, 2, 6</span></div>
-      <div className="h-px bg-white/5 my-2" />
-      <p className="text-[9px] leading-relaxed italic opacity-60">Impacts on boundary lines award the entire ring group.</p>
     </div>
   </div>
 );

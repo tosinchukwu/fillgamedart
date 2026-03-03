@@ -36,9 +36,9 @@ const GameLog: React.FC<GameLogProps> = ({ messages, p1Name, p2Name }) => {
               bgColor = "bg-primary/5";
               displayMsg = msg.replace(/\[.*?\]:\s*/, "");
             } else if (isP2) {
-              textColor = "text-secondary";
-              borderColor = "border-secondary/30";
-              bgColor = "bg-secondary/5";
+              textColor = "text-red-400";
+              borderColor = "border-red-500/30";
+              bgColor = "bg-red-500/5";
               displayMsg = msg.replace(/\[.*?\]:\s*/, "");
             } else if (isSystem) {
               textColor = "text-white";

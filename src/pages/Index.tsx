@@ -318,8 +318,7 @@ const Index = () => {
       {/* Main 3-column layout */}
       <div className="max-w-7xl w-full mx-auto flex flex-col xl:flex-row gap-8 md:gap-14 xl:gap-20 items-start justify-center">
 
-        {/* ===== LEFT: Player 1 ===== */}
-        <div className="xl:w-72 w-full xl:flex-shrink-0 order-2 xl:order-1 space-y-4">
+        <div className="xl:w-72 w-full xl:flex-shrink-0 order-2 xl:order-1 space-y-6">
           <PlayerPanel
             player={gameState.players[0]}
             isActive={gameState.currentPlayer === 0}
@@ -330,39 +329,27 @@ const Index = () => {
             playerIdx={0}
           />
 
-          {/* GameLog moved here */}
-          <div className="w-full mt-4">
-            <GameLog messages={logMessages} p1Name={gameState.players[0].name} p2Name={gameState.players[1].name} />
-          </div>
+          {/* Player 1 Specific Log */}
+          <GameLog
+            messages={logMessages.filter(msg => msg.includes(`[${gameState.players[0].name}]`) || msg.includes("[SYSTEM]"))}
+            p1Name={gameState.players[0].name}
+            p2Name={gameState.players[1].name}
+          />
         </div>
 
-        {/* ===== CENTER: Dartboard ===== */}
-        <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0">
+        <div className="flex-1 flex flex-col items-center order-1 xl:order-2 min-w-0 space-y-10">
           <Dartboard
             gameState={gameState}
             onHitNumber={handleHitNumber}
             onHitRing={handleHitRing}
             disabled={gameState.gameOver}
           />
-        </div>
 
-        {/* ===== RIGHT: Player 2 ===== */}
-        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3">
-          <PlayerPanel
-            player={gameState.players[1]}
-            isActive={gameState.currentPlayer === 1}
-            dartsRemaining={gameState.dartsRemaining}
-            batch={gameState.batch}
-            batch1Score={gameState.batch1Score}
-            closedNumbers={gameState.closedNumbers}
-            playerIdx={1}
-          />
-
-          {/* Standalone Throwing Controls */}
-          <div className="pt-6 mt-2 flex flex-col items-center gap-6">
-            <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
-              <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
-                Current Weapon: {gameState.players[gameState.currentPlayer].name}
+          {/* Centered Throwing Controls */}
+          <div className="flex flex-col items-center gap-6 w-full max-w-md">
+            <div className="text-center glass-panel px-6 py-2 rounded-xl border-white/10 w-full mb-2">
+              <span className="text-[10px] font-mono-game leading-tight tracking-[0.3em] text-white uppercase opacity-60">
+                ACTIVE WEAPON: {gameState.players[gameState.currentPlayer].name}
               </span>
             </div>
             <DartArrow
@@ -375,18 +362,37 @@ const Index = () => {
               }}
               playerIdx={gameState.currentPlayer}
             />
-            <div className="text-center glass-panel px-8 py-4 rounded-2xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-xl"
+            <div className="text-center glass-panel px-10 py-5 rounded-3xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-2xl min-w-[200px]"
               onClick={(e) => {
                 e.stopPropagation();
                 if (!gameState.gameOver && gameState.dartsRemaining > 0) {
                   window.dispatchEvent(new CustomEvent('THROW_DART'));
                 }
               }}>
-              <span className="text-[12px] font-bold leading-tight tracking-[0.3em] text-primary uppercase group-hover:text-glow-theme transition-all">
+              <span className="text-[13px] font-black leading-tight tracking-[0.4em] text-primary uppercase group-hover:text-glow-theme transition-all">
                 {gameState.dartsRemaining > 0 ? 'Launch Dart' : 'End Turn...'}
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="xl:w-72 w-full xl:flex-shrink-0 order-3 space-y-6">
+          <PlayerPanel
+            player={gameState.players[1]}
+            isActive={gameState.currentPlayer === 1}
+            dartsRemaining={gameState.dartsRemaining}
+            batch={gameState.batch}
+            batch1Score={gameState.batch1Score}
+            closedNumbers={gameState.closedNumbers}
+            playerIdx={1}
+          />
+
+          {/* Player 2 Specific Log */}
+          <GameLog
+            messages={logMessages.filter(msg => msg.includes(`[${gameState.players[1].name}]`) || msg.includes("[SYSTEM]"))}
+            p1Name={gameState.players[0].name}
+            p2Name={gameState.players[1].name}
+          />
         </div>
 
         {/* Batch Transition Overlay */}

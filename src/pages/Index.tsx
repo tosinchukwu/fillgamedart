@@ -193,70 +193,89 @@ const Index = () => {
   };
 
   const handleHitNumber = useCallback((num: number) => {
-    if (!gameState || gameState.gameOver) return;
-    const result = hitNumber(gameState, num);
-    setGameState(result.state);
-    if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
-    if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-    prevBatchRef.current = result.state.batch;
-  }, [gameState]);
+    setGameState(prev => {
+      if (!prev || prev.gameOver) return prev;
+      const result = hitNumber(prev, num);
+      if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
+      if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+      prevBatchRef.current = result.state.batch;
+      return result.state;
+    });
+  }, []);
 
   const handleHitRing = useCallback((ringIdx: number) => {
-    if (!gameState || gameState.gameOver) return;
-    const nums = RING_NUMBERS[ringIdx];
-    const result = hitRing(gameState, ringIdx, nums);
-    setGameState(result.state);
-    if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
-    if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-    prevBatchRef.current = result.state.batch;
-  }, [gameState]);
+    setGameState(prev => {
+      if (!prev || prev.gameOver) return prev;
+      const nums = RING_NUMBERS[ringIdx];
+      const result = hitRing(prev, ringIdx, nums);
+      if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
+      if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+      prevBatchRef.current = result.state.batch;
+      return result.state;
+    });
+  }, []);
 
   const cpuActionBuffer = useRef<string[]>([]);
+  const cpuTurnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cpuAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0) {
       // 6s delay for the first dart of the turn, 2s for others
       const delay = gameState.dartsRemaining === 3 ? 6000 : 2000;
 
-      const timer = setTimeout(() => {
-        const move = computeCPUMove(gameState);
-        window.dispatchEvent(new CustomEvent('THROW_DART'));
+      cpuTurnTimeoutRef.current = setTimeout(() => {
+        // We use a functional state update to get the absolute latest state
+        setGameState(current => {
+          if (!current || current.currentPlayer !== 1 || current.gameOver) return current;
 
-        // Wait for throw animation (1s) before processing the hit
-        setTimeout(() => {
-          let updatedState: GameState;
-          let summary = '';
+          const move = computeCPUMove(current);
+          window.dispatchEvent(new CustomEvent('THROW_DART'));
 
-          if (move.type === 'number') {
-            const result = hitNumber(gameState, move.index);
-            updatedState = result.state;
-            summary = `Hit #${move.index}`;
-          } else {
-            const result = hitRing(gameState, move.index, RING_NUMBERS[move.index]);
-            updatedState = result.state;
-            // Extract point value from simplified message "Total: X pts"
-            const match = updatedState.lastAction?.match(/Total: (\d+) pts/);
-            summary = `Ring ${move.index + 1} (${match ? match[1] : 0} pts)`;
-          }
+          // Wait for throw animation (1s) before processing the hit
+          cpuAnimationTimeoutRef.current = setTimeout(() => {
+            setGameState(prevState => {
+              if (!prevState) return null;
 
-          cpuActionBuffer.current.push(summary);
+              let updated: GameState;
+              let summary = '';
 
-          if (updatedState.dartsRemaining === 0 || updatedState.gameOver) {
-            // Consolidate logs at end of turn
-            const combinedLog = `[PLAYER B (CPU)]: Turn - ${cpuActionBuffer.current.join(', ')}. [Total: ${updatedState.players[1].totalScore} pts]`;
-            setLogMessages(p => [...p, combinedLog]);
-            cpuActionBuffer.current = []; // Clear buffer
-          }
+              if (move.type === 'number') {
+                const result = hitNumber(prevState, move.index);
+                updated = result.state;
+                summary = `Hit #${move.index}`;
+              } else {
+                const result = hitRing(prevState, move.index, RING_NUMBERS[move.index]);
+                updated = result.state;
+                const match = updated.lastAction?.match(/Total: (\d+) pts/);
+                summary = `Ring ${move.index + 1} (${match ? match[1] : 0} pts)`;
+              }
 
-          setGameState(updatedState);
-          if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-          prevBatchRef.current = updatedState.batch;
-        }, 1000);
+              cpuActionBuffer.current.push(summary);
+
+              if (updated.dartsRemaining === 0 || updated.gameOver) {
+                const combinedLog = `[PLAYER B (CPU)]: Turn - ${cpuActionBuffer.current.join(', ')}. [Total: ${updated.players[1].totalScore} pts]`;
+                setLogMessages(p => [...p, combinedLog]);
+                cpuActionBuffer.current = [];
+              }
+
+              if (updated.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+              prevBatchRef.current = updated.batch;
+
+              return updated;
+            });
+          }, 1000);
+
+          return current; // Return current state immediately while animation plays
+        });
       }, delay);
 
-      return () => clearTimeout(timer);
+      return () => {
+        if (cpuTurnTimeoutRef.current) clearTimeout(cpuTurnTimeoutRef.current);
+        if (cpuAnimationTimeoutRef.current) clearTimeout(cpuAnimationTimeoutRef.current);
+      };
     }
-  }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, handleHitNumber, handleHitRing]);
+  }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver]);
 
   const shareGame = async () => {
     const shareData = {

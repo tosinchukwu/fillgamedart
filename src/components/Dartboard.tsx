@@ -264,12 +264,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
                 <image
-                  href={cp === 0 ? "/red_dart.jpg" : "/green_dart.jpg"}
+                  href={cp === 0 ? "/red_dart.png" : "/green_dart.png"}
                   x={dart.x - 15}
                   y={dart.y - 45}
                   width="30"
                   height="60"
-                  style={{ mixBlendMode: 'darken' }}
                 />
               </g>
             ))}
@@ -313,10 +312,9 @@ export const DartArrow: React.FC<{
     >
       <div className="relative">
         <img
-          src={playerIdx === 0 ? "/red_dart.jpg" : "/green_dart.jpg"}
+          src={playerIdx === 0 ? "/red_dart.png" : "/green_dart.png"}
           alt="Dart arrow"
           className="w-[100px] md:w-[130px] rounded"
-          style={{ mixBlendMode: 'darken' }}
         />
       </div>
     </div>

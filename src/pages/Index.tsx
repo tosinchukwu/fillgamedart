@@ -142,24 +142,6 @@ const Index = () => {
             <div className="max-w-lg w-full flex-1">
               <GameLog messages={logMessages} />
             </div>
-            {/* ═══ RIGHT: Energy Cell (Dart) ═══ */}
-            <div className="flex flex-col items-center gap-4 flex-shrink-0 z-10 w-32 xl:absolute xl:right-[-120px] xl:top-20">
-              <DartArrow
-                boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
-                isFlying={false}
-                isVisible={!gameState.gameOver}
-                disabled={gameState.gameOver}
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('THROW_DART'));
-                }}
-                playerIdx={gameState.currentPlayer}
-              />
-              <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10">
-                <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase">
-                  {!gameState.gameOver ? 'Throw Dart' : '...'}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -214,10 +196,9 @@ const PlayerPanel: React.FC<{
             {Array.from({ length: dartsRemaining }).map((_, i) => (
               <img
                 key={i}
-                src={playerIdx === 0 ? "/red_dart.jpg" : "/green_dart.jpg"}
+                src={playerIdx === 0 ? "/red_dart.png" : "/green_dart.png"}
                 alt="Dart"
-                className="w-5 h-8 object-contain rounded"
-                style={{ mixBlendMode: 'multiply' }}
+                className="w-5 h-8 object-contain"
               />
             ))}
           </div>
@@ -263,6 +244,32 @@ const PlayerPanel: React.FC<{
           </div>
         ))}
       </div>
+
+      {playerIdx === 1 && (
+        <div className="pt-4 mt-4 border-t border-white/5 flex flex-col items-center gap-4">
+          <div className="text-center glass-panel px-4 py-2 rounded-lg border-white/10 w-full mb-2">
+            <span className="text-[10px] font-mono leading-tight tracking-[0.2em] text-white uppercase opacity-60">
+              Weapon System
+            </span>
+          </div>
+          <DartArrow
+            boardPhase={isActive && dartsRemaining > 0 ? 'idle' : 'throwing'}
+            isFlying={false}
+            isVisible={true}
+            disabled={!isActive || dartsRemaining === 0}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('THROW_DART'));
+            }}
+            playerIdx={playerIdx}
+          />
+          <div className="text-center glass-panel px-6 py-3 rounded-xl border-white/10 hover:bg-white/5 transition-colors cursor-pointer group"
+            onClick={() => isActive && dartsRemaining > 0 && window.dispatchEvent(new CustomEvent('THROW_DART'))}>
+            <span className="text-[11px] font-bold leading-tight tracking-[0.25em] text-primary uppercase group-hover:text-glow-theme transition-all">
+              {isActive && dartsRemaining > 0 ? 'Launch Dart' : 'Reloading...'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

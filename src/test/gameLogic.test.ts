@@ -79,6 +79,7 @@ describe("Game Logic Bonus Rules", () => {
         expect(result.state.gameOver).toBe(true);
         expect(result.state.winner).toBe(0);
         expect(result.state.lastAction).toContain("surpassed Player 2's score of 150");
+        expect(result.state.lastAction).toContain("[Total:");
 
         // Case 2: Player 2 crosses 230
         let state2 = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
@@ -92,5 +93,6 @@ describe("Game Logic Bonus Rules", () => {
         expect(result2.state.gameOver).toBe(true);
         expect(result2.state.winner).toBe(1);
         expect(result2.state.lastAction).toContain("surpassed Player 1's score of 230");
+        expect(result2.state.lastAction).toContain("[Total:");
     });
 });

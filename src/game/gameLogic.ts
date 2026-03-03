@@ -132,7 +132,8 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
   if (!isMultiHit) {
     // Dart management
     newState.dartsRemaining--;
-    const finalMessage = `[${player.name}]: 🎯 Direct Hit on Number ${targetNumber}! (${message})`;
+    const totalScore = newState.players[cp].totalScore;
+    const finalMessage = `[${player.name}]: 🎯 Direct Hit on Number ${targetNumber}! (${message}) [Total: ${totalScore} pts]`;
     newState.lastAction = finalMessage;
 
     if (newState.dartsRemaining <= 0) {
@@ -173,8 +174,14 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
 
   // Restore proper dart count (ring hit = 1 dart)
   currentState.dartsRemaining = originalDarts - 1;
-  const pName = currentState.players[currentState.currentPlayer].name;
-  currentState.lastAction = `[${pName}]: ⭕ Direct hit on Ring ${ringIndex + 1}! Affecting: ${ringNumbers.join(', ')}`;
+  const cp = currentState.currentPlayer;
+  // Final score recalculation for the current player after all ring hits
+  currentState.players[0].totalScore = recalcTotalScore(currentState, 0);
+  currentState.players[1].totalScore = recalcTotalScore(currentState, 1);
+  const totalScore = currentState.players[cp].totalScore;
+  const pName = currentState.players[cp].name;
+
+  currentState.lastAction = `[${pName}]: ⭕ Direct hit on Ring ${ringIndex + 1}! Affecting: ${ringNumbers.join(', ')} [Total: ${totalScore} pts]`;
 
   if (currentState.dartsRemaining <= 0) {
     checkBatchConditions(currentState);

@@ -94,6 +94,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   }, []);
 
   const handleDartArrowClick = useCallback(() => {
+    if (disabled || gameState.gameOver || phaseRef.current === 'throwing') return;
+
     setBoardPhase('throwing');
     phaseRef.current = 'throwing';
 

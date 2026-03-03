@@ -297,7 +297,7 @@ const Index = () => {
 
   // Handle CPU Moves
   useEffect(() => {
-    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver) {
+    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0) {
       console.log("CPU Thinking...");
       const timer = setTimeout(() => {
         const move = computeCPUMove(gameState);
@@ -319,7 +319,7 @@ const Index = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [gameStarted, gameState, handleHitNumber, handleHitRing]);
+  }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, handleHitNumber, handleHitRing]);
 
   if (!gameStarted || !gameState) {
     return (

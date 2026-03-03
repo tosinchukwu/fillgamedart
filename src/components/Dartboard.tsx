@@ -162,18 +162,24 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             }}
           >
             <defs>
-              {/* Exquisite Orange Gradient */}
-              <radialGradient id="orange-grad" cx="40%" cy="40%" r="60%" fx="30%" fy="30%">
-                <stop offset="0%" stopColor="#FFB347" />
-                <stop offset="60%" stopColor="#FF8C00" />
-                <stop offset="100%" stopColor="#CC7000" />
+              {/* Ruby Crystal Gradient */}
+              <radialGradient id="ruby-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
+                <stop offset="0%" stopColor="#FF4D4D" />
+                <stop offset="40%" stopColor="#B30000" />
+                <stop offset="100%" stopColor="#4D0000" />
+              </radialGradient>
+              {/* Emerald Crystal Gradient */}
+              <radialGradient id="emerald-grad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
+                <stop offset="0%" stopColor="#4DFF4D" />
+                <stop offset="40%" stopColor="#00B300" />
+                <stop offset="100%" stopColor="#004D00" />
               </radialGradient>
               <filter id="inner-glow">
                 <feGaussianBlur stdDeviation="1" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
-              <filter id="badge-shine">
-                <feGaussianBlur stdDeviation="0.5" result="blur" />
+              <filter id="crystal-shine">
+                <feGaussianBlur stdDeviation="0.4" result="blur" />
               </filter>
             </defs>
 
@@ -230,20 +236,20 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
               return (
                 <g key={pos.number}>
-                  {/* Exquisite Orange Badge */}
+                  {/* Exquisite Image Badge */}
                   <circle
                     cx={x} cy={y} r="21"
-                    fill={isClosed ? "#444" : "url(#orange-grad)"}
-                    stroke={isClosed ? "#555" : "#CC7000"}
+                    fill={isClosed ? "#333" : (pos.color === 'red' ? 'url(#ruby-grad)' : 'url(#emerald-grad)')}
+                    stroke={isClosed ? "#555" : (pos.color === 'red' ? '#FF9999' : '#99FF99')}
                     strokeWidth="1.5"
                     filter="url(#glow)"
                   />
                   {/* High-gloss shine highlight */}
                   {!isClosed && (
                     <circle
-                      cx={x - 6} cy={y - 6} r="5"
-                      fill="rgba(255,255,255,0.5)"
-                      filter="url(#badge-shine)"
+                      cx={x - 6} cy={y - 6} r="4.5"
+                      fill="rgba(255,255,255,0.6)"
+                      filter="url(#crystal-shine)"
                       pointerEvents="none"
                     />
                   )}
@@ -268,14 +274,14 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                     y={y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isClosed ? "#888" : "#006400"} // Bottle Green
+                    fill={isClosed ? "#888" : "#FFFFFF"}
                     fontSize="22"
                     fontWeight="900"
                     fontFamily="'Playfair Display', serif"
                     style={{
                       textShadow: isClosed
                         ? 'none'
-                        : `0 0 8px rgba(0, 100, 0, 0.4), 0 0 2px rgba(255, 255, 255, 0.5)`
+                        : `0 1px 2px rgba(0, 0, 0, 0.5), 0 0 5px rgba(255, 255, 255, 0.3)`
                     }}
                   >
                     {pos.number}

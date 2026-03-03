@@ -129,7 +129,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
         if (rNums.length > 0) onHitRing(hitRingLineIdx);
       } else if (closestNum !== -1) {
         setHitPulse({ id: `num-${closestNum}`, type: 'number' });
-        if (!gameState.closedNumbers.has(closestNum) && !player.completed[closestNum]) {
+        if (!gameState.closedNumbers.has(closestNum)) {
           onHitNumber(closestNum);
         } else {
           const rNums = RING_NUMBERS[hitRingIdx] ?? [];
@@ -264,17 +264,16 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                   />
 
 
-                  {/* Restored Hit Progress Ring */}
-                  {!isClosed && player.hits[pos.number] > 0 && (
+                  {/* Restored Hit Progress Ring - Now tracks current player's contributions to communal sequence */}
+                  {!isClosed && gameState.hitSequences[pos.number].filter(p => p === cp).length > 0 && (
                     <circle
                       cx={x} cy={y} r="26"
                       fill="none"
                       stroke={pos.color === 'red' ? '#e63946' : '#2a9d8f'}
                       strokeWidth="4"
-                      strokeDasharray={`${(Math.min(player.hits[pos.number] / pos.number, 1)) * (2 * Math.PI * 26)} ${2 * Math.PI * 26}`}
+                      strokeDasharray={`${(Math.min(gameState.hitSequences[pos.number].filter(p => p === cp).length / pos.number, 1)) * (2 * Math.PI * 26)} ${2 * Math.PI * 26}`}
                       transform={`rotate(-90 ${x} ${y})`}
                       strokeLinecap="round"
-                      filter="url(#glow)"
                     />
                   )}
 

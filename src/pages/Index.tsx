@@ -80,19 +80,20 @@ const RulesScroll = () => (
           🎁 Bonus System
         </h4>
         <div className="pl-4 border-l border-white/10 space-y-2">
-          <p><strong>🔥 Top Filler (7 pts):</strong> Highest total hits on numbers 2-14.</p>
-          <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the last player to complete a number.</p>
+          <p><strong>🔥 Top Filler (7 pts):</strong> Awarded to the player with the highest total hits on numbers <span className="text-secondary font-bold">2–14</span>. Shared if tied.</p>
+          <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the <span className="text-primary font-bold">first player</span> to complete a number. This immediately closes the number for all players.</p>
         </div>
       </section>
 
       <section className="space-y-2">
         <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          🏆 Batch System
+          🏆 Batch System (Final Race)
         </h4>
         <div className="pl-4 border-l border-white/10 space-y-2">
-          <p><strong>Batch 1:</strong> First to exceed <strong>221.5 pts</strong> ends Batch 1 and sets the <span className="text-primary font-bold">Benchmark Bar</span>.</p>
-          <p><strong>Batch 2:</strong> Opponent must surpass the Benchmark Score to win the game.</p>
+          <p><strong>Batch 1:</strong> First to exceed <strong>221.5 pts</strong> ends the round. Both scores are recorded.</p>
+          <p><strong>Batch 2 (The Race):</strong> Each player now has a <span className="text-primary font-bold">Unique Target</span>: your opponent's final Batch 1 score.</p>
+          <p className="text-secondary font-bold">First to surpass their opponent's record wins the entire game immediately.</p>
         </div>
       </section>
     </div>

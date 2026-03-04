@@ -118,7 +118,6 @@ const Index = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [isLobbyJoined, setIsLobbyJoined] = useState(false);
-  const [logMessages, setLogMessages] = useState<string[]>([]);
   const [showBatchOverlay, setShowBatchOverlay] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -230,7 +229,6 @@ const Index = () => {
       false
     );
     setGameState(initialState);
-    setLogMessages([]);
     setGameStarted(true);
 
     // Initialize Supabase row
@@ -250,12 +248,14 @@ const Index = () => {
           .select('game_state, lobby_host, lobby_guest')
           .eq('match_id', activeMatchId)
           .single();
-
         if (data) {
           if (data.game_state) {
             const newState = data.game_state;
             if (newState.closedNumbers) {
               newState.closedNumbers = new Set(newState.closedNumbers);
+            }
+            if (!newState.logMessages) {
+              newState.logMessages = [];
             }
             setGameState(newState);
             setGameStarted(true);
@@ -296,6 +296,9 @@ const Index = () => {
             // Rehydrate Set for closedNumbers
             if (newState.closedNumbers) {
               newState.closedNumbers = new Set(newState.closedNumbers);
+            }
+            if (!newState.logMessages) {
+              newState.logMessages = [];
             }
             setGameState(newState);
             setGameStarted(true);
@@ -420,7 +423,6 @@ const Index = () => {
     const player1Address = isConnected && address ? address : '0x0000000000000000000000000000000000000001';
     const initialState = createInitialGameState(player1Name, player1Address, 'Computer AI (CPU)', '0x0000000000000000000000000000000000000000', true);
     setGameState(initialState);
-    setLogMessages([]);
     setGameStarted(true);
   };
 
@@ -435,7 +437,6 @@ const Index = () => {
     setGameState(prev => {
       if (!prev || prev.gameOver) return prev;
       const result = hitNumber(prev, num);
-      if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
       if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
       prevBatchRef.current = result.state.batch;
 
@@ -451,7 +452,6 @@ const Index = () => {
       if (!prev || prev.gameOver) return prev;
       const nums = RING_NUMBERS[ringIdx];
       const result = hitRing(prev, ringIdx, nums);
-      if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
       if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
       prevBatchRef.current = result.state.batch;
 
@@ -500,10 +500,6 @@ const Index = () => {
             } else {
               const result = hitRing(prevState, move.index, RING_NUMBERS[move.index]);
               updated = result.state;
-            }
-
-            if (updated.lastAction) {
-              setLogMessages(p => [...p, updated.lastAction!]);
             }
 
             if (updated.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
@@ -650,7 +646,6 @@ const Index = () => {
       false
     );
     setGameState(initialState);
-    setLogMessages([]);
     setGameStarted(true);
 
     // Broadcast the official start
@@ -1235,7 +1230,7 @@ const Index = () => {
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             </div>
             <div className="flex-1 overflow-hidden h-full">
-              <GameLog messages={logMessages} p1Name={gameState.players[0].name} p2Name={gameState.players[1].name} />
+              <GameLog messages={gameState.logMessages} p1Name={gameState.players[0].name} p2Name={gameState.players[1].name} />
             </div>
           </div>
 

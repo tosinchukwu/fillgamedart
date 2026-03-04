@@ -25,6 +25,7 @@ export interface GameState {
   gameOver: boolean;
   winner: 0 | 1 | null;
   lastAction: string | null;
+  logMessages: string[];
   isVsCPU: boolean;
 }
 
@@ -75,6 +76,7 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
     gameOver: false,
     winner: null,
     lastAction: null,
+    logMessages: [],
     isVsCPU,
   };
 }
@@ -182,6 +184,12 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
   const finalScore = newState.players[cp].totalScore;
   newState.lastAction = `[${player.name}]: 🎯 Dart landed on ${targetNumber}! (${message}) [Total: ${finalScore} pts]`;
 
+  // Only push to individual log if this isn't part of a multi-hit (like a Ring hit)
+  // to avoid flooding the log with 4-5 messages per throw.
+  if (!isMultiHit) {
+    newState.logMessages.push(newState.lastAction);
+  }
+
   if (!isMultiHit && newState.dartsRemaining <= 0) {
     checkBatchConditions(newState);
     if (!newState.gameOver && newState.dartsRemaining === 0) {
@@ -211,7 +219,9 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
 
   const cp = currentResult.state.currentPlayer;
   const player = currentResult.state.players[cp];
-  currentResult.state.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${player.totalScore} pts`;
+  const numsJoined = ringNumbers.join(', ');
+  currentResult.state.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${numsJoined}) = Total: ${player.totalScore} pts`;
+  currentResult.state.logMessages.push(currentResult.state.lastAction);
 
   if (currentResult.state.dartsRemaining <= 0) {
     checkBatchConditions(currentResult.state);
@@ -255,6 +265,7 @@ function checkBatchConditions(state: GameState) {
       state.currentPlayer = (1 - b1w) as (0 | 1);
       state.dartsRemaining = 3;
       state.lastAction = `[SYSTEM]: 🚀 ${state.players[b1w].name} set the Bar at ${benchmark}! BATCH 2 START. ${state.players[1 - b1w].name}'s turn to beat it!`;
+      state.logMessages.push(state.lastAction);
     }
   } else if (state.batch === 2 && state.batch1Scores !== null) {
     const [p1Target, p2Target] = [state.batch1Scores[1], state.batch1Scores[0]];
@@ -263,10 +274,12 @@ function checkBatchConditions(state: GameState) {
       state.gameOver = true;
       state.winner = 0;
       state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} surpassed the target of ${p1Target} and WINS!`;
+      state.logMessages.push(state.lastAction);
     } else if (p2Score > p2Target) {
       state.gameOver = true;
       state.winner = 1;
       state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} surpassed the target of ${p2Target} and WINS!`;
+      state.logMessages.push(state.lastAction);
     }
   }
 }

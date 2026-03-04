@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send } from 'lucide-react';
 import SettingsDialog from '../components/SettingsDialog';
-import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
 import { avalanche } from 'viem/chains';
@@ -128,8 +128,31 @@ const Index = () => {
   const { open } = useWeb3Modal();
   const { disconnect } = useDisconnect();
 
+  // Real-time Match Data
+  const { data: contractMatch, refetch: refetchMatch, isLoading: isLoadingMatch } = useReadContract({
+    address: CONTRACT_ADDRESS as `0x${string}`,
+    abi: CONTRACT_ABI,
+    functionName: 'getMatch',
+    args: matchId ? [BigInt(matchId)] : undefined,
+    query: {
+      enabled: !!matchId && setupMode === 'multi' && isLobbyJoined,
+      refetchInterval: 3000,
+    }
+  });
+
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const prevBatchRef = useRef<number>(1);
+
+  // Auto-start private match when both are paid
+  useEffect(() => {
+    if (!gameStarted && contractMatch && isLobbyJoined && setupMode === 'multi') {
+      const m = contractMatch as any;
+      if (m.player1Paid && m.player2Paid) {
+        toast.info("Both commanders synced. Initiating sequence...", { duration: 2000 });
+        setTimeout(startGame, 2000);
+      }
+    }
+  }, [contractMatch, gameStarted, isLobbyJoined, setupMode]);
 
   // Audio Logic
   useEffect(() => {
@@ -177,11 +200,17 @@ const Index = () => {
   }, [playSFX]);
 
   const startGame = () => {
-    if (!p1Address || !p2Address) return;
-    const finalP1Name = p1Name.trim() || 'Player 1';
-    const finalP2Name = p2Name.trim() || 'Player 2';
+    if (!contractMatch) return;
+
+    const m = contractMatch as any;
     setIsVsCPU(false);
-    setGameState(createInitialGameState(finalP1Name, p1Address, finalP2Name, p2Address, false));
+    setGameState(createInitialGameState(
+      m.player1Name || 'Player 1',
+      m.player1,
+      m.player2Name || 'Player 2',
+      m.player2,
+      false
+    ));
     setLogMessages([]);
     setGameStarted(true);
   };
@@ -333,15 +362,11 @@ const Index = () => {
       writeContract({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: CONTRACT_ABI,
-        functionName: 'recordScore',
+        functionName: 'submitResult',
         args: [
-          gameState.players[0].name,
-          p1Addr as `0x${string}`,
-          BigInt(gameState.players[0].totalScore),
-          gameState.players[1].name,
-          gameState.players[1].address as `0x${string}`,
-          BigInt(gameState.players[1].totalScore),
-          BigInt(Math.floor(Date.now() / 1000))
+          BigInt(matchId),
+          gameState.winner === 0 ? gameState.players[0].address as `0x${string}` : gameState.players[1].address as `0x${string}`,
+          `P1 (${gameState.players[0].name}): ${gameState.players[0].totalScore}, P2 (${gameState.players[1].name}): ${gameState.players[1].totalScore}`
         ],
         account: address as `0x${string}`,
         chain: avalanche,
@@ -428,25 +453,74 @@ const Index = () => {
                 <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Match Lobby: {matchId}</span>
-                    <Button variant="ghost" onClick={() => setIsLobbyJoined(false)} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Cancel</Button>
+                    <Button variant="ghost" onClick={() => { setIsLobbyJoined(false); setMatchId(''); }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Change ID</Button>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
-                      <span className="text-[10px] text-white/60 uppercase font-black">Commander A</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-primary font-bold">READY</span>
-                        <CheckCircle2 className="w-3 h-3 text-primary" />
-                      </div>
+                  {isLoadingMatch ? (
+                    <div className="flex flex-col items-center py-8 gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <span className="text-[10px] text-white/40 uppercase tracking-widest">Verifying Match Data...</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5 opacity-50">
-                      <span className="text-[10px] text-white/60 uppercase font-black">Invited Opponent</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-white/30">WAITING...</span>
-                        <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                  ) : contractMatch ? (
+                    <div className="space-y-3">
+                      {/* Participant Verification Notice */}
+                      {address &&
+                        address.toLowerCase() !== (contractMatch as any).player1.toLowerCase() &&
+                        address.toLowerCase() !== (contractMatch as any).player2.toLowerCase() && (
+                          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-2 flex items-center gap-3">
+                            <XCircle className="w-4 h-4 text-red-500" />
+                            <span className="text-[10px] text-red-200">Unauthorized: Your wallet is not a participant in this match.</span>
+                          </div>
+                        )}
+                      <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${((contractMatch as any).player1Paid) ? 'border-primary/40' : 'border-white/5'}`}>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-white/60 uppercase font-black">{(contractMatch as any).player1Name || 'Commander A'}</span>
+                          <span className="text-[8px] text-white/20">{(contractMatch as any).player1.slice(0, 10)}...</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(contractMatch as any).player1Paid ? (
+                            <>
+                              <span className="text-[10px] text-primary font-bold">READY</span>
+                              <CheckCircle2 className="w-3 h-3 text-primary" />
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[10px] text-white/30">PENDING</span>
+                              <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                            </>
+                          )}
+                        </div>
                       </div>
+                      <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${((contractMatch as any).player2Paid) ? 'border-primary/40' : 'border-white/5'}`}>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-white/60 uppercase font-black">{(contractMatch as any).player2Name || 'Commander B'}</span>
+                          <span className="text-[8px] text-white/20">{(contractMatch as any).player2.slice(0, 10)}...</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(contractMatch as any).player2Paid ? (
+                            <>
+                              <span className="text-[10px] text-primary font-bold">READY</span>
+                              <CheckCircle2 className="w-3 h-3 text-primary" />
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[10px] text-white/30">PENDING</span>
+                              <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-white/40 italic text-center font-medium mt-2">
+                        {(contractMatch as any).player1Paid && (contractMatch as any).player2Paid
+                          ? "All commanders confirmed. Launching game..."
+                          : "Waiting for both commanders to join via fillinggame.vercel.app"}
+                      </p>
                     </div>
-                  </div>
-                  <p className="text-[9px] text-white/40 italic text-center font-medium">Game will launch automatically when both commanders are synced.</p>
+                  ) : (
+                    <div className="py-6 text-center">
+                      <XCircle className="w-8 h-8 text-red-500/50 mx-auto mb-2" />
+                      <span className="text-[10px] text-white/60 uppercase">Match ID Not Found</span>
+                    </div>
+                  )}
                 </div>
               )}
 

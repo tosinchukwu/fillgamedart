@@ -58,6 +58,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
         { id: 'synth_wave', label: 'Neon Pulsar (Synth)' },
         { id: 'lofi_chill', label: 'Orbit Chill (Lo-Fi)' },
         { id: 'high_energy', label: 'Hyperdrive (Energy)' },
+        { id: 'stand_up', label: 'Stand Up (Victory)' },
     ];
 
     return (

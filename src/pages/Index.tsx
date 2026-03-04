@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2 } from 'lucide-react';
+import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send } from 'lucide-react';
 import SettingsDialog from '../components/SettingsDialog';
 import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -456,7 +456,78 @@ const Index = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="glass-panel p-12 rounded-[2rem] border-primary text-center neon-border-theme">
             <h2 className="text-6xl text-primary font-black italic mb-4 uppercase">{gameState.players[gameState.winner].name} WINS!</h2>
-            <p className="text-white/60 font-mono-game uppercase tracking-widest mb-8">Final Score: {gameState.players[gameState.winner].totalScore} pts</p>
+            <p className="text-white/60 font-mono-game uppercase tracking-widest mb-6">Final Score: {gameState.players[gameState.winner].totalScore} pts</p>
+
+            {gameState.batch1Scores && (
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 animate-in slide-in-from-top-4 duration-700 delay-300">
+                <div className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-3">Batch 1 Intelligence Report</div>
+                <div className="flex items-center justify-center gap-12">
+                  <div className="text-left">
+                    <div className="text-[8px] text-white/30 uppercase tracking-widest mb-1">{gameState.players[0].name}</div>
+                    <div className={`text-2xl font-black italic ${gameState.batch1Scores[0] > gameState.batch1Scores[1] ? 'text-primary' : 'text-white/60'}`}>
+                      {gameState.batch1Scores[0]} pts
+                    </div>
+                  </div>
+                  <div className="text-primary font-black italic">VS</div>
+                  <div className="text-right">
+                    <div className="text-[8px] text-white/30 uppercase tracking-widest mb-1">{gameState.players[1].name}</div>
+                    <div className={`text-2xl font-black italic ${gameState.batch1Scores[1] > gameState.batch1Scores[0] ? 'text-primary' : 'text-white/60'}`}>
+                      {gameState.batch1Scores[1]} pts
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-white/5 text-[10px] text-white/40 font-mono-game uppercase tracking-widest italic">
+                  {gameState.batch1Scores[0] > gameState.batch1Scores[1]
+                    ? `${gameState.players[0].name} dominated the first engagement`
+                    : gameState.batch1Scores[1] > gameState.batch1Scores[0]
+                      ? `${gameState.players[1].name} led the initial charge`
+                      : "An equal exchange of firepower in Batch 1"
+                  }
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-6 mb-10">
+              <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">Broadcast Victory To Command</div>
+              <div className="flex justify-center gap-4">
+                <Button
+                  onClick={() => {
+                    const text = `🎯 Just won a tactical match in Filling Game! Final Score: ${gameState.players[gameState.winner!].totalScore} pts. Batch 1: ${gameState.batch1Scores![0]} vs ${gameState.batch1Scores![1]}. Check it out!`;
+                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                  }}
+                  variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-primary p-0 shadow-lg"
+                >
+                  <Twitter className="w-5 h-5" />
+                </Button>
+                <Button
+                  onClick={() => {
+                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+                  }}
+                  variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-blue-500 p-0 shadow-lg"
+                >
+                  <Facebook className="w-5 h-5" />
+                </Button>
+                <Button
+                  onClick={() => {
+                    const text = `🎯 Tactical Victory! Final Score: ${gameState.players[gameState.winner!].totalScore} pts. Join the fight!`;
+                    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(window.location.href)}`, '_blank');
+                  }}
+                  variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-purple-500 p-0 shadow-lg"
+                >
+                  <Send className="w-5 h-5" /> {/* Using Send for Farcaster/Warpcast feel */}
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`I won! ${gameState.players[gameState.winner!].totalScore} pts in Filling Game.`);
+                    toast.success("Score copied for Instagram!");
+                  }}
+                  variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-pink-500 p-0 shadow-lg"
+                >
+                  <Instagram className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button onClick={resetGame} className="bg-white/10 text-white font-black px-8 py-6 text-lg rounded-xl flex-1 hover:bg-white/20">Play Again</Button>
               <Button onClick={broadcastScore} disabled={!isConnected} className="bg-primary text-white font-black px-8 py-6 text-lg rounded-xl flex-1 shadow-[0_0_20px_rgba(232,65,66,0.3)]">

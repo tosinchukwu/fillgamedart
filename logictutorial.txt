@@ -36,8 +36,8 @@ Hitting a ring is a powerful move that awards points to **ALL** numbers in that 
 ## 3. THE SCORING SYSTEM
 
 ### A. FILLER POINTS (+2 PER HIT)
-- **Numbers 2-14**: Every hit grants +2 pts, capped at `(Number Value * 2)`.
-- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch**. Your first hit on #1 in Batch 1 gives pts; subsequent hits in Batch 1 give 0 filler pts. The same applies to Batch 2.
+- **Numbers 2-14**: Every direct hit on any number between 2 - 14 grants +2 pts on each. (e.g if through out the batch 1 game you hit #5 three times, you will get +6 total fill up points) same applies to batch 2
+- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch on direct hit**. Your first direct hit on #1 in Batch 1 gives +2 filler pts. subsequent direct hit on #1 in Batch 1 gives 0 filler pts. The same applies to Batch 2.
 
 ### B. TOP FILLER BONUS (+7 PER NUMBER)
 - **Applicable**: Numbers 2 - 14.
@@ -46,8 +46,8 @@ Hitting a ring is a powerful move that awards points to **ALL** numbers in that 
 - **Tie**: Both players get +3.5 pts each.
 
 ### C. FILL-UP BONUS (+10 PER NUMBER)
-- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch**. Your first hit on #1 in Batch 1 gives +10 pts; subsequent hits in Batch 1 give 0. The same applies to Batch 2.
-- **Numbers 2-14**: Awarded to the player who "closes" the number for the whole board (completes it for themselves after the opponent has already finished).
+- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch on direct hit**. Your first direct hit on #1 in Batch 1 and Batch 2 gives +10 fill up bonus pts and #1 close; subsequent direct hits on #1 in Batch 1 give 0.
+- **Numbers 2-14**: Awarded to the player who "closes" the hitting of any number between 2 - 14 this is apllicable both in batch 1 and 2
 
 ---
 
@@ -62,17 +62,15 @@ Hitting a ring is a powerful move that awards points to **ALL** numbers in that 
 ## 5. EXAMPLE SCENARIO: A RING 3 STRIKE (BATCH 1)
 
 If you hit **Ring 3** (Numbers 11, 1, 3, 8):
-1. **Hits Recorded**: You get +1 hit on all numbers.
-2. **Scoring for #1**: If this is your first hit on #1 in Batch 1, you get **+12 pts**.
-3. **Scoring for Others**: You get +2 pts for #11, +2 pts for #3, and +2 pts for #8 (assuming they aren't capped).
-4. **Total**: 12 + 2 + 2 + 2 = **18 points** from one ring hit!
+1. **Scoring: You get +2 pts for #11, +2 pts for #1, +2 pts for #3, and +2 pts for #8. any number already completed or closed will not be given point on that ring
+2. **Total**: 2 + 2 + 2 + 2 = **8 points** from one ring hit! provided all the numbers on the ring have not been closed
 
 ---
 
 ## 6. PRO TIPS
 - **Don't Waste Darts on #1**: Since it only pays out once per batch, don't keep aiming for it (directly or via Ring 3) once you've collected your 12 points.
 - **Batch 1 Strategy**: Aim for high numbers to build a massive "Bar" that your opponent will struggle to beat in Batch 2.
-
+Once Target is met both in Batch 1 and 2, the winner is declared and game end
 ---
 
 ## 7. DART HIT CALCULATION
@@ -122,12 +120,12 @@ Once the shared target is reached (Board Closed):
 
 **Example 3: Ring Impact on Completion**
 - **Scenario**: Player A hits **Ring 1** (contains #14 and #13). Player A needed 1 more hit for #13 but 5 more for #14.
-- **Logic**: All numbers in the ring get their point value (+2, or +12 for #1) added to your score, but your hit count for these numbers remains unchanged.
+- **Logic**: When there is a direct hit on any ring, All numbers in the ring get their point value (+2 filler point) added to your score, but your hit count for these numbers remains unchanged.
 - **Result**: Player A earns filler pts for #13 and #14, but neither moves closer to being closed.
 
 **Example 4: Skipping a Closed Number**
 - **Scenario**: #13 is Closed. Player B hits **Ring 1** (#14, #13).
 - **Logic**: Game checks index for #13 in the closed set. It is found.
-- **Result**: Player B gets +1 hit and +2 pts for #14. For #13, the hit is ignored entirely: 0 hits and 0 pts recorded.
+- **Result**: Player B +2 pts for #14. For #13, the hit is ignored entirely: 0 hits and 0 pts.
 
 Good luck, Archer! 🎯

@@ -273,7 +273,7 @@ const Index = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'matches', filter: `match_id=eq.${activeMatchId}` },
         (payload) => {
-          const newState = payload.new.game_state;
+          const newState = (payload.new as any).game_state;
           if (newState) {
             // Rehydrate Set for closedNumbers
             if (newState.closedNumbers) {
@@ -675,7 +675,7 @@ const Index = () => {
         </div>
       );
     }
-    
+
     if (setupMode === 'multi') {
       if (!isLobbyJoined) {
         return (
@@ -705,7 +705,7 @@ const Index = () => {
           </div>
         );
       }
-      
+
       return (
         <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
           <div className="flex items-center justify-between mb-2">
@@ -797,7 +797,7 @@ const Index = () => {
         </div>
       );
     }
-    
+
     if (setupMode === 'invite') {
       return (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">

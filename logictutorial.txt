@@ -1,131 +1,54 @@
-# FILL GAME DART: COMPLETE LOGIC TUTORIAL
+# Fill Game Dart - Ring Strategy Logic
 
-Welcome to the official logic guide for Fill Game Dart. This tutorial covers everything from basic hits to advanced batch strategies and bonuses.
-
----
-
-## 1. THE GAME STRUCTURE (BATCHES)
-
-The game is played in two distinct phases called "Batches".
-
-### BATCH 1: THE QUALIFICATION (221.5 PTS)
-- **Goal**: Be the first to reach or exceed the target score of **221.5 points**.
-- **The Bar**: Once a player hits 221.5, Batch 1 ends. Their final score becomes "The Bar" that the opponent must try to beat in Batch 2.
-
-### BATCH 2: THE FINAL RACE (BEAT THE BAR)
-- **Goal**: Reach a score higher than your opponent's final Batch 1 score.
-- **Victory**: The first player to surpass their specific target wins the entire game immediately.
-
----
-
-## 2. THE DARTBOARD TARGETS
-
-### DIRECT NUMBER HITS (1-14)
-- You can target numbers 1 through 14 directly.
-- Each hit progresses your "Personal Completion" for that number (e.g., Number 10 requires 10 hits to complete).
-
-### RING HITS (GROUPS)
-Hitting a ring is a powerful move that awards points to **ALL** numbers in that group, but **DOES NOT** count as a "hit" toward completion:
-- **Ring 1 (Inner)**: 14, 13
+## Ring Composition
+- **Ring 1 (Innermost)**: 14, 13
 - **Ring 2**: 12, 9, 5, 10
 - **Ring 3**: 11, 1, 3, 8
-- **Ring 4 (Outer)**: 7, 4, 2, 6
+- **Ring 4 (Outermost)**: 7, 4, 2, 6
+
+## Impact Rule
+- A hit on any Ring (1, 2, 3, or 4) acts as a **direct hit on EVERY number** contained within that ring's group.
+- Each hit adds to the hit count of the respective numbers and is recorded as an ordinal hit position (1st, 2nd, etc.) on the scoreboard.
+
+## Scoring Logic per Number (1st to 14th Dart)
+
+### 1. Filler Points (+2 Pts)
+- **Numbers 2-14**: Every hit grants +2 filler points, capped at `(Number Value * 2)`.
+- **Number 1**: Special Rule - **Every hit** grants +2 filler points (Uncapped).
+
+### 2. Top Filler Bonus (+7 Pts)
+- **Applicable to**: Numbers 2 through 14.
+- **Condition**: Awarded only once **BOTH** players have hit more than half of the number's value.
+- **Winner**: The player with the higher total hit count on that specific number receives +7 pts.
+- **Tie**: If hit counts are equal, both players receive **+3.5 pts**.
+
+### 3. Fill-Up Bonus (+10 Pts)
+- **Number 1**: Special Rule - **Every hit** grants +10 Fill-Up points.
+- **Numbers 2-14**: Awarded only when a hit **completes board closure** for that specific number (both players finished).
 
 ---
 
-## 3. THE SCORING SYSTEM
+## CALCULATION EXAMPLES
 
-### A. FILLER POINTS (+2 PER HIT)
-- **Numbers 2-14**: Every direct hit on any number between 2 - 14 grants +2 pts on each. (e.g if throughout the batch 1 game you hit #5 three times, you will get +6 total filler up points) same applies to batch 2
-- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch on direct hit**. Your first direct hit on #1 in Batch 1 gives +2 filler pts. subsequent direct hit on #1 in Batch 1 gives 0 filler pts. The same applies to Batch 2.
+### Example 1: Hit on Ring 1 (Numbers 13, 14)
+Scenario: Player A hits Ring 1. 
+- **For Number 13**: 
+  - +2 Filler points.
+  - If Player A now has more hits than Player B (and both > 6.5): +7 Top Filler points.
+  - If Number 13 was already completed by Player B, this hit closes it: +10 Fill-Up points.
+- **For Number 14**: 
+  - +2 Filler points.
+  - If Player A leads hits: +7 Top Filler points.
+  - If this hit closes Number 14 for the board: +10 Fill-Up points.
+- **Grand Total for this single dart**: (2+7+10) + (2+7+10) = **38 points** (if all conditions met).
 
-### B. TOP FILLER BONUS (+7 PER NUMBER)
-- **Applicable**: Numbers 2 - 14.
-- **Condition**: Awarded once **BOTH** players have hit more than half of the number's requirement.
-- **Winner**: The player with the most hits on that number gets +7 pts.
-- **Tie**: Both players get +3.5 pts each.
+### Example 2: Hit on Ring 3 (Numbers 11, 1, 3, 8)
+Scenario: Player A hits Ring 3.
+- **Number 1**: only grants **+12 pts** (2 Filler + 10 Fill-Up) immediately n is once till the batch end.
+- **Number 11**: +2 Filler (plus potential +7 TFP or +10 Fill-Up).
+- **Number 3**: +2 Filler (plus potential +7 TFP or +10 Fill-Up).
+- **Number 8**: +2 Filler (plus potential +7 TFP or +10 Fill-Up).
+- **Grand Total**: 12 + (2+0+0) + (2+0+0) + (2+0+0) = **18 points** (minimum case).
 
-### C. FILL-UP BONUS (+10 PER NUMBER)
-- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch on direct hit**. Your first direct hit on #1 in Batch 1 and Batch 2 gives +10 fill up bonus pts and #1 close; subsequent direct hits on #1 in Batch 1 give 0.
-- **Numbers 2-14**: Awarded to the player who "closes" the hitting of any number between 2 - 14 this is apllicable both in batch 1 and 2
-
----
-
-## 4. NUMBER 1 SUMMARY: THE "12-POINT RULE"
-- **Batch 1 (First Hit)**: Grants **+12 total points** (2 Filler + 10 Fill-Up).
-- **Batch 1 (Later Hits)**: Grants **0 points**.
-- **Batch 2 (First Hit)**: Grants **+12 total points**.
-- **Batch 2 (Later Hits)**: Grants **0 points**.
-
----
-
-## 5. EXAMPLE SCENARIO: A RING 3 STRIKE (BATCH 1)
-
-If you hit **Ring 3** (Numbers 11, 1, 3, 8):
-1. **Scoring: You get +2 pts for #11, +2 pts for #1, +2 pts for #3, and +2 pts for #8. any number already completed or closed will not be given point on that ring
-2. **Total**: 2 + 2 + 2 + 2 = **8 points** from one ring hit! provided all the numbers on the ring have not been closed
-
----
-
-## 6. PRO TIPS
-- **Don't Waste Darts on #1**: Since it only pays out once per batch, don't keep aiming for it (directly or via Ring 3) once you've collected your 12 points.
-- **Batch 1 Strategy**: Aim for high numbers to build a massive "Bar" that your opponent will struggle to beat in Batch 2.
-Once Target is met both in Batch 1 and 2, the winner is declared and game end
----
-
-## 7. DART HIT CALCULATION
-
-### FOR HUMAN PLAYERS (RANDOMIZED RESOLUTION)
-When you click to throw, the game calculates your landing coordinates `(lx, ly)` using:
-- **Target Choice**: 70% chance to aim for a specific Number Badge, 30% to aim for a Ring Line.
-- **Coordinate Generation**:
-  - Hits are calculated using `polarToXY(angle, radius)`.
-  - **Number Hit**: Centers on the mid-angle of the number's segment and its specific ring radius.
-  - **Ring Hit**: Hits the exact boundary line (radius) of the ring at a random angle.
-- **Visual Realism**: A random tilt of ±20° is applied to every dart for a more natural appearance.
-
-### FOR THE CPU (STRATEGIC RESOLUTION)
-The CPU uses an algorithm to decide its target:
-1. **Ring Evaluation**: It calculates a "Desirability Score" for each ring by summing the point values of all uncompleted/unclosed numbers on that ring.
-2. **Threshold**: If any ring has a score > 20, the CPU prioritizes hitting that ring for maximum efficiency.
-3. **Fallback**: If no ring is highly desirable, it targets the highest remaining uncompleted number (e.g., #14, then #13).
-4. **Processing**: Once a target is picked, it uses the same logic engine as human players to ensure fairness.
-
----
-
-## 8. COMPLETION & CLOSURE LOGIC
-
-### HIT TRACKING & SHARED BOARD COMPLETION
-The game maintains hits for both players, but completion is **Shared**.
-- `player.hits[n]++` is incremented.
-- A number is **Closed** for the entire board when `PlayerA.hits[n] + PlayerB.hits[n] >= n`.
-- **Logic**: No single player is mandatory to hit a dart number for the full count. The hits of **both players** count toward the shared target.
-
-### SCORING UPON CLOSURE
-Once the shared target is reached (Board Closed):
-1. **Filler Points**: Distributed based on each player's individual hits (capped at their contribution).
-2. **Top Filler Bonus (+7)**: Awarded to the player who landed the most hits (majority share). Split if tied.
-3. **Fill-Up Bonus (+10)**: Awarded to the player who lands the **final (Nth)** hit that closes the number.
-
-### EXAMPLES OF COMPLETION & CLOSURE
-
-**Example 1: Majority Share (#10)**
-- **Scenario**: Player A has 6 hits, Player B has 4 hits on #10.
-- **Result**: Board Closes. Player A gets +7 Top Filler Bonus. Player B earns 4 hits worth of filler pts but no bonus.
-
-**Example 2: Board Closure & Fill-Up Bonus (#3)**
-- **Scenario**: Player A lands 1 hit on #3. Player B lands 1 hit on #3. Player A then lands a second hit on #3 (the "3rd" total board hit).
-- **Logic**: Total board hits = 1 + 1 + 1 = 3. Since `3rd hit` closes #3, Board is now **Closed**.
-- **Result**: Player A earns **+4 filler pts** (for the 2 hits landed) AND **+10 pts Fill-Up Bonus** for being the one to close the board. Any subsequent hits on #3 by either player give 0 points. And Player B earns his own +2 filler pts (for the 1 hits landed)
-
-**Example 3: Ring Impact on Completion**
-- **Scenario**: Player A hits **Ring 1** (contains #14 and #13). Player A needed 1 more hit for #13 but 5 more for #14.
-- **Logic**: When there is a direct hit on any ring, All numbers in the ring get their point value (+2 filler point) added to your score, but your hit count for these numbers remains unchanged.
-- **Result**: Player A earns filler pts for #13 and #14, but neither moves closer to being closed.
-
-**Example 4: Skipping a Closed Number**
-- **Scenario**: #13 is Closed. Player B hits **Ring 1** (#14, #13).
-- **Logic**: Game checks index for #13 in the closed set. It is found.
-- **Result**: Player B +2 pts for #14. For #13, the hit is ignored entirely: 0 hits and 0 pts.
-
-Good luck, Archer! 🎯
+### Summary Note
+Every interaction counts. A single ring hit can trigger multiple bonuses across all numbers in that ring group simultaneously, adding a massive strategic advantage.

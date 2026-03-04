@@ -178,7 +178,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
         <div className="flex flex-col items-center">
           <svg
             viewBox="0 0 500 500"
-            className="w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] md:w-[450px] md:h-[450px]"
+            className="w-[280px] h-[280px] sm:w-[380px] sm:h-[380px] md:w-[450px] md:h-[450px]"
             style={{
               filter: 'drop-shadow(0 0 30px rgba(0,0,0,0.5))',
               pointerEvents: 'none',

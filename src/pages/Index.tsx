@@ -348,7 +348,10 @@ const Index = () => {
             game_state: serializedState
           })
           .eq('match_id', activeMatchId);
-        if (error) console.error("Broadcast update error:", error);
+        if (error) {
+          console.error("Broadcast update error:", error);
+          toast.error("Sync failed: " + error.message);
+        }
       } else {
         const { error } = await supabase
           .from('matches')
@@ -356,7 +359,10 @@ const Index = () => {
             match_id: activeMatchId,
             game_state: serializedState
           }, { onConflict: 'match_id' });
-        if (error) console.error("Broadcast upsert error:", error);
+        if (error) {
+          console.error("Broadcast upsert error:", error);
+          toast.error("Sync failed: " + error.message);
+        }
       }
     } catch (e) {
       console.error("Sync broadcast failed:", e);
@@ -545,14 +551,22 @@ const Index = () => {
 
     // Write host lobby row to Supabase so the subscription channel is ready
     try {
-      await supabase.from('matches').upsert({
+      const { error } = await supabase.from('matches').upsert({
         match_id: newCode,
-        lobby_host: JSON.stringify({ name: p1Name, address }),
+        lobby_host: { name: p1Name, address },
         lobby_guest: null,
         game_state: null,
       }, { onConflict: 'match_id' });
+
+      if (error) {
+        console.error('Failed to create lobby row:', error);
+        toast.error("Supabase Error: " + error.message);
+        return;
+      }
     } catch (e) {
       console.error('Failed to create lobby row:', e);
+      toast.error("Connection failed. Check your Supabase setup.");
+      return;
     }
 
     const inviteLink = `${window.location.origin}${window.location.pathname}#invite=${newCode}`;
@@ -570,15 +584,22 @@ const Index = () => {
     setP2Address(address);
     // Write guest presence directly to Supabase so Host detects it
     try {
-      await supabase.from('matches')
+      const { error } = await supabase.from('matches')
         .update({
-          lobby_guest: JSON.stringify({ name: p2Name, address }),
+          lobby_guest: { name: p2Name, address },
         })
         .eq('match_id', inviteCode);
+
+      if (error) {
+        console.error('Failed to write guest presence:', error);
+        toast.error("Join failed: " + error.message);
+      } else {
+        toast.success("Joined match lobby. Waiting for Host to start.");
+      }
     } catch (e) {
       console.error('Failed to write guest presence:', e);
+      toast.error("Connection failed.");
     }
-    toast.success("Joined match lobby. Waiting for Host to start.");
   };
 
   // Host: watch Supabase for guest joining

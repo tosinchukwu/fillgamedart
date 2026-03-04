@@ -832,10 +832,10 @@ const Index = () => {
               playerIdx={gameState.currentPlayer}
             />
             <div
-              className={`text-center glass-panel px-10 py-5 rounded-3xl border-white/10 transition-all shadow-2xl min-w-[220px] ${canIThrow ? 'hover:bg-white/10 cursor-pointer active:scale-95 group' : 'opacity-50 cursor-not-allowed'}`}
+              className={`text-center glass-panel px-10 py-5 rounded-3xl border-white/10 transition-all shadow-2xl min-w-[220px] ${canIThrow ? 'hover:bg-white/10 cursor-pointer active:scale-95 group' : 'opacity-20 cursor-not-allowed pointer-events-none'}`}
               onClick={() => canIThrow && window.dispatchEvent(new CustomEvent('THROW_DART'))}
             >
-              <span className="text-sm font-black tracking-[0.3em] text-primary uppercase">
+              <span className={`text-sm font-black tracking-[0.3em] uppercase ${canIThrow ? 'text-primary' : 'text-white/40'}`}>
                 {getLauncherText()}
               </span>
             </div>

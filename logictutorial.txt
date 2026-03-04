@@ -118,7 +118,7 @@ Once the shared target is reached (Board Closed):
 **Example 2: Board Closure & Fill-Up Bonus (#3)**
 - **Scenario**: Player A lands 1 hit on #3. Player B lands 1 hit on #3. Player A then lands a second hit on #3 (the "3rd" total board hit).
 - **Logic**: Total board hits = 1 + 1 + 1 = 3. Since `3rd hit` closes #3, Board is now **Closed**.
-- **Result**: Player A earns +2 pts for the hit AND **+10 pts Fill-Up Bonus** for being the one to close the board. Any subsequent hits on #3 by either player give 0 points.
+- **Result**: Player A earns **+4 filler pts** (for the 2 hits landed) AND **+10 pts Fill-Up Bonus** for being the one to close the board. Any subsequent hits on #3 by either player give 0 points.
 
 **Example 3: Ring Impact on Completion**
 - **Scenario**: Player A hits **Ring 1** (contains #14 and #13). Player A needed 1 more hit for #13 but 5 more for #14.

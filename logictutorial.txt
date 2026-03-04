@@ -36,7 +36,7 @@ Hitting a ring is a powerful move that awards points to **ALL** numbers in that 
 ## 3. THE SCORING SYSTEM
 
 ### A. FILLER POINTS (+2 PER HIT)
-- **Numbers 2-14**: Every direct hit on any number between 2 - 14 grants +2 pts on each. (e.g if through out the batch 1 game you hit #5 three times, you will get +6 total fill up points) same applies to batch 2
+- **Numbers 2-14**: Every direct hit on any number between 2 - 14 grants +2 pts on each. (e.g if throughout the batch 1 game you hit #5 three times, you will get +6 total filler up points) same applies to batch 2
 - **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch on direct hit**. Your first direct hit on #1 in Batch 1 gives +2 filler pts. subsequent direct hit on #1 in Batch 1 gives 0 filler pts. The same applies to Batch 2.
 
 ### B. TOP FILLER BONUS (+7 PER NUMBER)

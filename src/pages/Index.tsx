@@ -247,17 +247,34 @@ const Index = () => {
       try {
         const { data, error } = await supabase
           .from('matches')
-          .select('game_state')
+          .select('game_state, lobby_host, lobby_guest')
           .eq('match_id', activeMatchId)
           .single();
 
-        if (data && data.game_state) {
-          const newState = data.game_state;
-          if (newState.closedNumbers) {
-            newState.closedNumbers = new Set(newState.closedNumbers);
+        if (data) {
+          if (data.game_state) {
+            const newState = data.game_state;
+            if (newState.closedNumbers) {
+              newState.closedNumbers = new Set(newState.closedNumbers);
+            }
+            setGameState(newState);
+            setGameStarted(true);
           }
-          setGameState(newState);
-          setGameStarted(true);
+
+          if (data.lobby_host && !isHost) {
+            try {
+              const host = typeof data.lobby_host === 'string' ? JSON.parse(data.lobby_host) : data.lobby_host;
+              if (host.name) setP1Name(host.name);
+              if (host.address) setP1Address(host.address);
+            } catch (e) { console.error("Parse host error:", e); }
+          }
+          if (data.lobby_guest) {
+            try {
+              const guest = typeof data.lobby_guest === 'string' ? JSON.parse(data.lobby_guest) : data.lobby_guest;
+              if (guest.name) setP2Name(guest.name);
+              if (guest.address) setP2Address(guest.address);
+            } catch (e) { console.error("Parse guest error:", e); }
+          }
         }
       } catch (e) {
         console.error("Initial fetch failed:", e);
@@ -273,7 +290,8 @@ const Index = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'matches', filter: `match_id=eq.${activeMatchId}` },
         (payload) => {
-          const newState = (payload.new as any).game_state;
+          const row = payload.new as any;
+          const newState = row.game_state;
           if (newState) {
             // Rehydrate Set for closedNumbers
             if (newState.closedNumbers) {
@@ -281,6 +299,22 @@ const Index = () => {
             }
             setGameState(newState);
             setGameStarted(true);
+          }
+
+          // Also sync lobby names if not already set (especially for guest joining)
+          if (row.lobby_host && !isHost) {
+            try {
+              const host = typeof row.lobby_host === 'string' ? JSON.parse(row.lobby_host) : row.lobby_host;
+              if (host.name && !p1Name) setP1Name(host.name);
+              if (host.address && !p1Address) setP1Address(host.address);
+            } catch (e) { }
+          }
+          if (row.lobby_guest) {
+            try {
+              const guest = typeof row.lobby_guest === 'string' ? JSON.parse(row.lobby_guest) : row.lobby_guest;
+              if (guest.name && !p2Name) setP2Name(guest.name);
+              if (guest.address && !p2Address) setP2Address(guest.address);
+            } catch (e) { }
           }
         }
       )
@@ -307,14 +341,23 @@ const Index = () => {
         closedNumbers: Array.from(state.closedNumbers)
       };
 
-      const { error } = await supabase
-        .from('matches')
-        .upsert({
-          match_id: activeMatchId,
-          game_state: serializedState
-        }, { onConflict: 'match_id' });
-
-      if (error) console.error("Broadcast error:", error);
+      if (setupMode === 'invite') {
+        const { error } = await supabase
+          .from('matches')
+          .update({
+            game_state: serializedState
+          })
+          .eq('match_id', activeMatchId);
+        if (error) console.error("Broadcast update error:", error);
+      } else {
+        const { error } = await supabase
+          .from('matches')
+          .upsert({
+            match_id: activeMatchId,
+            game_state: serializedState
+          }, { onConflict: 'match_id' });
+        if (error) console.error("Broadcast upsert error:", error);
+      }
     } catch (e) {
       console.error("Sync broadcast failed:", e);
     }
@@ -520,17 +563,18 @@ const Index = () => {
   };
 
   const joinInviteMatch = async () => {
-    if (!isConnected || !address || !p1Name) {
+    if (!isConnected || !address || !p2Name) {
       toast.error("Please connect wallet and enter your name to join!");
       return;
     }
     setP2Address(address);
     // Write guest presence directly to Supabase so Host detects it
     try {
-      await supabase.from('matches').upsert({
-        match_id: inviteCode,
-        lobby_guest: JSON.stringify({ name: p1Name, address }),
-      }, { onConflict: 'match_id' });
+      await supabase.from('matches')
+        .update({
+          lobby_guest: JSON.stringify({ name: p2Name, address }),
+        })
+        .eq('match_id', inviteCode);
     } catch (e) {
       console.error('Failed to write guest presence:', e);
     }
@@ -846,8 +890,8 @@ const Index = () => {
           <div className="space-y-1 text-left">
             <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
             <Input
-              value={p1Name}
-              onChange={(e) => setP1Name(e.target.value)}
+              value={isHost ? p1Name : p2Name}
+              onChange={(e) => isHost ? setP1Name(e.target.value) : setP2Name(e.target.value)}
               placeholder="Enter your name"
               className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-10 rounded-xl focus:border-primary/50 text-sm mb-2"
             />
@@ -883,8 +927,8 @@ const Index = () => {
                 {/* Host Box */}
                 <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border border-primary/40`}>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-white/60 uppercase font-black">{isHost ? p1Name : (gameState ? gameState.players[0].name : 'Host')}</span>
-                    <span className="text-[8px] text-white/20">{isHost ? address?.slice(0, 10) : (gameState ? gameState.players[0].address.slice(0, 10) : 'Waiting...')}...</span>
+                    <span className="text-[10px] text-white/60 uppercase font-black">{p1Name || 'Host'}</span>
+                    <span className="text-[8px] text-white/20">{p1Address?.slice(0, 10) || 'Waiting...'}...</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-primary font-bold">HOST</span>
@@ -892,17 +936,17 @@ const Index = () => {
                 </div>
 
                 {/* Guest Box */}
-                <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${(isHost && p2Name) || (!isHost && isConnected) ? 'border-primary/40' : 'border-white/5'}`}>
+                <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${p2Name || p2Address ? 'border-primary/40' : 'border-white/5'}`}>
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] text-white/60 uppercase font-black">
-                      {!isHost ? p1Name : (p2Name || 'Waiting for friend...')}
+                      {p2Name || 'Waiting for friend...'}
                     </span>
                     <span className="text-[8px] text-white/20">
-                      {!isHost && address ? address.slice(0, 10) : (p2Address ? p2Address.slice(0, 10) : 'Waiting...')}...
+                      {p2Address ? p2Address.slice(0, 10) : 'Waiting...'}...
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {(!isHost && isConnected) || (isHost && !!p2Name) ? (
+                    {p2Name && p2Address ? (
                       <>
                         <span className="text-[10px] text-primary font-bold">JOINED</span>
                         <CheckCircle2 className="w-3 h-3 text-primary" />
@@ -928,7 +972,7 @@ const Index = () => {
               ) : (
                 <Button
                   onClick={joinInviteMatch}
-                  disabled={!isConnected || !p1Name}
+                  disabled={!isConnected || !p2Name}
                   className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-xs border border-primary/30 rounded-xl hover:bg-primary/30 transition-all mt-4"
                 >
                   Join & Ready Up
@@ -957,7 +1001,7 @@ const Index = () => {
           </a>
         </div>
         <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
-          {setupMode === 'multi' && (
+          {(setupMode === 'multi' || setupMode === 'invite') && (
             <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl glass-panel border ${supabaseConnected ? 'border-emerald-500/30 text-emerald-400' : 'border-orange-500/30 text-orange-400'} text-[10px] font-black tracking-widest uppercase`}>
               <div className={`w-1.5 h-1.5 rounded-full ${supabaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500'}`} />
               {supabaseConnected ? 'Sync Active' : 'Connecting Sync...'}

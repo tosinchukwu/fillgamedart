@@ -50,11 +50,18 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
             }
         }
 
-        // Fill-Up bonus (Last to complete both)
+        // Fill-Up bonus (Last to complete both OR per-hit for Number 1)
         let fuEarner = '-';
         let fuA = 0;
         let fuB = 0;
-        if (gameState.closedNumbers.has(n)) {
+        if (n === 1) {
+            const earners = [];
+            if (p1.hits[1] > 0) earners.push('A');
+            if (p2.hits[1] > 0) earners.push('B');
+            fuEarner = earners.join(', ') || '-';
+            fuA = p1.hits[1] * 10;
+            fuB = p2.hits[1] * 10;
+        } else if (gameState.closedNumbers.has(n)) {
             let p1Rem = n;
             let p2Rem = n;
             for (const p of seq) {
@@ -67,9 +74,9 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
             }
         }
 
-        // Filler points for this row (Capped at n*2)
-        const fillerA = Math.min(p1.hits[n] * 2 + p1.bonusPoints[n], n * 2);
-        const fillerB = Math.min(p2.hits[n] * 2 + p2.bonusPoints[n], n * 2);
+        // Filler points for this row (Capped at n*2, EXCEPT for Number 1)
+        const fillerA = n === 1 ? p1.hits[1] * 2 + p1.bonusPoints[1] : Math.min(p1.hits[n] * 2 + p1.bonusPoints[n], n * 2);
+        const fillerB = n === 1 ? p2.hits[1] * 2 + p2.bonusPoints[1] : Math.min(p2.hits[n] * 2 + p2.bonusPoints[n], n * 2);
 
         const totalA = fillerA + tfpA + fuA;
         const totalB = fillerB + tfpB + fuB;

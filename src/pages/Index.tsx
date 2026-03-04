@@ -658,6 +658,248 @@ const Index = () => {
     }
   };
 
+  const renderSetupContent = () => {
+    if (setupMode === 'solo') {
+      return (
+        <div className="space-y-1 text-left">
+          <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
+          <Input
+            value={p1Name}
+            onChange={(e) => setP1Name(e.target.value)}
+            placeholder="What should we call you?"
+            className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
+          />
+          <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2 rounded-xl hover:bg-white/5">
+            {p1Address ? `Wallet: ${p1Address.slice(0, 6)}...` : 'Link Your Wallet'}
+          </Button>
+        </div>
+      );
+    }
+    
+    if (setupMode === 'multi') {
+      if (!isLobbyJoined) {
+        return (
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-1 text-left">
+              <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Secure Match ID</label>
+              <Input
+                value={matchId}
+                onChange={(e) => setMatchId(e.target.value)}
+                placeholder="Enter the ID provided by your opponent"
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                if (!isConnected) {
+                  open();
+                } else if (matchId) {
+                  setIsLobbyJoined(true);
+                }
+              }}
+              disabled={isConnected && !matchId}
+              className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
+            >
+              {isConnected ? '📡 Join Private Lobby' : '🔌 Connect Wallet (Passkeys & Smart Wallets Supported)'}
+            </Button>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Match Lobby: {matchId}</span>
+            <Button variant="ghost" onClick={() => { setIsLobbyJoined(false); setMatchId(''); }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Change ID</Button>
+          </div>
+          {isLoadingMatch ? (
+            <div className="flex flex-col items-center py-8 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <span className="text-[10px] text-white/40 uppercase tracking-widest">Verifying Match Data...</span>
+            </div>
+          ) : matchError ? (
+            <div className="py-6 text-center">
+              <XCircle className="w-8 h-8 text-red-500/50 mx-auto mb-2" />
+              <p className="text-[8px] text-red-400/60 mt-2 px-4 italic font-bold">Details: {matchError.message ? matchError.message.slice(0, 150) : 'Unknown Error'}</p>
+              <p className="text-[8px] text-white/30 mt-2 italic">Ensure you are connected to Avalanche C-Chain.</p>
+            </div>
+          ) : isMatchValid ? (
+            <div className="space-y-3">
+              {/* Participant Verification Notice */}
+              {address &&
+                address.toLowerCase() !== (contractMatch as any).player1.toLowerCase() &&
+                address.toLowerCase() !== (contractMatch as any).player2.toLowerCase() && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-2 flex items-center gap-3">
+                    <XCircle className="w-4 h-4 text-red-500" />
+                    <span className="text-[10px] text-red-200">Unauthorized: Your wallet is not a participant in this match.</span>
+                  </div>
+                )}
+              <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${((contractMatch as any).player1Paid) ? 'border-primary/40' : 'border-white/5'}`}>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-white/60 uppercase font-black">{(contractMatch as any).player1Name || 'Commander A'}</span>
+                  <span className="text-[8px] text-white/20">{(contractMatch as any).player1.slice(0, 10)}...</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(contractMatch as any).player1Paid ? (
+                    <>
+                      <span className="text-[10px] text-primary font-bold">READY</span>
+                      <CheckCircle2 className="w-3 h-3 text-primary" />
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[10px] text-white/30">PENDING</span>
+                      <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${((contractMatch as any).player2Paid) ? 'border-primary/40' : 'border-white/5'}`}>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-white/60 uppercase font-black">{(contractMatch as any).player2Name || 'Commander B'}</span>
+                  <span className="text-[8px] text-white/20">{(contractMatch as any).player2.slice(0, 10)}...</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(contractMatch as any).player2Paid ? (
+                    <>
+                      <span className="text-[10px] text-primary font-bold">READY</span>
+                      <CheckCircle2 className="w-3 h-3 text-primary" />
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[10px] text-white/30">PENDING</span>
+                      <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                    </>
+                  )}
+                </div>
+              </div>
+              <p className="text-[9px] text-white/40 italic text-center font-medium mt-2">
+                {(contractMatch as any).player1Paid && (contractMatch as any).player2Paid
+                  ? "Match details verified. Confirm your entry below."
+                  : "Waiting for both commanders to join via fillinggame.vercel.app"}
+              </p>
+
+              {/* Manual Confirmation Button */}
+              {(contractMatch as any).player1Paid && (contractMatch as any).player2Paid && (
+                <Button
+                  onClick={startGame}
+                  className="w-full h-12 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 animate-in zoom-in-50 duration-500"
+                >
+                  🛸 Confirm & Enter Game
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="py-6 text-center">
+              <XCircle className="w-8 h-8 text-red-500/50 mx-auto mb-2" />
+              <span className="text-[10px] text-white/60 uppercase">Match ID Not Found</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    if (setupMode === 'invite') {
+      return (
+        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="space-y-1 text-left">
+            <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
+            <Input
+              value={p1Name}
+              onChange={(e) => setP1Name(e.target.value)}
+              placeholder="Enter your name"
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-10 rounded-xl focus:border-primary/50 text-sm mb-2"
+            />
+            <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mb-4 rounded-xl hover:bg-white/5">
+              {address ? `Wallet: ${address.slice(0, 6)}...` : 'Link Your Wallet First'}
+            </Button>
+          </div>
+
+          {!isLobbyJoined ? (
+            <Button
+              onClick={createInviteMatch}
+              disabled={!isConnected || !p1Name}
+              className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
+            >
+              {isConnected ? '🔗 Create Invite Link' : '🔌 Connect Wallet to Host'}
+            </Button>
+          ) : (
+            <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Room: {inviteCode}</span>
+                {isHost ? (
+                  <Button variant="ghost" onClick={() => {
+                    const link = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success("Link copied!");
+                  }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Copy Link</Button>
+                ) : (
+                  <Button variant="ghost" onClick={() => { setIsLobbyJoined(false); setInviteCode(''); window.location.hash = ""; }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Leave</Button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {/* Host Box */}
+                <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border border-primary/40`}>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-white/60 uppercase font-black">{isHost ? p1Name : (gameState ? gameState.players[0].name : 'Host')}</span>
+                    <span className="text-[8px] text-white/20">{isHost ? address?.slice(0, 10) : (gameState ? gameState.players[0].address.slice(0, 10) : 'Waiting...')}...</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-primary font-bold">HOST</span>
+                  </div>
+                </div>
+
+                {/* Guest Box */}
+                <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${(isHost && p2Name) || (!isHost && isConnected) ? 'border-primary/40' : 'border-white/5'}`}>
+                  <div className="flex flex-col text-left">
+                    <span className="text-[10px] text-white/60 uppercase font-black">
+                      {!isHost ? p1Name : (gameState && gameState.players[1].name !== 'Opponent' ? gameState.players[1].name : 'Friend')}
+                    </span>
+                    <span className="text-[8px] text-white/20">
+                      {!isHost && address ? address.slice(0, 10) : (gameState && gameState.players[1].address !== '0x' ? gameState.players[1].address.slice(0, 10) : 'Waiting...')}...
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {(!isHost && isConnected) || (gameState && gameState.players[1].name !== 'Opponent') ? (
+                      <>
+                        <span className="text-[10px] text-primary font-bold">JOINED</span>
+                        <CheckCircle2 className="w-3 h-3 text-primary" />
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[10px] text-white/30">PENDING</span>
+                        <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {isHost ? (
+                <Button
+                  onClick={startInviteMatch}
+                  disabled={!gameState || gameState.players[1].name === 'Opponent'}
+                  className="w-full h-12 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all mt-4"
+                >
+                  🛸 Start Match
+                </Button>
+              ) : (
+                <Button
+                  onClick={joinInviteMatch}
+                  disabled={!isConnected || !p1Name}
+                  className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-xs border border-primary/30 rounded-xl hover:bg-primary/30 transition-all mt-4"
+                >
+                  Join & Ready Up
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (!gameStarted || !gameState) {
     return (
       <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
@@ -704,231 +946,7 @@ const Index = () => {
                 </button>
               </div>
 
-              {setupMode === 'solo' ? (
-                <div className="space-y-1 text-left">
-                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
-                  <Input
-                    value={p1Name}
-                    onChange={(e) => setP1Name(e.target.value)}
-                    placeholder="What should we call you?"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
-                  />
-                  <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2 rounded-xl hover:bg-white/5">
-                    {p1Address ? `Wallet: ${p1Address.slice(0, 6)}...` : 'Link Your Wallet'}
-                  </Button>
-                </div>
-              ) : setupMode === 'multi' ? (
-                !isLobbyJoined ? (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="space-y-1 text-left">
-                      <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Secure Match ID</label>
-                      <Input
-                        value={matchId}
-                        onChange={(e) => setMatchId(e.target.value)}
-                        placeholder="Enter the ID provided by your opponent"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
-                      />
-                    </div>
-                    <Button
-                      onClick={() => {
-                        if (!isConnected) {
-                          open();
-                        } else if (matchId) {
-                          setIsLobbyJoined(true);
-                        }
-                      }}
-                      disabled={isConnected && !matchId}
-                      className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
-                    >
-                      {isConnected ? '📡 Join Private Lobby' : '🔌 Connect Wallet (Passkeys & Smart Wallets Supported)'}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Match Lobby: {matchId}</span>
-                      <Button variant="ghost" onClick={() => { setIsLobbyJoined(false); setMatchId(''); }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Change ID</Button>
-                    </div>
-                    {isLoadingMatch ? (
-                      <div className="flex flex-col items-center py-8 gap-3">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                        <span className="text-[10px] text-white/40 uppercase tracking-widest">Verifying Match Data...</span>
-                      </div>
-                    ) : matchError ? (
-                      <div className="py-6 text-center">
-                        <XCircle className="w-8 h-8 text-red-500/50 mx-auto mb-2" />
-                        <p className="text-[8px] text-red-400/60 mt-2 px-4 italic font-bold">Details: {matchError.message ? matchError.message.slice(0, 150) : 'Unknown Error'}</p>
-                        <p className="text-[8px] text-white/30 mt-2 italic">Ensure you are connected to Avalanche C-Chain.</p>
-                      </div>
-                    ) : isMatchValid ? (
-                      <div className="space-y-3">
-                        {/* Participant Verification Notice */}
-                        {address &&
-                          address.toLowerCase() !== (contractMatch as any).player1.toLowerCase() &&
-                          address.toLowerCase() !== (contractMatch as any).player2.toLowerCase() && (
-                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-2 flex items-center gap-3">
-                              <XCircle className="w-4 h-4 text-red-500" />
-                              <span className="text-[10px] text-red-200">Unauthorized: Your wallet is not a participant in this match.</span>
-                            </div>
-                          )}
-                        <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${((contractMatch as any).player1Paid) ? 'border-primary/40' : 'border-white/5'}`}>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-white/60 uppercase font-black">{(contractMatch as any).player1Name || 'Commander A'}</span>
-                            <span className="text-[8px] text-white/20">{(contractMatch as any).player1.slice(0, 10)}...</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {(contractMatch as any).player1Paid ? (
-                              <>
-                                <span className="text-[10px] text-primary font-bold">READY</span>
-                                <CheckCircle2 className="w-3 h-3 text-primary" />
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-[10px] text-white/30">PENDING</span>
-                                <Loader2 className="w-3 h-3 animate-spin text-white/20" />
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${((contractMatch as any).player2Paid) ? 'border-primary/40' : 'border-white/5'}`}>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] text-white/60 uppercase font-black">{(contractMatch as any).player2Name || 'Commander B'}</span>
-                            <span className="text-[8px] text-white/20">{(contractMatch as any).player2.slice(0, 10)}...</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {(contractMatch as any).player2Paid ? (
-                              <>
-                                <span className="text-[10px] text-primary font-bold">READY</span>
-                                <CheckCircle2 className="w-3 h-3 text-primary" />
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-[10px] text-white/30">PENDING</span>
-                                <Loader2 className="w-3 h-3 animate-spin text-white/20" />
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-[9px] text-white/40 italic text-center font-medium mt-2">
-                          {(contractMatch as any).player1Paid && (contractMatch as any).player2Paid
-                            ? "Match details verified. Confirm your entry below."
-                            : "Waiting for both commanders to join via fillinggame.vercel.app"}
-                        </p>
-
-                        {/* Manual Confirmation Button */}
-                        {(contractMatch as any).player1Paid && (contractMatch as any).player2Paid && (
-                          <Button
-                            onClick={startGame}
-                            className="w-full h-12 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 animate-in zoom-in-50 duration-500"
-                          >
-                            🛸 Confirm & Enter Game
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="py-6 text-center">
-                        <XCircle className="w-8 h-8 text-red-500/50 mx-auto mb-2" />
-                        <span className="text-[10px] text-white/60 uppercase">Match ID Not Found</span>
-                      </div>
-                    )}
-                  </div>
-                )) : setupMode === 'invite' ? (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="space-y-1 text-left">
-                      <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
-                      <Input
-                        value={p1Name}
-                        onChange={(e) => setP1Name(e.target.value)}
-                        placeholder="Enter your name"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-10 rounded-xl focus:border-primary/50 text-sm mb-2"
-                      />
-                      <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mb-4 rounded-xl hover:bg-white/5">
-                        {address ? `Wallet: ${address.slice(0, 6)}...` : 'Link Your Wallet First'}
-                      </Button>
-                    </div>
-
-                    {!isLobbyJoined ? (
-                      <Button
-                        onClick={createInviteMatch}
-                        disabled={!isConnected || !p1Name}
-                        className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
-                      >
-                        {isConnected ? '🔗 Create Invite Link' : '🔌 Connect Wallet to Host'}
-                      </Button>
-                    ) : (
-                      <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Room: {inviteCode}</span>
-                          {isHost ? (
-                            <Button variant="ghost" onClick={() => {
-                              const link = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
-                              navigator.clipboard.writeText(link);
-                              toast.success("Link copied!");
-                            }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Copy Link</Button>
-                          ) : (
-                            <Button variant="ghost" onClick={() => { setIsLobbyJoined(false); setInviteCode(''); window.location.hash = ""; }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Leave</Button>
-                          )}
-                        </div>
-
-                        <div className="space-y-3">
-                          {/* Host Box */}
-                          <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border border-primary/40`}>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] text-white/60 uppercase font-black">{isHost ? p1Name : (gameState ? gameState.players[0].name : 'Host')}</span>
-                              <span className="text-[8px] text-white/20">{isHost ? address?.slice(0, 10) : (gameState ? gameState.players[0].address.slice(0, 10) : 'Waiting...')}...</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-primary font-bold">HOST</span>
-                            </div>
-                          </div>
-
-                          {/* Guest Box */}
-                          <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${(isHost && p2Name) || (!isHost && isConnected) ? 'border-primary/40' : 'border-white/5'}`}>
-                            <div className="flex flex-col text-left">
-                              <span className="text-[10px] text-white/60 uppercase font-black">
-                                {!isHost ? p1Name : (gameState && gameState.players[1].name !== 'Opponent' ? gameState.players[1].name : 'Friend')}
-                              </span>
-                              <span className="text-[8px] text-white/20">
-                                {!isHost && address ? address.slice(0, 10) : (gameState && gameState.players[1].address !== '0x' ? gameState.players[1].address.slice(0, 10) : 'Waiting...')}...
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {(!isHost && isConnected) || (gameState && gameState.players[1].name !== 'Opponent') ? (
-                                <>
-                                  <span className="text-[10px] text-primary font-bold">JOINED</span>
-                                  <CheckCircle2 className="w-3 h-3 text-primary" />
-                                </>
-                              ) : (
-                                <>
-                                  <span className="text-[10px] text-white/30">PENDING</span>
-                                  <Loader2 className="w-3 h-3 animate-spin text-white/20" />
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {isHost ? (
-                          <Button
-                            onClick={startInviteMatch}
-                            disabled={!gameState || gameState.players[1].name === 'Opponent'}
-                            className="w-full h-12 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all mt-4"
-                          >
-                            🛸 Start Match
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={joinInviteMatch}
-                            disabled={!isConnected || !p1Name}
-                            className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-xs border border-primary/30 rounded-xl hover:bg-primary/30 transition-all mt-4"
-                          >
-                            Join & Ready Up
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : null}
+              {renderSetupContent()}
 
               {setupMode === 'solo' && (
                 <Button onClick={startSoloGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">

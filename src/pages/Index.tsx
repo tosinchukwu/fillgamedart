@@ -500,6 +500,18 @@ const Index = () => {
     setIsLobbyJoined(true);
     setP1Address(address);
 
+    // Write host lobby row to Supabase so the subscription channel is ready
+    try {
+      await supabase.from('matches').upsert({
+        match_id: newCode,
+        lobby_host: JSON.stringify({ name: p1Name, address }),
+        lobby_guest: null,
+        game_state: null,
+      }, { onConflict: 'match_id' });
+    } catch (e) {
+      console.error('Failed to create lobby row:', e);
+    }
+
     const inviteLink = `${window.location.origin}${window.location.pathname}#invite=${newCode}`;
     await navigator.clipboard.writeText(inviteLink);
     toast.success("Invite Link Copied!", {
@@ -513,23 +525,53 @@ const Index = () => {
       return;
     }
     setP2Address(address);
-    // Write guest presence to Supabase so Host sees them
+    // Write guest presence directly to Supabase so Host detects it
     try {
-      if (gameState) {
-        const updatedState = { ...gameState };
-        updatedState.players[1].name = p1Name;
-        updatedState.players[1].address = address;
-        broadcastGameState(updatedState);
-      }
+      await supabase.from('matches').upsert({
+        match_id: inviteCode,
+        lobby_guest: JSON.stringify({ name: p1Name, address }),
+      }, { onConflict: 'match_id' });
     } catch (e) {
-      console.error(e)
+      console.error('Failed to write guest presence:', e);
     }
     toast.success("Joined match lobby. Waiting for Host to start.");
   };
 
+  // Host: watch Supabase for guest joining
+  useEffect(() => {
+    if (!isHost || !inviteCode) return;
+
+    const channel = supabase
+      .channel(`invite-lobby-${inviteCode}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'matches', filter: `match_id=eq.${inviteCode}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (row.lobby_guest) {
+            try {
+              const guest = typeof row.lobby_guest === 'string'
+                ? JSON.parse(row.lobby_guest)
+                : row.lobby_guest;
+              if (guest.name && guest.address) {
+                setP2Name(guest.name);
+                setP2Address(guest.address);
+                toast.success(`${guest.name} has joined the lobby!`);
+              }
+            } catch (e) {
+              console.error('Failed to parse guest info:', e);
+            }
+          }
+          // If host broadcasts a game_state (game started), guest sync handles the rest
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isHost, inviteCode]);
+
   const startInviteMatch = () => {
     if (!isHost || !inviteCode || !p2Name || !p2Address) {
-      // If we don't have p2 info, maybe the guest didn't sync yet
       toast.error("Waiting for opponent to connect...");
       return;
     }

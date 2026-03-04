@@ -154,4 +154,10 @@
   .text-glow-white {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.3);
   }
+
+  @keyframes dart-flight-scale {
+    0% { transform: scale(3) rotate(0deg); opacity: 0; }
+    20% { transform: scale(2.5) rotate(-10deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
 }

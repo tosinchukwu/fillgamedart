@@ -328,13 +328,39 @@ const Index = () => {
           return current; // Return current state immediately while animation plays
         });
       }, delay);
-
-      return () => {
-        if (cpuTurnTimeoutRef.current) clearTimeout(cpuTurnTimeoutRef.current);
-        if (cpuAnimationTimeoutRef.current) clearTimeout(cpuAnimationTimeoutRef.current);
-      };
     }
-  }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, showBatchOverlay]);
+  }, [gameStarted, gameState, showBatchOverlay, isDartFlying, isVsCPU]);
+
+  const canIThrow = (() => {
+    if (!gameState || gameState.gameOver || gameState.dartsRemaining <= 0 || showBatchOverlay) return false;
+    if (isDartFlying) return false;
+
+    // Solo vs CPU: Only Player 0 (human) can throw when it's their turn
+    if (gameState.isVsCPU) {
+      return gameState.currentPlayer === 0;
+    }
+
+    // Private Match: Wallet must match current player's recorded address
+    if (!address) return false;
+    const currentPlayerAddress = gameState.players[gameState.currentPlayer].address;
+    return address.toLowerCase() === currentPlayerAddress.toLowerCase();
+  })();
+
+  const getLauncherText = () => {
+    if (!gameState) return '';
+    if (gameState.gameOver) return 'Game Over';
+    if (showBatchOverlay) return 'Next Batch...';
+    if (gameState.dartsRemaining <= 0) return 'Turn Ending...';
+
+    if (gameState.isVsCPU && gameState.currentPlayer === 1) {
+      return 'CPU Throwing...';
+    }
+
+    if (canIThrow) return 'Launch Dart';
+    return (gameState.isVsCPU && gameState.currentPlayer === 0) || (address && gameState.players[gameState.currentPlayer].address.toLowerCase() === address.toLowerCase())
+      ? 'Launch Dart'
+      : 'Wait Turn';
+  };
 
   const shareGame = async () => {
     const shareData = {
@@ -357,7 +383,7 @@ const Index = () => {
     }
   };
 
-  const { writeContract, data: hash } = useWriteContract();
+  const { writeContract, data: hash, isPending: isBroadcasting } = useWriteContract();
   const { isLoading: isWaitingForTx, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
@@ -369,14 +395,22 @@ const Index = () => {
   }, [isTxSuccess, hash]);
 
   const broadcastScore = async () => {
-    if (!gameState || !gameState.gameOver) {
+    if (!gameState || !gameState.gameOver || gameState.winner === null) {
       toast.error("Game is not over yet!");
       return;
     }
 
-    const p1Addr = gameState.players[0].address === '0x0000000000000000000000000000000000000001' && address
+    // Restrict broadcasting to the winner only
+    const winnerAddr = gameState.players[gameState.winner].address;
+    // For solo games with guest address
+    const actualWinnerAddr = winnerAddr === '0x0000000000000000000000000000000000000001' && address
       ? address
-      : gameState.players[0].address;
+      : winnerAddr;
+
+    if (!address || address.toLowerCase() !== actualWinnerAddr.toLowerCase()) {
+      toast.error("Only the winner can broadcast the score!");
+      return;
+    }
 
     try {
       writeContract({
@@ -793,12 +827,17 @@ const Index = () => {
               boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
               isFlying={isDartFlying}
               isVisible={!gameState.gameOver}
-              disabled={gameState.gameOver || gameState.currentPlayer === 1}
-              onClick={() => window.dispatchEvent(new CustomEvent('THROW_DART'))}
+              disabled={!canIThrow}
+              onClick={() => canIThrow && window.dispatchEvent(new CustomEvent('THROW_DART'))}
               playerIdx={gameState.currentPlayer}
             />
-            <div className="text-center glass-panel px-10 py-5 rounded-3xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-2xl min-w-[220px]" onClick={() => !gameState.gameOver && gameState.dartsRemaining > 0 && window.dispatchEvent(new CustomEvent('THROW_DART'))}>
-              <span className="text-sm font-black tracking-[0.3em] text-primary uppercase">{gameState.dartsRemaining > 0 ? 'Launch Dart' : 'Turn Ending...'}</span>
+            <div
+              className={`text-center glass-panel px-10 py-5 rounded-3xl border-white/10 transition-all shadow-2xl min-w-[220px] ${canIThrow ? 'hover:bg-white/10 cursor-pointer active:scale-95 group' : 'opacity-50 cursor-not-allowed'}`}
+              onClick={() => canIThrow && window.dispatchEvent(new CustomEvent('THROW_DART'))}
+            >
+              <span className="text-sm font-black tracking-[0.3em] text-primary uppercase">
+                {getLauncherText()}
+              </span>
             </div>
           </div>
         </div>

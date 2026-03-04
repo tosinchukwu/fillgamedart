@@ -944,6 +944,12 @@ const Index = () => {
                 >
                   Private Match
                 </button>
+                <button
+                  onClick={() => setSetupMode('invite')}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${setupMode === 'invite' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+                >
+                  Invite Link
+                </button>
               </div>
 
               {renderSetupContent()}

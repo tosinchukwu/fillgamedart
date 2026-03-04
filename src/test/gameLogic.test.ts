@@ -83,14 +83,13 @@ describe("Game Logic Per-Number Bonus Tests", () => {
         expect(state.players[0].hits[2]).toBe(0);
         expect(state.players[0].hits[7]).toBe(0);
 
-        // Now hit Number 1 directly. 
-        // 1. We hit Ring 3 first: [11, 1, 3, 8]
+        // Now hit Number 1 via Ring 3. 
+        // 1. We hit Ring 3: [11, 1, 3, 8]
         state.currentPlayer = 0;
         state = hitRing(state, 2, RING_NUMBERS[2]).state;
 
-        // Score should increase by 18 (11:2, 1:12, 3:2, 8:2)
-        // 8 + 18 = 26.
-        expect(state.players[0].totalScore).toBe(26);
+        // Score: Prev 8 (from Ring 4) + 8 (11:2, 1:2, 3:2, 8:2) = 16.
+        expect(state.players[0].totalScore).toBe(16);
         expect(state.players[0].hits[1]).toBe(0);
         expect(state.closedNumbers.has(1)).toBe(false);
 
@@ -99,7 +98,8 @@ describe("Game Logic Per-Number Bonus Tests", () => {
 
         // Now hits[1] MUST be 1
         expect(state.players[0].hits[1]).toBe(1);
-        expect(state.players[0].totalScore).toBe(26); // Score doesn't change because #1 already awarded 12
+        // Score: 16 (prev) + 12 (Direct Badge Hit for #1) = 28
+        expect(state.players[0].totalScore).toBe(28);
         expect(state.closedNumbers.has(1)).toBe(true);
     });
 });

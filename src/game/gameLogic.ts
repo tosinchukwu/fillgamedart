@@ -84,15 +84,17 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
   const player = gameState.players[playerIdx];
 
   for (let n = 1; n <= TOTAL_NUMBERS; n++) {
-    let filler = 0;
     if (n === 1) {
-      const hitInThisBatch = gameState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
-      filler = hitInThisBatch ? 2 : 0;
-    } else {
-      const baseFiller = (player.hits[n] || 0) * 2;
-      const bonus = (player.bonusPoints[n] || 0);
-      filler = Math.min(baseFiller + bonus, n * 2);
+      const mainAwarded = gameState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
+      if (mainAwarded) score += 12;
+      score += (player.bonusPoints[1] || 0);
+      continue;
     }
+
+    let filler = 0;
+    const baseFiller = (player.hits[n] || 0) * 2;
+    const bonus = (player.bonusPoints[n] || 0);
+    filler = Math.min(baseFiller + bonus, n * 2);
     score += filler;
 
     if (n >= 2 && gameState.closedNumbers.has(n)) {
@@ -105,10 +107,7 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
       }
     }
 
-    if (n === 1) {
-      const awarded = gameState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
-      if (awarded) score += 10;
-    } else if (gameState.closedNumbers.has(n)) {
+    if (gameState.closedNumbers.has(n)) {
       const seq = gameState.hitSequences[n] || [];
       if (seq.length >= n) {
         if (seq[n - 1] === playerIdx) {
@@ -184,12 +183,7 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
   for (const num of ringNumbers) {
     if (newState.closedNumbers.has(num)) continue;
 
-    if (num === 1) {
-      if (newState.batch === 1) player.num1AwardedBatch1 = true;
-      else if (newState.batch === 2) player.num1AwardedBatch2 = true;
-    } else {
-      player.bonusPoints[num] = (player.bonusPoints[num] || 0) + 2;
-    }
+    player.bonusPoints[num] = (player.bonusPoints[num] || 0) + 2;
   }
 
   newState.players[0].totalScore = recalcTotalScore(newState, 0);

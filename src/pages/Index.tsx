@@ -109,6 +109,7 @@ const Index = () => {
   const [p2Name, setP2Name] = useState('');
   const [p1Address, setP1Address] = useState<string | null>(null);
   const [p2Address, setP2Address] = useState<string | null>(null);
+  const [setupMode, setSetupMode] = useState<'solo' | 'multi'>('solo');
   const [isVsCPU, setIsVsCPU] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
@@ -176,6 +177,7 @@ const Index = () => {
     if (!p1Address || !p2Address) return;
     const finalP1Name = p1Name.trim() || 'Player 1';
     const finalP2Name = p2Name.trim() || 'Player 2';
+    setIsVsCPU(false);
     setGameState(createInitialGameState(finalP1Name, p1Address, finalP2Name, p2Address, false));
     setLogMessages([]);
     setGameStarted(true);
@@ -359,38 +361,67 @@ const Index = () => {
           <div className="w-full max-w-md space-y-8 text-center glass-panel p-10 rounded-[2rem] neon-border-theme">
             <h1 className="text-6xl text-white tracking-[0.2em] mb-2">FILLING GAME</h1>
             <p className="text-primary text-sm font-mono-game uppercase tracking-[0.3em] opacity-80">Strategic Dart Simulation</p>
-            <div className="space-y-4 pt-4">
-              <div className="grid gap-4">
+            <div className="space-y-6 pt-4">
+              {/* Tab Switcher */}
+              <div className="flex p-1 bg-white/5 rounded-xl border border-white/10">
+                <button
+                  onClick={() => setSetupMode('solo')}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${setupMode === 'solo' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+                >
+                  Solo Mission
+                </button>
+                <button
+                  onClick={() => setSetupMode('multi')}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${setupMode === 'multi' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+                >
+                  Multiplayer
+                </button>
+              </div>
+
+              <div className="grid gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
                 <div className="space-y-1 text-left">
-                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Player 1 Name</label>
+                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">
+                    {setupMode === 'solo' ? 'Your Name' : 'Player 1 Name'}
+                  </label>
                   <Input
                     value={p1Name}
                     onChange={(e) => setP1Name(e.target.value)}
-                    placeholder="Enter Player 1 Name"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-white/10"
+                    placeholder={setupMode === 'solo' ? "What should we call you?" : "Enter Player 1 Name"}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
                   />
-                  <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2">
-                    {p1Address ? `Wallet: ${p1Address.slice(0, 6)}...` : 'Link P1 Wallet'}
+                  <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2 rounded-xl hover:bg-white/5">
+                    {p1Address ? `Wallet: ${p1Address.slice(0, 6)}...` : setupMode === 'solo' ? 'Link Your Wallet' : 'Link P1 Wallet'}
                   </Button>
                 </div>
 
-                <div className="space-y-1 text-left">
-                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Player 2 Name</label>
-                  <Input
-                    value={p2Name}
-                    onChange={(e) => setP2Name(e.target.value)}
-                    placeholder="Enter Player 2 Name"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-white/10"
-                  />
-                  <Button onClick={() => isConnected ? setP2Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2">
-                    {p2Address ? `Wallet: ${p2Address.slice(0, 6)}...` : 'Link P2 Wallet'}
-                  </Button>
-                </div>
+                {setupMode === 'multi' && (
+                  <div className="space-y-1 text-left animate-in slide-in-from-top-2 duration-300">
+                    <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Player 2 Name</label>
+                    <Input
+                      value={p2Name}
+                      onChange={(e) => setP2Name(e.target.value)}
+                      placeholder="Enter Player 2 Name"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
+                    />
+                    <Button onClick={() => isConnected ? setP2Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2 rounded-xl hover:bg-white/5">
+                      {p2Address ? `Wallet: ${p2Address.slice(0, 6)}...` : 'Link P2 Wallet'}
+                    </Button>
+                  </div>
+                )}
               </div>
-              <Button onClick={startGame} disabled={!p1Address || !p2Address} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl">🎯 Start Match</Button>
-              <div className="flex gap-2">
-                <Button onClick={startSoloGame} className="flex-1 bg-white/10 text-white font-mono-game uppercase tracking-widest text-xs">🤖 Solo vs CPU</Button>
-                <Button onClick={shareGame} className="flex-1 bg-white/5 border border-white/10 text-white/80 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
+
+              {setupMode === 'solo' ? (
+                <Button onClick={startSoloGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  🚀 Start Solo Mission
+                </Button>
+              ) : (
+                <Button onClick={startGame} disabled={!p1Address || !p2Address} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  🎯 Start Match
+                </Button>
+              )}
+
+              <div className="flex justify-center">
+                <Button onClick={shareGame} variant="ghost" className="bg-white/5 border border-white/10 text-white/80 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 px-6 py-2 rounded-lg hover:bg-white/10">
                   <Share2 className="w-3 h-3 text-primary" />
                   Invite Friend
                 </Button>

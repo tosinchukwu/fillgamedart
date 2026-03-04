@@ -221,7 +221,7 @@ const Index = () => {
   const cpuAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0) {
+    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0 && !showBatchOverlay) {
       // 6s delay for the first dart of the turn, 2s for others
       const delay = gameState.dartsRemaining === 3 ? 6000 : 2000;
 
@@ -276,7 +276,7 @@ const Index = () => {
         if (cpuAnimationTimeoutRef.current) clearTimeout(cpuAnimationTimeoutRef.current);
       };
     }
-  }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver]);
+  }, [gameStarted, gameState?.currentPlayer, gameState?.dartsRemaining, gameState?.gameOver, showBatchOverlay]);
 
   const shareGame = async () => {
     const shareData = {
@@ -420,6 +420,30 @@ const Index = () => {
             </div>
             <div className="flex-1 overflow-hidden h-full">
               <GameLog messages={logMessages} p1Name={gameState.players[0].name} p2Name={gameState.players[1].name} />
+            </div>
+          </div>
+
+          {/* Target Score Display */}
+          <div className="mt-4 glass-panel rounded-3xl p-5 border-white/10 shadow-2xl animate-in slide-in-from-left-4 duration-500">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">Target Score</span>
+              <div className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${gameState.batch === 1 ? 'bg-primary/20 text-primary' : 'bg-secondary/20 text-secondary'}`}>
+                Batch {gameState.batch}
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white tracking-tighter italic">
+                {gameState.batch === 1
+                  ? '221.5'
+                  : (gameState.batch1Scores ? gameState.batch1Scores[1 - gameState.currentPlayer] : '0')}
+              </span>
+              <span className="text-[10px] font-mono-game text-white/20 uppercase tracking-widest">points</span>
+            </div>
+            <div className="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-1000 ease-out ${gameState.batch === 1 ? 'bg-primary shadow-[0_0_10px_rgba(232,65,66,0.5)]' : 'bg-secondary shadow-[0_0_10px_rgba(52,211,153,0.5)]'}`}
+                style={{ width: `${Math.min((gameState.players[gameState.currentPlayer].totalScore / (gameState.batch === 1 ? 221.5 : (gameState.batch1Score || 1))) * 100, 100)}%` }}
+              />
             </div>
           </div>
         </div>

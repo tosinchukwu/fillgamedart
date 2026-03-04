@@ -128,17 +128,29 @@ const Index = () => {
   const { open } = useWeb3Modal();
   const { disconnect } = useDisconnect();
 
+  // Safe Match ID parsing
+  const parsedMatchId = (() => {
+    try {
+      return matchId && !isNaN(Number(matchId.trim())) ? BigInt(matchId.trim()) : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
   // Real-time Match Data
-  const { data: contractMatch, refetch: refetchMatch, isLoading: isLoadingMatch } = useReadContract({
+  const { data: contractMatch, refetch: refetchMatch, isLoading: isLoadingMatch, error: matchError } = useReadContract({
     address: CONTRACT_ADDRESS as `0x${string}`,
     abi: CONTRACT_ABI,
     functionName: 'getMatch',
-    args: matchId ? [BigInt(matchId)] : undefined,
+    args: parsedMatchId !== undefined ? [parsedMatchId] : undefined,
     query: {
-      enabled: !!matchId && setupMode === 'multi' && isLobbyJoined,
+      enabled: !!parsedMatchId && setupMode === 'multi' && isLobbyJoined,
       refetchInterval: 3000,
     }
   });
+
+  // Verify match existence (ID should be non-zero)
+  const isMatchValid = contractMatch && (contractMatch as any).id !== 0n;
 
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const prevBatchRef = useRef<number>(1);
@@ -442,9 +454,15 @@ const Index = () => {
                     />
                   </div>
                   <Button
-                    onClick={() => matchId && setIsLobbyJoined(true)}
-                    disabled={!matchId || !isConnected}
-                    className="w-full h-12 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20"
+                    onClick={() => {
+                      if (!isConnected) {
+                        open();
+                      } else if (matchId) {
+                        setIsLobbyJoined(true);
+                      }
+                    }}
+                    disabled={isConnected && !matchId}
+                    className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
                   >
                     {isConnected ? '📡 Join Private Lobby' : '🔌 Connect Wallet to Join'}
                   </Button>
@@ -460,7 +478,14 @@ const Index = () => {
                       <Loader2 className="w-8 h-8 animate-spin text-primary" />
                       <span className="text-[10px] text-white/40 uppercase tracking-widest">Verifying Match Data...</span>
                     </div>
-                  ) : contractMatch ? (
+                  ) : matchError ? (
+                    <div className="py-6 text-center">
+                      <XCircle className="w-8 h-8 text-red-500/50 mx-auto mb-2" />
+                      <span className="text-[10px] text-white/60 uppercase">Connection Error</span>
+                      <p className="text-[8px] text-red-400/60 mt-2 px-4 italic">Check if your wallet is on Avalanche Network.</p>
+                      {/* {matchError.message && <p className="text-[6px] text-white/10 mt-1">{matchError.message.slice(0, 50)}</p>} */}
+                    </div>
+                  ) : isMatchValid ? (
                     <div className="space-y-3">
                       {/* Participant Verification Notice */}
                       {address &&
@@ -553,7 +578,7 @@ const Index = () => {
     <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans`}>
       <div className="fixed top-6 left-6 z-50">
         <a
-          href="https://fillinggame.vercel.app/"
+          href="https://fillinggame.vercel.app/join-match"
           target="_blank"
           rel="noopener noreferrer"
           className="group flex items-center gap-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 py-2 px-5 rounded-xl transition-all shadow-[0_0_15px_rgba(232,65,66,0.1)]"

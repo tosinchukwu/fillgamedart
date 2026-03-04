@@ -111,10 +111,12 @@ const Index = () => {
   const [p2Name, setP2Name] = useState('');
   const [p1Address, setP1Address] = useState<string | null>(null);
   const [p2Address, setP2Address] = useState<string | null>(null);
-  const [setupMode, setSetupMode] = useState<'solo' | 'multi'>('solo');
+  const [setupMode, setSetupMode] = useState<'solo' | 'multi' | 'invite'>('solo');
   const [isVsCPU, setIsVsCPU] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [matchId, setMatchId] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [isHost, setIsHost] = useState(false);
   const [isLobbyJoined, setIsLobbyJoined] = useState(false);
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [showBatchOverlay, setShowBatchOverlay] = useState(false);
@@ -187,12 +189,19 @@ const Index = () => {
           setGameState(state);
           setGameStarted(true);
           toast.success("Game state synchronized!");
-          // Clear hash to prevent accidental re-syncs
           window.location.hash = "";
         } catch (e) {
           console.error("Sync Error:", e);
           toast.error("Failed to sync game state.");
         }
+      } else if (hash.startsWith('#invite=')) {
+        const code = hash.substring(8);
+        setSetupMode('invite');
+        setInviteCode(code);
+        setIsHost(false);
+        setIsLobbyJoined(true);
+        toast.info("Joining invite match...");
+        // Keep hash so we know it's an invite link until game starts
       }
     };
 
@@ -230,7 +239,8 @@ const Index = () => {
 
   // Game State Sync from Supabase
   useEffect(() => {
-    if (setupMode !== 'multi' || !parsedMatchId) return;
+    const activeMatchId = setupMode === 'invite' ? inviteCode : String(parsedMatchId || '');
+    if (!activeMatchId || (setupMode !== 'multi' && setupMode !== 'invite')) return;
 
     // 1. Fetch current state if it exists
     const fetchCurrentState = async () => {
@@ -238,7 +248,7 @@ const Index = () => {
         const { data, error } = await supabase
           .from('matches')
           .select('game_state')
-          .eq('match_id', String(parsedMatchId))
+          .eq('match_id', activeMatchId)
           .single();
 
         if (data && data.game_state) {
@@ -258,10 +268,10 @@ const Index = () => {
 
     // 2. Subscribe to new changes
     const channel = supabase
-      .channel(`match-${parsedMatchId}`)
+      .channel(`match-${activeMatchId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'matches', filter: `match_id=eq.${parsedMatchId}` },
+        { event: '*', schema: 'public', table: 'matches', filter: `match_id=eq.${activeMatchId}` },
         (payload) => {
           const newState = payload.new.game_state;
           if (newState) {
@@ -285,10 +295,11 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [setupMode, parsedMatchId]);
+  }, [setupMode, parsedMatchId, inviteCode]);
 
   const broadcastGameState = useCallback(async (state: GameState) => {
-    if (setupMode !== 'multi' || !parsedMatchId || isVsCPU) return;
+    const activeMatchId = setupMode === 'invite' ? inviteCode : String(parsedMatchId || '');
+    if (!activeMatchId || (setupMode !== 'multi' && setupMode !== 'invite') || isVsCPU) return;
 
     try {
       const serializedState = {
@@ -299,7 +310,7 @@ const Index = () => {
       const { error } = await supabase
         .from('matches')
         .upsert({
-          match_id: String(parsedMatchId),
+          match_id: activeMatchId,
           game_state: serializedState
         }, { onConflict: 'match_id' });
 
@@ -307,7 +318,7 @@ const Index = () => {
     } catch (e) {
       console.error("Sync broadcast failed:", e);
     }
-  }, [setupMode, parsedMatchId, isVsCPU]);
+  }, [setupMode, parsedMatchId, inviteCode, isVsCPU]);
 
   // Audio Logic
   useEffect(() => {
@@ -470,11 +481,74 @@ const Index = () => {
       return gameState.currentPlayer === 0;
     }
 
-    // Private Match: Wallet must match current player's recorded address
+    // Private / Invite Match: Wallet must match current player's recorded address
     if (!address) return false;
     const currentPlayerAddress = gameState.players[gameState.currentPlayer].address;
     return address.toLowerCase() === currentPlayerAddress.toLowerCase();
   })();
+
+  const createInviteMatch = async () => {
+    if (!isConnected || !address || !p1Name) {
+      toast.error("Please connect wallet and enter your name first!");
+      return;
+    }
+    const newCode = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
+    setInviteCode(newCode);
+    setIsHost(true);
+    setIsLobbyJoined(true);
+    setP1Address(address);
+
+    const inviteLink = `${window.location.origin}${window.location.pathname}#invite=${newCode}`;
+    await navigator.clipboard.writeText(inviteLink);
+    toast.success("Invite Link Copied!", {
+      description: "Send this to your opponent."
+    });
+  };
+
+  const joinInviteMatch = async () => {
+    if (!isConnected || !address || !p1Name) {
+      toast.error("Please connect wallet and enter your name to join!");
+      return;
+    }
+    setP2Address(address);
+    // Write guest presence to Supabase so Host sees them
+    try {
+      if (gameState) {
+        const updatedState = { ...gameState };
+        updatedState.players[1].name = p1Name;
+        updatedState.players[1].address = address;
+        broadcastGameState(updatedState);
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    toast.success("Joined match lobby. Waiting for Host to start.");
+  };
+
+  const startInviteMatch = () => {
+    if (!isHost || !inviteCode || !p2Name || !p2Address) {
+      // If we don't have p2 info, maybe the guest didn't sync yet
+      toast.error("Waiting for opponent to connect...");
+      return;
+    }
+
+    setIsVsCPU(false);
+    const initialState = createInitialGameState(
+      p1Name,
+      p1Address || address || '0x',
+      p2Name,
+      p2Address,
+      false
+    );
+    setGameState(initialState);
+    setLogMessages([]);
+    setGameStarted(true);
+
+    // Broadcast the official start
+    broadcastGameState(initialState);
+  };
 
   const getLauncherText = () => {
     if (!gameState) return '';
@@ -757,7 +831,103 @@ const Index = () => {
                     </div>
                   )}
                 </div>
-              )}
+              ) : setupMode === 'invite' ? (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
+                  <Input
+                    value={p1Name}
+                    onChange={(e) => setP1Name(e.target.value)}
+                    placeholder="Enter your name"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-10 rounded-xl focus:border-primary/50 text-sm mb-2"
+                  />
+                  <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mb-4 rounded-xl hover:bg-white/5">
+                    {address ? `Wallet: ${address.slice(0, 6)}...` : 'Link Your Wallet First'}
+                  </Button>
+                </div>
+
+                {!isLobbyJoined ? (
+                  <Button
+                    onClick={createInviteMatch}
+                    disabled={!isConnected || !p1Name}
+                    className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
+                  >
+                    {isConnected ? '🔗 Create Invite Link' : '🔌 Connect Wallet to Host'}
+                  </Button>
+                ) : (
+                  <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Room: {inviteCode}</span>
+                      {isHost ? (
+                        <Button variant="ghost" onClick={() => {
+                          const link = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
+                          navigator.clipboard.writeText(link);
+                          toast.success("Link copied!");
+                        }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Copy Link</Button>
+                      ) : (
+                        <Button variant="ghost" onClick={() => { setIsLobbyJoined(false); setInviteCode(''); window.location.hash = ""; }} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Leave</Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Host Box */}
+                      <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border border-primary/40`}>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-white/60 uppercase font-black">{isHost ? p1Name : (gameState ? gameState.players[0].name : 'Host')}</span>
+                          <span className="text-[8px] text-white/20">{isHost ? address?.slice(0, 10) : (gameState ? gameState.players[0].address.slice(0, 10) : 'Waiting...')}...</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-primary font-bold">HOST</span>
+                        </div>
+                      </div>
+
+                      {/* Guest Box */}
+                      <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${(isHost && p2Name) || (!isHost && isConnected) ? 'border-primary/40' : 'border-white/5'}`}>
+                        <div className="flex flex-col text-left">
+                          <span className="text-[10px] text-white/60 uppercase font-black">
+                            {!isHost ? p1Name : (gameState && gameState.players[1].name !== 'Opponent' ? gameState.players[1].name : 'Friend')}
+                          </span>
+                          <span className="text-[8px] text-white/20">
+                            {!isHost && address ? address.slice(0, 10) : (gameState && gameState.players[1].address !== '0x' ? gameState.players[1].address.slice(0, 10) : 'Waiting...')}...
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(!isHost && isConnected) || (gameState && gameState.players[1].name !== 'Opponent') ? (
+                            <>
+                              <span className="text-[10px] text-primary font-bold">JOINED</span>
+                              <CheckCircle2 className="w-3 h-3 text-primary" />
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[10px] text-white/30">PENDING</span>
+                              <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {isHost ? (
+                      <Button
+                        onClick={startInviteMatch}
+                        disabled={!gameState || gameState.players[1].name === 'Opponent'}
+                        className="w-full h-12 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all mt-4"
+                      >
+                        🛸 Start Match
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={joinInviteMatch}
+                        disabled={!isConnected || !p1Name}
+                        className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-xs border border-primary/30 rounded-xl hover:bg-primary/30 transition-all mt-4"
+                      >
+                        Join & Ready Up
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+              ) : null}
 
               {setupMode === 'solo' && (
                 <Button onClick={startSoloGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">

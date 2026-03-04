@@ -302,20 +302,13 @@ const Index = () => {
               if (move.type === 'number') {
                 const result = hitNumber(prevState, move.index);
                 updated = result.state;
-                summary = `Hit #${move.index}`;
               } else {
                 const result = hitRing(prevState, move.index, RING_NUMBERS[move.index]);
                 updated = result.state;
-                const match = updated.lastAction?.match(/Total: ([\d.]+) pts/);
-                summary = `Ring ${move.index + 1} (${RING_NUMBERS[move.index].join(', ')}) [${match ? match[1] : 0} pts]`;
               }
 
-              cpuActionBuffer.current.push(summary);
-
-              if (updated.dartsRemaining === 0 || updated.gameOver) {
-                const combinedLog = `[PLAYER B (CPU)]: Turn - ${cpuActionBuffer.current.join(', ')}. [Total: ${updated.players[1].totalScore} pts]`;
-                setLogMessages(p => [...p, combinedLog]);
-                cpuActionBuffer.current = [];
+              if (updated.lastAction) {
+                setLogMessages(p => [...p, updated.lastAction!]);
               }
 
               if (updated.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);

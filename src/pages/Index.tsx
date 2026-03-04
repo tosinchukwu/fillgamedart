@@ -895,14 +895,14 @@ const Index = () => {
                 <div className={`flex items-center justify-between p-3 bg-black/20 rounded-xl border ${(isHost && p2Name) || (!isHost && isConnected) ? 'border-primary/40' : 'border-white/5'}`}>
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] text-white/60 uppercase font-black">
-                      {!isHost ? p1Name : (gameState && gameState.players[1].name !== 'Opponent' ? gameState.players[1].name : 'Friend')}
+                      {!isHost ? p1Name : (p2Name || 'Waiting for friend...')}
                     </span>
                     <span className="text-[8px] text-white/20">
-                      {!isHost && address ? address.slice(0, 10) : (gameState && gameState.players[1].address !== '0x' ? gameState.players[1].address.slice(0, 10) : 'Waiting...')}...
+                      {!isHost && address ? address.slice(0, 10) : (p2Address ? p2Address.slice(0, 10) : 'Waiting...')}...
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {(!isHost && isConnected) || (gameState && gameState.players[1].name !== 'Opponent') ? (
+                    {(!isHost && isConnected) || (isHost && !!p2Name) ? (
                       <>
                         <span className="text-[10px] text-primary font-bold">JOINED</span>
                         <CheckCircle2 className="w-3 h-3 text-primary" />
@@ -920,10 +920,10 @@ const Index = () => {
               {isHost ? (
                 <Button
                   onClick={startInviteMatch}
-                  disabled={!gameState || gameState.players[1].name === 'Opponent'}
+                  disabled={!p2Name || !p2Address}
                   className="w-full h-12 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all mt-4"
                 >
-                  🛸 Start Match
+                  {p2Name ? `🛸 Start Match vs ${p2Name}` : '⏳ Waiting for Friend...'}
                 </Button>
               ) : (
                 <Button

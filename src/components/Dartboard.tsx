@@ -117,7 +117,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       window.dispatchEvent(new CustomEvent('DART_HIT_IMPACT'));
 
       const id = ++dartIdCounter;
-      setStuckDarts(prev => [...prev, { id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
+      setStuckDarts([{ id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
       setFlightDest(null);
 
       if (hitRingLine && hitRingLineIdx >= 0) {

@@ -431,20 +431,42 @@ const Index = () => {
                 Batch {gameState.batch}
               </div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-white tracking-tighter italic">
-                {gameState.batch === 1
-                  ? '221.5'
-                  : (gameState.batch1Scores ? gameState.batch1Scores[1 - gameState.currentPlayer] : '0')}
-              </span>
-              <span className="text-[10px] font-mono-game text-white/20 uppercase tracking-widest">points</span>
-            </div>
-            <div className="mt-3 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-1000 ease-out ${gameState.batch === 1 ? 'bg-primary shadow-[0_0_10px_rgba(232,65,66,0.5)]' : 'bg-secondary shadow-[0_0_10px_rgba(52,211,153,0.5)]'}`}
-                style={{ width: `${Math.min((gameState.players[gameState.currentPlayer].totalScore / (gameState.batch === 1 ? 221.5 : (gameState.batch1Score || 1))) * 100, 100)}%` }}
-              />
-            </div>
+            {gameState.batch === 2 && gameState.batch1Scores && (
+              <div className="grid grid-cols-2 gap-4 mt-1 mb-4">
+                <div className="bg-white/5 rounded-xl p-2 border border-white/5">
+                  <div className="text-[8px] font-black text-white/30 uppercase tracking-widest">{gameState.players[0].name} B1</div>
+                  <div className="text-sm font-bold text-white italic">{gameState.batch1Scores[0]} pts</div>
+                </div>
+                <div className="bg-white/5 rounded-xl p-2 border border-white/5">
+                  <div className="text-[8px] font-black text-white/30 uppercase tracking-widest">{gameState.players[1].name} B1</div>
+                  <div className="text-sm font-bold text-white italic">{gameState.batch1Scores[1]} pts</div>
+                </div>
+              </div>
+            )}
+            {gameState.batch === 1 && (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-white tracking-tighter italic">221.5</span>
+                  <span className="text-[10px] font-mono-game text-white/20 uppercase tracking-widest">points</span>
+                </div>
+                <div className="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary shadow-[0_0_10px_rgba(232,65,66,0.5)] transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min((gameState.players[gameState.currentPlayer].totalScore / 221.5) * 100, 100)}%` }}
+                  />
+                </div>
+              </>
+            )}
+            {gameState.batch === 2 && gameState.batch1Scores && (
+              <div className="mt-1 space-y-1.5 border-t border-white/5 pt-3">
+                <div className="text-[9px] font-medium leading-tight text-primary/80">
+                  <span className="font-black">NOTE:</span> {gameState.players[0].name} needs <span className="underline">{gameState.batch1Scores[1]} pts</span> to win Batch 2
+                </div>
+                <div className="text-[9px] font-medium leading-tight text-secondary/80">
+                  <span className="font-black">NOTE:</span> {gameState.players[1].name} needs <span className="underline">{gameState.batch1Scores[0]} pts</span> to win Batch 2
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -467,26 +489,56 @@ const Index = () => {
         </div>
       </div>
 
-      <BatchTransitionOverlay show={showBatchOverlay} benchmark={gameState.batch1Score || 0} winnerName={gameState.batch1Winner !== null ? gameState.players[gameState.batch1Winner].name : ''} opponentName={gameState.batch1Winner !== null ? gameState.players[1 - gameState.batch1Winner].name : ''} onClose={() => setShowBatchOverlay(false)} />
+      <BatchTransitionOverlay
+        show={showBatchOverlay}
+        scores={gameState.batch1Scores}
+        players={gameState.players}
+        onClose={() => setShowBatchOverlay(false)}
+      />
 
       <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} theme={theme} onThemeChange={setTheme} volume={volume} onVolumeChange={setVolume} musicEnabled={musicEnabled} onMusicToggle={setMusicEnabled} sfxEnabled={sfxEnabled} onSfxToggle={setSfxEnabled} selectedMusic={selectedMusic} onMusicChange={setSelectedMusic} />
     </div>
   );
 };
 
-const BatchTransitionOverlay = ({ show, benchmark, winnerName, opponentName, onClose }: any) => {
-  if (!show) return null;
+const BatchTransitionOverlay = ({ show, scores, players, onClose }: any) => {
+  if (!show || !scores) return null;
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in">
       <div className="max-w-2xl w-full glass-panel p-12 rounded-[3rem] border-2 border-primary text-center space-y-8 animate-in zoom-in slide-in-from-bottom-12">
-        <h2 className="text-5xl font-black italic text-primary text-glow-theme">BATCH 1 ACHIEVED!</h2>
-        <p className="text-white font-bold text-xl">The Bar is set at {benchmark} pts. Match point transition: BEAT THE BAR.</p>
-        <div className="glass-panel p-6 bg-white/5 rounded-2xl text-left text-sm text-white/80 leading-relaxed">
-          <p><strong>Step 1:</strong> Batch 1 scores recorded.</p>
-          <p><strong>Step 2:</strong> Your opponent's score is your NEW target score.</p>
-          <p><strong>Step 3:</strong> First to surpass their target wins immediately.</p>
+        <h2 className="text-5xl font-black italic text-primary text-glow-theme leading-tight">BATCH 1 COMPLETE!</h2>
+
+        <div className="grid grid-cols-2 gap-6 pt-4">
+          <div className="glass-panel p-6 border-white/5 bg-white/5 rounded-2xl">
+            <div className="text-[10px] font-black tracking-widest text-white/40 mb-1 uppercase">{players[0].name}</div>
+            <div className="text-3xl font-black text-white italic">{scores[0]} pts</div>
+          </div>
+          <div className="glass-panel p-6 border-white/5 bg-white/5 rounded-2xl">
+            <div className="text-[10px] font-black tracking-widest text-white/40 mb-1 uppercase">{players[1].name}</div>
+            <div className="text-3xl font-black text-white italic">{scores[1]} pts</div>
+          </div>
         </div>
-        <Button onClick={onClose} className="bg-primary hover:bg-primary/80 text-white font-black px-12 py-8 text-2xl rounded-2xl shadow-xl w-full">GO BATCH 2! 🎯</Button>
+
+        <div className="space-y-4 pt-4">
+          <h3 className="text-primary font-black uppercase tracking-[0.2em] text-sm">Batch 2: The Race to Beat the Bar</h3>
+          <div className="glass-panel p-8 bg-black/40 rounded-[2rem] text-left border-white/10 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">🎯</div>
+              <p className="text-white/90 text-[13px] leading-relaxed">
+                <strong>{players[0].name}</strong> needs to surpass <strong>{scores[1]} pts</strong> (Player B's score) to win.
+              </p>
+            </div>
+            <div className="h-[1px] bg-white/5 w-full" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold">🏁</div>
+              <p className="text-white/90 text-[13px] leading-relaxed">
+                <strong>{players[1].name}</strong> needs to surpass <strong>{scores[0]} pts</strong> (Player A's score) to win.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Button onClick={onClose} className="bg-primary hover:bg-primary/80 text-white font-black px-12 py-8 text-2xl rounded-2xl shadow-xl w-full mt-4 transform hover:scale-105 transition-all">START BATCH 2 RACE 🏹</Button>
       </div>
     </div>
   );

@@ -29,7 +29,8 @@ const AUDIO_ASSETS = {
   music: {
     synth_wave: '/audio/music_synth.mp3',
     lofi_chill: '/audio/music_lofi.mp3',
-    high_energy: '/audio/music_energy.mp3'
+    high_energy: '/audio/music_energy.mp3',
+    stand_up: '/audio/standup.mp3'
   }
 };
 

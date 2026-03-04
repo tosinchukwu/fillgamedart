@@ -20,6 +20,7 @@ import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
 import { avalanche } from 'viem/chains';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../lib/constants';
+import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
 
 // Audio assets (Local paths in public/audio/)
@@ -139,6 +140,7 @@ const Index = () => {
   const { address, isConnected } = useAccount();
   const { open } = useWeb3Modal();
   const { disconnect } = useDisconnect();
+  const [supabaseConnected, setSupabaseConnected] = useState(false);
 
   // Safe Match ID parsing
   const parsedMatchId = (() => {
@@ -167,6 +169,38 @@ const Index = () => {
     }
   }, [matchError]);
 
+  // Game State Sync from Hash
+  useEffect(() => {
+    const handleHashSync = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#sync=')) {
+        try {
+          const encodedData = hash.substring(6);
+          const decodedData = decodeURIComponent(atob(encodedData));
+          const state = JSON.parse(decodedData);
+
+          // Rehydrate Set for closedNumbers
+          if (state.closedNumbers) {
+            state.closedNumbers = new Set(state.closedNumbers);
+          }
+
+          setGameState(state);
+          setGameStarted(true);
+          toast.success("Game state synchronized!");
+          // Clear hash to prevent accidental re-syncs
+          window.location.hash = "";
+        } catch (e) {
+          console.error("Sync Error:", e);
+          toast.error("Failed to sync game state.");
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashSync);
+    handleHashSync(); // Check on mount
+    return () => window.removeEventListener('hashchange', handleHashSync);
+  }, []);
+
   // Verify match existence (ID should be non-zero)
   const isMatchValid = contractMatch && (contractMatch as any).id !== 0n;
 
@@ -179,16 +213,101 @@ const Index = () => {
 
     const m = contractMatch as any;
     setIsVsCPU(false);
-    setGameState(createInitialGameState(
+    const initialState = createInitialGameState(
       m.player1Name || 'Player 1',
       m.player1,
       m.player2Name || 'Player 2',
       m.player2,
       false
-    ));
+    );
+    setGameState(initialState);
     setLogMessages([]);
     setGameStarted(true);
+
+    // Initialize Supabase row
+    broadcastGameState(initialState);
   };
+
+  // Game State Sync from Supabase
+  useEffect(() => {
+    if (setupMode !== 'multi' || !parsedMatchId) return;
+
+    // 1. Fetch current state if it exists
+    const fetchCurrentState = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select('game_state')
+          .eq('match_id', String(parsedMatchId))
+          .single();
+
+        if (data && data.game_state) {
+          const newState = data.game_state;
+          if (newState.closedNumbers) {
+            newState.closedNumbers = new Set(newState.closedNumbers);
+          }
+          setGameState(newState);
+          setGameStarted(true);
+        }
+      } catch (e) {
+        console.error("Initial fetch failed:", e);
+      }
+    };
+
+    fetchCurrentState();
+
+    // 2. Subscribe to new changes
+    const channel = supabase
+      .channel(`match-${parsedMatchId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'matches', filter: `match_id=eq.${parsedMatchId}` },
+        (payload) => {
+          const newState = payload.new.game_state;
+          if (newState) {
+            // Rehydrate Set for closedNumbers
+            if (newState.closedNumbers) {
+              newState.closedNumbers = new Set(newState.closedNumbers);
+            }
+            setGameState(newState);
+            setGameStarted(true);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setSupabaseConnected(true);
+        } else {
+          setSupabaseConnected(false);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [setupMode, parsedMatchId]);
+
+  const broadcastGameState = useCallback(async (state: GameState) => {
+    if (setupMode !== 'multi' || !parsedMatchId || isVsCPU) return;
+
+    try {
+      const serializedState = {
+        ...state,
+        closedNumbers: Array.from(state.closedNumbers)
+      };
+
+      const { error } = await supabase
+        .from('matches')
+        .upsert({
+          match_id: String(parsedMatchId),
+          game_state: serializedState
+        }, { onConflict: 'match_id' });
+
+      if (error) console.error("Broadcast error:", error);
+    } catch (e) {
+      console.error("Sync broadcast failed:", e);
+    }
+  }, [setupMode, parsedMatchId, isVsCPU]);
 
   // Audio Logic
   useEffect(() => {
@@ -239,7 +358,8 @@ const Index = () => {
     setIsVsCPU(true);
     const player1Name = p1Name.trim() || (isConnected && address ? 'You' : 'Guest');
     const player1Address = isConnected && address ? address : '0x0000000000000000000000000000000000000001';
-    setGameState(createInitialGameState(player1Name, player1Address, 'Computer AI (CPU)', '0x0000000000000000000000000000000000000000', true));
+    const initialState = createInitialGameState(player1Name, player1Address, 'Computer AI (CPU)', '0x0000000000000000000000000000000000000000', true);
+    setGameState(initialState);
     setLogMessages([]);
     setGameStarted(true);
   };
@@ -258,9 +378,13 @@ const Index = () => {
       if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
       if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
       prevBatchRef.current = result.state.batch;
+
+      // Auto-broadcast the new state
+      broadcastGameState(result.state);
+
       return result.state;
     });
-  }, []);
+  }, [broadcastGameState]);
 
   const handleHitRing = useCallback((ringIdx: number) => {
     setGameState(prev => {
@@ -270,9 +394,13 @@ const Index = () => {
       if (result.state.lastAction) setLogMessages(p => [...p, result.state.lastAction!]);
       if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
       prevBatchRef.current = result.state.batch;
+
+      // Auto-broadcast the new state
+      broadcastGameState(result.state);
+
       return result.state;
     });
-  }, []);
+  }, [broadcastGameState]);
 
   const cpuActionBuffer = useRef<string[]>([]);
   const cpuTurnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -385,6 +513,29 @@ const Index = () => {
     }
   };
 
+  const shareSyncLink = async () => {
+    if (!gameState) return;
+
+    try {
+      // Serialize state (Set needs to be array)
+      const serializedState = {
+        ...gameState,
+        closedNumbers: Array.from(gameState.closedNumbers)
+      };
+
+      const encoded = btoa(encodeURIComponent(JSON.stringify(serializedState)));
+      const syncUrl = `${window.location.origin}${window.location.pathname}#sync=${encoded}`;
+
+      await navigator.clipboard.writeText(syncUrl);
+      toast.success("Sync Share Link Copied!", {
+        description: "Send this to the other player to sync your turns."
+      });
+    } catch (err) {
+      console.error('Error sharing sync link:', err);
+      toast.error("Failed to generate sync link.");
+    }
+  };
+
   const { writeContract, data: hash, isPending: isBroadcasting } = useWriteContract();
   const { isLoading: isWaitingForTx, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({ hash });
 
@@ -447,7 +598,13 @@ const Index = () => {
             <span className="text-primary font-black uppercase tracking-[0.2em] text-[11px]">Register to Join Tournament</span>
           </a>
         </div>
-        <div className="fixed top-6 right-6 z-50 flex gap-3">
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
+          {setupMode === 'multi' && (
+            <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl glass-panel border ${supabaseConnected ? 'border-emerald-500/30 text-emerald-400' : 'border-orange-500/30 text-orange-400'} text-[10px] font-black tracking-widest uppercase`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${supabaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500'}`} />
+              {supabaseConnected ? 'Sync Active' : 'Connecting Sync...'}
+            </div>
+          )}
           <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white">
             <Settings className="w-6 h-6" />
           </Button>
@@ -841,6 +998,18 @@ const Index = () => {
                 {getLauncherText()}
               </span>
             </div>
+
+            {!gameState.isVsCPU && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareSyncLink}
+                className="mt-2 glass-panel border-primary/20 hover:bg-primary/10 text-primary-light text-[10px] tracking-widest uppercase font-black px-6 py-4 rounded-xl"
+              >
+                <Share2 className="w-3 h-3 mr-2" />
+                Share Sync Link
+              </Button>
+            )}
           </div>
         </div>
 

@@ -14,16 +14,18 @@ describe("Game Logic Per-Number Bonus Tests", () => {
         expect(state.players[0].totalScore).toBe(2);
 
         // P2 hits #2 once. Board Closes.
-        // P1: 2 filler + 3.5 TFP = 5.5
-        // P2: 2 filler + 3.5 TFP + 10 Fill-Up = 15.5
+        // n=2, threshold=1. 1 is not > 1. 
+        // Mutual threshold NOT met. 
+        // P1: 2 filler.
+        // P2: 2 filler + 10 Fill-Up = 12.
         state.currentPlayer = 1;
         state = hitNumber(state, 2).state;
-        expect(state.players[1].totalScore).toBe(15.5);
-        expect(state.players[0].totalScore).toBe(5.5);
+        expect(state.players[1].totalScore).toBe(12);
+        expect(state.players[0].totalScore).toBe(2);
 
         // P2 hits #2 again. Already closed. No points.
         state = hitNumber(state, 2).state;
-        expect(state.players[1].totalScore).toBe(15.5);
+        expect(state.players[1].totalScore).toBe(12);
     });
 
     it("should split Top Filler Bonus (3.5 each) on tied hits per number", () => {
@@ -45,13 +47,13 @@ describe("Game Logic Per-Number Bonus Tests", () => {
 
         // Number 2 requires 2 hits.
         // 1st hit: 2 pts. Board not closed. Total 2.
-        // 2nd hit: 4 pts filler + 7 TFP + 10 Fill-Up = 21.
-        // 3rd hit: 0 extra (filler capped, TFP/Fill-Up already counted). Total 21.
+        // 2nd hit: 4 pts filler + 10 Fill-Up = 14 (TFP is 0 because P2 has 0 hits, threshold not met).
+        // 3rd hit: 0 extra (filler capped, already closed). Total 14.
         state = hitNumber(state, 2).state;
         state = hitNumber(state, 2).state;
         state = hitNumber(state, 2).state;
 
-        expect(state.players[0].totalScore).toBe(21);
+        expect(state.players[0].totalScore).toBe(14);
         expect(state.players[0].hits[2]).toBe(2); // Should be 2 because 3rd hit was on a closed number
     });
 

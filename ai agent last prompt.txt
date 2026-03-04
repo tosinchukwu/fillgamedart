@@ -1,0 +1,5 @@
+Implementing Invite-Based Multiplayer
+I've updated the implementation plan and task list to include the Invite-Based Multiplayer feature. This will allow players to create private rooms without match IDs and invite friends via a shareable link. I am now reviewing the UI components in 
+
+Index.tsx
+ to decide where to place the new "Invite Match" button and how to trigger the join flow.

@@ -98,12 +98,19 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
     score += filler;
 
     if (n >= 2 && gameState.closedNumbers.has(n)) {
-      const pHits = player.hits[n] || 0;
+      const p1Hits = gameState.players[0].hits[n] || 0;
+      const p2Hits = gameState.players[1].hits[n] || 0;
       const threshold = n / 2;
-      if (pHits > threshold) {
-        score += 7;
-      } else if (pHits > 0 && pHits === threshold) {
-        score += 3.5;
+
+      // Rule: Only awarded if BOTH players have passed the half-count threshold
+      if (p1Hits > threshold && p2Hits > threshold) {
+        if (playerIdx === 0) {
+          if (p1Hits > p2Hits) score += 7;
+          else if (p1Hits === p2Hits) score += 3.5;
+        } else {
+          if (p2Hits > p1Hits) score += 7;
+          else if (p2Hits === p1Hits) score += 3.5;
+        }
       }
     }
 
@@ -137,6 +144,7 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
     if (targetNumber === 1) {
       if (newState.batch === 1) player.num1AwardedBatch1 = true;
       else if (newState.batch === 2) player.num1AwardedBatch2 = true;
+      player.completed[1] = true;
       newState.closedNumbers.add(1);
       message = "Hit #1! +12 pts special bonus.";
     } else {

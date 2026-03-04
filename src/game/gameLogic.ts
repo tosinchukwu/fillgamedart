@@ -77,9 +77,11 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
   for (let n = 1; n <= TOTAL_NUMBERS; n++) {
     // 1. Filler Points (+2 per hit, capped at number's value)
     // COMBINED with bonus points from rings, but still capped at n * 2
+    // 1. Filler points (+2 per hit)
+    // Capped at n*2 EXCEPT for Number 1 which adds +2 for every hit
     const baseFiller = player.hits[n] * 2;
     const bonus = player.bonusPoints[n];
-    const totalFiller = Math.min(baseFiller + bonus, n * 2);
+    const totalFiller = n === 1 ? baseFiller + bonus : Math.min(baseFiller + bonus, n * 2);
     score += totalFiller;
 
     // 2. Top Filler Bonus (+7 per number, split if tied)
@@ -100,8 +102,11 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
     }
 
     // 3. Fill-Up Bonus (+10 per number)
-    // Awarded to the player who landings the final hit to close the number for BOTH players
-    if (gameState.closedNumbers.has(n)) {
+    // For Number 1: Awarded for EVERY hit (+10 per hit)
+    // For others: Awarded to the player who landings the final hit to close the number for BOTH players
+    if (n === 1) {
+      score += player.hits[1] * 10;
+    } else if (gameState.closedNumbers.has(n)) {
       const seq = gameState.hitSequences[n];
       let p1Rem = n;
       let p2Rem = n;

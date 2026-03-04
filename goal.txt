@@ -1,0 +1,56 @@
+What I want to achieve my goal). I want a 1v1 game (Filling Game) with these exact properties:
+---
+🚀 TECHNICAL TO-DO LIST (For Contract & Deployment)
+
+To make the "Private Match" system fully operative, ensure the following are added to the Smart Contract and ABI:
+
+1. [CONTRACT] Match Management:
+   - Implement `createMatch(address opponent)`: Stores the creator (P1) and invited (P2) addresses against a generated `matchId`.
+   - Implement `getMatch(uint256 matchId)`: Returns the addresses of P1 and P2 so the frontend can verify the connected wallet.
+   - [Optional] `getMatchStatus(uint256 matchId)`: To track if the match has started or ended.
+
+2. [ABI] Update constants.ts:
+   - Add the new match-related functions (`createMatch`, `getMatch`) to the `CONTRACT_ABI` array in `src/lib/constants.ts`.
+   - Keep the existing `recordScore` function for the endgame broadcast.
+
+3. [DEPLOYMENT]:
+   - After deploying the contract, update `CONTRACT_ADDRESS` in `src/lib/constants.ts`.
+   - Ensure the contract is deployed on the same network that users connect to (e.g., Base Mainnet or Sepolia).
+
+4. [FRONTEND SYNC]:
+   - The frontend currently uses placeholders for `P1` and `P2` names in the lobby. Use the `getMatch` data to populate these dynamically once the ABI is ready.
+Only two specific wallet addresses can play together in a match. (is already part of the game desig)
+
+One player creates the match and specifies the exact opponent wallet address.
+
+The opponent must join/participate using their specific wallet (the one that was invited).
+
+The game only starts when both players have connected their wallets at the same time (meaning both have confirmed presence / joined the match lobby).
+
+No one else can join or interfere with that match.
+
+No additional payment is needed when connecting to the game (the small gas fee / entry fee is already paid earlier on a separate registration page https://fillinggame.vercel.app/ which u will include on my the game page at the top left corner as Register to Join Tournament. should be clear and bold to read).
+
+
+Once both are connected → the game page loads the correct match, shows the board, and lets only those two players play (turns, scoring, etc.). we already have this in place but can add showind MatchId when their game start.
+
+In short: A secure, private, invite-only 1v1 crypto game lobby where entry is pre-paid, and start is triggered purely by both invited wallets connecting simultaneously.
+
+What I already have at hand includes:A registration page where:Players pay a small gas fee / entry fee. (https://fillinggame.vercel.app/)
+
+
+A match is created (presumably on-chain via a smart contract call like createMatch(address opponent)).
+You get a matchId after creation.
+
+I already have this creation logic implemented on “another page” (the register/create page).
+
+I have a game page (the one u built) where the actual game should happen.
+
+I have a smart contract (or at least the concept/partial implementation) that:Allows creating a match with a specific opponent address. can be found here(https://fillinggame.vercel.app/) under create match  by officail
+
+
+Restricts joining/confirmation to only the invited wallet.
+
+may have to add this - Can track whether both players have connected.
+Emits events or has view functions like getMatchStatus() to check state.
+

@@ -113,6 +113,8 @@ const Index = () => {
   const [setupMode, setSetupMode] = useState<'solo' | 'multi'>('solo');
   const [isVsCPU, setIsVsCPU] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [matchId, setMatchId] = useState('');
+  const [isLobbyJoined, setIsLobbyJoined] = useState(false);
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [showBatchOverlay, setShowBatchOverlay] = useState(false);
   const [showRules, setShowRules] = useState(false);
@@ -353,6 +355,17 @@ const Index = () => {
   if (!gameStarted || !gameState) {
     return (
       <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
+        <div className="fixed top-6 left-6 z-50">
+          <a
+            href="https://fillinggame.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center gap-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 py-2 px-5 rounded-xl transition-all shadow-[0_0_15px_rgba(232,65,66,0.1)]"
+          >
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-primary font-black uppercase tracking-[0.2em] text-[11px]">Register to Join Tournament</span>
+          </a>
+        </div>
         <div className="fixed top-6 right-6 z-50 flex gap-3">
           <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white">
             <Settings className="w-6 h-6" />
@@ -375,51 +388,77 @@ const Index = () => {
                   onClick={() => setSetupMode('multi')}
                   className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${setupMode === 'multi' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
                 >
-                  Multiplayer
+                  Private Match
                 </button>
               </div>
 
-              <div className="grid gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
+              {setupMode === 'solo' ? (
                 <div className="space-y-1 text-left">
-                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">
-                    {setupMode === 'solo' ? 'Your Name' : 'Player 1 Name'}
-                  </label>
+                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
                   <Input
                     value={p1Name}
                     onChange={(e) => setP1Name(e.target.value)}
-                    placeholder={setupMode === 'solo' ? "What should we call you?" : "Enter Player 1 Name"}
+                    placeholder="What should we call you?"
                     className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
                   />
                   <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2 rounded-xl hover:bg-white/5">
-                    {p1Address ? `Wallet: ${p1Address.slice(0, 6)}...` : setupMode === 'solo' ? 'Link Your Wallet' : 'Link P1 Wallet'}
+                    {p1Address ? `Wallet: ${p1Address.slice(0, 6)}...` : 'Link Your Wallet'}
                   </Button>
                 </div>
-
-                {setupMode === 'multi' && (
-                  <div className="space-y-1 text-left animate-in slide-in-from-top-2 duration-300">
-                    <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Player 2 Name</label>
+              ) : !isLobbyJoined ? (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Secure Match ID</label>
                     <Input
-                      value={p2Name}
-                      onChange={(e) => setP2Name(e.target.value)}
-                      placeholder="Enter Player 2 Name"
+                      value={matchId}
+                      onChange={(e) => setMatchId(e.target.value)}
+                      placeholder="Enter the ID provided by your opponent"
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-12 rounded-xl focus:border-primary/50"
                     />
-                    <Button onClick={() => isConnected ? setP2Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2 rounded-xl hover:bg-white/5">
-                      {p2Address ? `Wallet: ${p2Address.slice(0, 6)}...` : 'Link P2 Wallet'}
-                    </Button>
                   </div>
-                )}
-              </div>
+                  <Button
+                    onClick={() => matchId && setIsLobbyJoined(true)}
+                    disabled={!matchId || !isConnected}
+                    className="w-full h-12 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20"
+                  >
+                    {isConnected ? '📡 Join Private Lobby' : '🔌 Connect Wallet to Join'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Match Lobby: {matchId}</span>
+                    <Button variant="ghost" onClick={() => setIsLobbyJoined(false)} className="h-6 text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60">Cancel</Button>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+                      <span className="text-[10px] text-white/60 uppercase font-black">Commander A</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-primary font-bold">READY</span>
+                        <CheckCircle2 className="w-3 h-3 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5 opacity-50">
+                      <span className="text-[10px] text-white/60 uppercase font-black">Invited Opponent</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-white/30">WAITING...</span>
+                        <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-white/40 italic text-center font-medium">Game will launch automatically when both commanders are synced.</p>
+                </div>
+              )}
 
               {setupMode === 'solo' ? (
                 <Button onClick={startSoloGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
                   🚀 Start Solo Mission
                 </Button>
-              ) : (
-                <Button onClick={startGame} disabled={!p1Address || !p2Address} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
-                  🎯 Start Match
+              ) : isLobbyJoined ? (
+                <Button onClick={startGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  🎯 Force Start (Debug)
                 </Button>
-              )}
+              ) : null}
 
               <div className="flex justify-center">
                 <Button onClick={shareGame} variant="ghost" className="bg-white/5 border border-white/10 text-white/80 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 px-6 py-2 rounded-lg hover:bg-white/10">
@@ -437,7 +476,18 @@ const Index = () => {
   }
 
   return (
-    <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans overflow-hidden`}>
+    <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans`}>
+      <div className="fixed top-6 left-6 z-50">
+        <a
+          href="https://fillinggame.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 py-2 px-5 rounded-xl transition-all shadow-[0_0_15px_rgba(232,65,66,0.1)]"
+        >
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-primary font-black uppercase tracking-[0.2em] text-[11px]">Register to Join Tournament</span>
+        </a>
+      </div>
       <div className="fixed top-6 right-6 z-50">
         <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-xl glass-panel border-white/10 text-white"><Settings className="w-6 h-6" /></Button>
       </div>
@@ -448,6 +498,12 @@ const Index = () => {
           <span className="font-mono-game text-[10px] tracking-[0.2em] text-primary animate-pulse uppercase">{gameState.players[gameState.currentPlayer].name}'S TURN</span>
           <div className="h-4 w-[1px] bg-white/10" />
           <span className="text-white/60 text-[10px] font-mono-game tracking-[0.2em] uppercase">{gameState.dartsRemaining} DARTS REMAINING</span>
+          {matchId && (
+            <>
+              <div className="h-4 w-[1px] bg-white/10" />
+              <span className="text-primary/60 text-[10px] font-mono-game tracking-[0.2em] uppercase">MATCH ID: {matchId}</span>
+            </>
+          )}
           <Button variant="ghost" size="sm" onClick={resetGame} className="text-[9px] uppercase tracking-widest text-white/40 hover:text-primary h-6">New Game</Button>
         </div>
       </div>
@@ -539,7 +595,7 @@ const Index = () => {
         </div>
       )}
 
-      <div className="w-full max-w-[1700px] flex flex-col xl:flex-row gap-6 items-stretch justify-center h-[calc(100vh-220px)] min-h-[600px]">
+      <div className="w-full max-w-[1700px] flex flex-col xl:flex-row gap-6 items-stretch justify-center min-h-0 pb-10">
         {/* Left: Log */}
         <div className="xl:w-[320px] w-full flex-shrink-0 flex flex-col h-full order-2 xl:order-1">
           <div className="glass-panel rounded-3xl flex-1 flex flex-col border-white/10 overflow-hidden shadow-2xl">

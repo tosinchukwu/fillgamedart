@@ -911,8 +911,8 @@ const Index = () => {
           <div className="space-y-1 text-left">
             <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Your Name</label>
             <Input
-              value={isHost ? p1Name : p2Name}
-              onChange={(e) => isHost ? setP1Name(e.target.value) : setP2Name(e.target.value)}
+              value={(!isLobbyJoined || isHost) ? p1Name : p2Name}
+              onChange={(e) => (!isLobbyJoined || isHost) ? setP1Name(e.target.value) : setP2Name(e.target.value)}
               placeholder="Enter your name"
               className="bg-white/5 border-white/10 text-white placeholder:text-white/10 h-10 rounded-xl focus:border-primary/50 text-sm mb-2"
             />
@@ -1022,7 +1022,7 @@ const Index = () => {
           </a>
         </div>
         <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
-          {(setupMode === 'multi' || setupMode === 'invite') && (
+          {(setupMode === 'multi' || setupMode === 'invite') && (setupMode === 'invite' ? inviteCode : matchId) && (
             <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl glass-panel border ${supabaseConnected ? 'border-emerald-500/30 text-emerald-400' : 'border-orange-500/30 text-orange-400'} text-[10px] font-black tracking-widest uppercase`}>
               <div className={`w-1.5 h-1.5 rounded-full ${supabaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500'}`} />
               {supabaseConnected ? 'Sync Active' : 'Connecting Sync...'}

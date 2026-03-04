@@ -38,7 +38,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   const [stuckDarts, setStuckDarts] = useState<DartStuck[]>([]);
   const [dartVisible, setDartVisible] = useState(true);
   const [dartFlying, setDartFlying] = useState(false);
+  const [isLaunched, setIsLaunched] = useState(false);
   const [hitPulse, setHitPulse] = useState<{ id: string; type: 'number' | 'ring' } | null>(null);
+  const [flightDest, setFlightDest] = useState<{ lx: number; ly: number; angle: number; tilt: number } | null>(null);
 
   const phaseRef = useRef<BoardPhase>('idle');
   useEffect(() => { phaseRef.current = boardPhase; }, [boardPhase]);
@@ -96,20 +98,27 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
     const res = resolveDartLanding();
     const { lx, ly, angle, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = res;
+    const tilt = (Math.random() - 0.5) * 40;
 
+    setFlightDest({ lx, ly, angle, tilt });
     setDartFlying(true);
     setDartVisible(false);
+    setIsLaunched(false);
+
+    // Small delay to trigger the transition from origin
+    setTimeout(() => setIsLaunched(true), 10);
 
     setTimeout(() => {
       setDartFlying(false);
+      setIsLaunched(false);
       setDartVisible(true);
       setBoardPhase('idle');
       phaseRef.current = 'idle';
       window.dispatchEvent(new CustomEvent('DART_HIT_IMPACT'));
 
       const id = ++dartIdCounter;
-      const tilt = (Math.random() - 0.5) * 40;
-      setStuckDarts([{ id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
+      setStuckDarts(prev => [...prev, { id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
+      setFlightDest(null);
 
       if (hitRingLine && hitRingLineIdx >= 0) {
         setHitPulse({ id: `ring-${hitRingLineIdx}`, type: 'ring' });
@@ -294,6 +303,42 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
                 />
               </g>
             ))}
+
+            {/* flying dart */}
+            {dartFlying && flightDest && (
+              <g
+                style={{
+                  transition: 'all 0.56s linear',
+                  transform: `translate(${isLaunched ? (flightDest.lx - CENTER) : 0}px, ${isLaunched ? (flightDest.ly - CENTER) : 380}px)`,
+                  opacity: isLaunched ? 1 : 0
+                }}
+              >
+                <image
+                  href={cp === 0 ? "/green_dart.png" : "/red_dart.png"}
+                  x={CENTER - 29}
+                  y={CENTER - 135 + 15}
+                  width="58"
+                  height="135"
+                  transform={`rotate(${flightDest.angle + flightDest.tilt} ${CENTER} ${CENTER})`}
+                  style={{
+                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))',
+                    transform: isLaunched ? 'scale(0.4)' : 'scale(1.8)',
+                    transition: 'transform 0.56s linear'
+                  }}
+                />
+              </g>
+            )}
+
+            {!dartFlying && !gameState.gameOver && boardPhase === 'idle' && (
+              <g
+                style={{
+                  transform: 'translate(0, 400px)',
+                  opacity: 0.8
+                }}
+              >
+                {/* Visual hint of the next dart in slot if needed, but Index.tsx already has a DartArrow */}
+              </g>
+            )}
 
           </svg>
         </div>

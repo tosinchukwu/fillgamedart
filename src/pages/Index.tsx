@@ -181,7 +181,9 @@ const Index = () => {
 
   const startSoloGame = () => {
     setIsVsCPU(true);
-    setGameState(createInitialGameState('Guest', '0xGUEST', 'Computer AI', '0xCOMPUTER', true));
+    const player1Name = isConnected && address ? 'You' : 'Guest';
+    const player1Address = isConnected && address ? address : '0x0000000000000000000000000000000000000001';
+    setGameState(createInitialGameState(player1Name, player1Address, 'Computer AI', '0x0000000000000000000000000000000000000000', true));
     setLogMessages([]);
     setGameStarted(true);
   };
@@ -316,6 +318,10 @@ const Index = () => {
       return;
     }
 
+    const p1Addr = gameState.players[0].address === '0x0000000000000000000000000000000000000001' && address
+      ? address
+      : gameState.players[0].address;
+
     try {
       writeContract({
         address: CONTRACT_ADDRESS as `0x${string}`,
@@ -323,7 +329,7 @@ const Index = () => {
         functionName: 'recordScore',
         args: [
           gameState.players[0].name,
-          gameState.players[0].address as `0x${string}`,
+          p1Addr as `0x${string}`,
           BigInt(gameState.players[0].totalScore),
           gameState.players[1].name,
           gameState.players[1].address as `0x${string}`,

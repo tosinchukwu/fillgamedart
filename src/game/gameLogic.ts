@@ -6,6 +6,7 @@ export interface PlayerState {
   totalScore: number;
   hits: Record<number, number>;
   completed: Record<number, boolean>;
+  bonusPoints: Record<number, number>; // Points from rings that don't count as hits
 }
 
 export interface GameState {
@@ -36,11 +37,13 @@ export interface TurnAction {
 export function createInitialPlayer(name: string, address: string): PlayerState {
   const hits: Record<number, number> = {};
   const completed: Record<number, boolean> = {};
+  const bonusPoints: Record<number, number> = {};
   for (let i = 1; i <= TOTAL_NUMBERS; i++) {
     hits[i] = 0;
     completed[i] = false;
+    bonusPoints[i] = 0;
   }
-  return { name, address, totalScore: 0, hits, completed };
+  return { name, address, totalScore: 0, hits, completed, bonusPoints };
 }
 
 export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: string, p2Addr: string, isVsCPU = false): GameState {
@@ -73,19 +76,26 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
 
   for (let n = 1; n <= TOTAL_NUMBERS; n++) {
     // 1. Filler Points (+2 per hit, capped at number's value)
-    const fillerHits = Math.min(player.hits[n], n);
-    score += fillerHits * 2;
+    // COMBINED with bonus points from rings, but still capped at n * 2
+    const baseFiller = player.hits[n] * 2;
+    const bonus = player.bonusPoints[n];
+    const totalFiller = Math.min(baseFiller + bonus, n * 2);
+    score += totalFiller;
 
     // 2. Top Filler Bonus (+7 per number, split if tied)
-    // Awarded based on highest total hits for THIS number
-    const pHits = player.hits[n];
-    const oHits = opponent.hits[n];
+    // Awarded based on highest total hits for THIS number (Only for 2-14)
+    // CONDITION: Only awarded once BOTH players have hit more than half of the number
+    if (n >= 2) {
+      const pHits = player.hits[n];
+      const oHits = opponent.hits[n];
+      const threshold = n / 2;
 
-    if (pHits > 0 || oHits > 0) {
-      if (pHits > oHits) {
-        score += 7;
-      } else if (pHits === oHits) {
-        score += 3.5;
+      if (pHits > threshold && oHits > threshold) {
+        if (pHits > oHits) {
+          score += 7;
+        } else if (pHits === oHits) {
+          score += 3.5;
+        }
       }
     }
 
@@ -177,46 +187,53 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
 }
 
 export function hitRing(state: GameState, ringIndex: number, ringNumbers: number[]): { state: GameState; messages: string[] } {
-  let currentState = structuredClone(state) as GameState;
-  currentState.closedNumbers = new Set(state.closedNumbers);
-  const messages: string[] = [];
+  const newState = structuredClone(state) as GameState;
+  const cp = newState.currentPlayer;
+  const player = newState.players[cp];
+  const oldScore = player.totalScore;
 
-  const originalDarts = currentState.dartsRemaining;
-  currentState.dartsRemaining = 999;
-
+  // Process each number in the ring as a "hit"
   for (const num of ringNumbers) {
-    const result = hitNumber(currentState, num, true);
-    currentState = result.state;
-    currentState.closedNumbers = new Set(currentState.closedNumbers);
-    messages.push(result.message);
+    if (newState.closedNumbers.has(num)) continue;
 
-    // Immediate Win/Batch check during ring hits
-    checkBatchConditions(currentState);
-    if (currentState.gameOver || (currentState.batch === 2 && state.batch === 1)) break;
-  }
+    // 1. Record hit (similar to hitNumber)
+    player.hits[num]++;
+    newState.hitSequences[num].push(cp);
 
-  if (currentState.gameOver || (currentState.batch === 2 && state.batch === 1)) {
-    // If we transition or game ends, we stop here
-    return { state: currentState, messages };
-  }
+    // 2. Check personal completion
+    if (player.hits[num] >= num) {
+      player.completed[num] = true;
 
-  currentState.dartsRemaining = originalDarts - 1;
-  const cp = currentState.currentPlayer;
-  const totalScore = currentState.players[cp].totalScore;
-  const pName = currentState.players[cp].name;
-
-  currentState.lastAction = `[${pName}]: ⭕ Direct hit on Ring ${ringIndex + 1}! Affecting: ${ringNumbers.join(', ')} [Total: ${totalScore} pts]`;
-
-  if (currentState.dartsRemaining <= 0) {
-    if (!currentState.gameOver) {
-      currentState.currentPlayer = currentState.currentPlayer === 0 ? 1 : 0;
-      currentState.dartsRemaining = 3;
+      // 3. Check board closure
+      const opponent = newState.players[1 - cp];
+      if (opponent.completed[num]) {
+        newState.closedNumbers.add(num);
+      }
     }
   }
 
-  checkBatchConditions(currentState);
+  // Update scores for both players
+  newState.players[0].totalScore = recalcTotalScore(newState, 0);
+  newState.players[1].totalScore = recalcTotalScore(newState, 1);
 
-  return { state: currentState, messages };
+  // Calculate points gained in this specific hit
+  const pointsEarnedInHit = player.totalScore - oldScore;
+
+  newState.dartsRemaining--;
+  newState.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${pointsEarnedInHit} pts`;
+
+  // Turn management
+  if (newState.dartsRemaining <= 0) {
+    if (!newState.gameOver) {
+      newState.currentPlayer = cp === 0 ? 1 : 0;
+      newState.dartsRemaining = 3;
+    }
+  }
+
+  // Final check for win conditions
+  checkBatchConditions(newState);
+
+  return { state: newState, messages: [] };
 }
 
 function checkBatchConditions(state: GameState) {
@@ -239,6 +256,7 @@ function checkBatchConditions(state: GameState) {
         for (let i = 1; i <= TOTAL_NUMBERS; i++) {
           p.hits[i] = 0;
           p.completed[i] = false;
+          p.bonusPoints[i] = 0;
         }
       });
       state.closedNumbers = new Set();

@@ -1,0 +1,48 @@
+# Fill Game: Official Rules & Strategy
+
+## 🎯 Game Objective
+Strategically complete numbers 1-14 on a shared board to earn filler points and lucrative bonuses. Win by dominating the Batch winning system.
+
+## 🏹 Turn Structure
+- Players alternate turns.
+- Each turn consists of **3 dart throws**.
+- "Solo vs CPU" mode follows the same structure.
+
+## 💰 Scoring System
+### 1. Filler Points (+2)
+- Earn **+2 points** for every hit on a number you haven't personally completed.
+- Completion target = the number's value (e.g., hitting #10 ten times completes it).
+- **No Excess Points**: Hits beyond the completion target do not award filler points.
+
+### 2. Top Filler Bonus (+7) - Strategic Multiplier
+- Awarded for each individual number from **2 to 14**.
+- If you have **more hits** on a number than your opponent, you receive **+7 points**.
+- **Tie**: If both players have an equal number of hits, the bonus is split (**+3.5 points each**).
+- Competition for this bonus continues even after a number is completed personaly.
+
+### 3. Fill-Up Bonus (+10) - The Closer
+- Awarded to the **last player** to complete a number.
+- This hit "closes" the number for the entire board. Once closed, no more points can be earned from that number by either player.
+
+### ⭕ Ring Mechanics
+- The board has 4 strategic rings.
+- Hitting a ring awards **+2 filler points** for all numbers within that ring group (that are not yet closed).
+- **Critical**: Ring hits **do NOT count as hits** toward completion or Top Filler competition. They only award points.
+- Points earned from rings still count toward the filler point cap for each number.
+
+## 🏆 How to Win (The Batch System)
+The game is played in two distinct phases:
+
+### Phase 1: Batch 1 (Target: 221.5)
+- Players race toreach **221.5 points**.
+- Batch 1 ends **immediately** when a player reaches or exceeds this score.
+- Both players' final Batch 1 scores are recorded (e.g., Player A: 230, Player B: 150).
+
+### Phase 2: Batch 2 (The Final Race)
+- The board resets.
+- Players now race to surpass the **opponent's Batch 1 score**.
+- **Win Condition**: The first player to surpass their target score wins the entire game **immediately**.
+- If the board closes before anyone hits their target, the Batch 1 winner is declared the overall champion.
+
+---
+*Strategy Tip: Focus on Rings early to build a lead, but watch the Top Filler bonuses on high-value numbers (10–14) to secure a Batch 2 advantage!*

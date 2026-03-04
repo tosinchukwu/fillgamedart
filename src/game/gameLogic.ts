@@ -110,11 +110,10 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
     }
 
     // 3. Fill-Up Bonus (+10 per number)
-    // For Number 1: Awarded ONLY ONCE per batch (+10 pts)
+    // For Number 1: Awarded ONLY ONCE per game (+10 pts) - Fixes 22pt accumulation error
     // For others: Awarded to the player who landings the final hit to close the number for BOTH players
     if (n === 1) {
-      if (player.num1AwardedBatch1) score += 10;
-      if (player.num1AwardedBatch2) score += 10;
+      if (player.num1AwardedBatch1 || player.num1AwardedBatch2) score += 10;
     } else if (gameState.closedNumbers.has(n)) {
       const seq = gameState.hitSequences[n];
       if (seq.length >= n) {

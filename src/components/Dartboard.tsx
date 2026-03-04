@@ -60,43 +60,26 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   }, [cp]);
 
   const resolveDartLanding = useCallback(() => {
-    // 1. Choose a target: 70% chance for a number, 30% for a ring line
+    // Random Mode (original behavior)
     const hitNumberMode = Math.random() < 0.7;
-
     if (hitNumberMode) {
-      // Pick a random number from layout
       const targetPos = BOARD_LAYOUT[Math.floor(Math.random() * BOARD_LAYOUT.length)];
-      // ALIGN TO BADGE CENTER: 
-      // Important - number badges are rendered at targetPos.angle and ring.outer
       const ring = RING_RADII[targetPos.ring];
       const r = ring.outer;
       const [lx, ly] = polarToXY(targetPos.angle, r);
-
       return {
-        lx,
-        ly,
-        angle: targetPos.angle,
-        hitRingIdx: targetPos.ring,
-        closestNum: targetPos.number,
-        hitRingLine: false,
-        hitRingLineIdx: -1
+        lx, ly, angle: targetPos.angle, hitRingIdx: targetPos.ring,
+        closestNum: targetPos.number, hitRingLine: false, hitRingLineIdx: -1
       };
     } else {
-      // Pick a random ring line
       const ringIdx = Math.floor(Math.random() * RING_RADII.length);
       const ring = RING_RADII[ringIdx];
       const landAngle = Math.random() * 360;
-      // Hit the EXACT radius line
       const r = ring.outer;
       const [lx, ly] = polarToXY(landAngle, r);
-
       return {
-        lx, ly,
-        angle: landAngle,
-        hitRingIdx: ringIdx,
-        closestNum: -1,
-        hitRingLine: true,
-        hitRingLineIdx: ringIdx
+        lx, ly, angle: landAngle, hitRingIdx: ringIdx,
+        closestNum: -1, hitRingLine: true, hitRingLineIdx: ringIdx
       };
     }
   }, []);
@@ -107,12 +90,12 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
     setBoardPhase('throwing');
     phaseRef.current = 'throwing';
 
-    // Clear previous player's darts on the current player's first throw
     if (gameState.dartsRemaining === 3) {
       setStuckDarts([]);
     }
 
-    const { lx, ly, angle, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = resolveDartLanding();
+    const res = resolveDartLanding();
+    const { lx, ly, angle, hitRingIdx, closestNum, hitRingLine, hitRingLineIdx } = res;
 
     setDartFlying(true);
     setDartVisible(false);
@@ -125,11 +108,8 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       window.dispatchEvent(new CustomEvent('DART_HIT_IMPACT'));
 
       const id = ++dartIdCounter;
-      // Random tilt for realistic dart landing (±20°)
       const tilt = (Math.random() - 0.5) * 40;
-      // Single-dart visibility: only keep the most recent dart
       setStuckDarts([{ id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
-      // Permanent markers: do not remove them after 2.5s
 
       if (hitRingLine && hitRingLineIdx >= 0) {
         setHitPulse({ id: `ring-${hitRingLineIdx}`, type: 'ring' });
@@ -144,10 +124,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
           if (rNums.length > 0) onHitRing(hitRingIdx);
         }
       }
-
       setTimeout(() => setHitPulse(null), 1000);
     }, 560);
-  }, [disabled, gameState.gameOver, gameState.closedNumbers, boardPhase, player, onHitNumber, onHitRing, resolveDartLanding]);
+  }, [disabled, gameState.gameOver, gameState.closedNumbers, gameState.dartsRemaining, cp, onHitNumber, onHitRing, resolveDartLanding]);
 
   useEffect(() => {
     const handleGlobalThrow = () => {
@@ -164,12 +143,6 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
     return '';
   };
 
-  const ringColors = [
-    'var(--ring-1)',
-    'var(--ring-2)',
-    'var(--ring-3)',
-    'var(--ring-4)',
-  ];
 
   return (
     <div className="relative flex flex-col items-center gap-10">
@@ -310,24 +283,18 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
             {/* Stuck dart impact spots - Permanent Image Markers */}
             {stuckDarts.map((dart) => (
               <g key={dart.id}>
-                {/* 
-                  The dart image is 80x160. 
-                  The TIP is roughly at (x+40, y+150).
-                  We rotate it so it points towards the center radial line.
-                */}
                 <image
                   href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
                   x={dart.x - 29}
-                  y={dart.y - 135 + 15} // Reduced height 135, 15px pierce
+                  y={dart.y - 135 + 15}
                   width="58"
                   height="135"
                   transform={`rotate(${dart.angle + dart.tilt} ${dart.x} ${dart.y})`}
-                  style={{
-                    filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.6))'
-                  }}
+                  style={{ filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.6))' }}
                 />
               </g>
             ))}
+
           </svg>
         </div>
       </div>
@@ -355,21 +322,20 @@ export const DartArrow: React.FC<{
       className={`
         transition-all duration-300 select-none group
         ${!isVisible ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}
-        ${isFlying ? 'translate-x-[200px] translate-y-[100px] rotate-[60deg] opacity-0 duration-500 ease-in' : ''}
+        ${isFlying ? 'translate-x-[200px] translate-y-[-300px] rotate-[-45deg] opacity-0 duration-500 ease-in' : ''}
         ${canClick ? 'hover:scale-110 active:scale-90' : ''}
       `}
     >
       <div className="relative" onClick={(e) => {
         e.stopPropagation();
         if (canClick) {
-          console.log("Dispatching THROW_DART from DartArrow image");
           window.dispatchEvent(new CustomEvent('THROW_DART'));
         }
       }}>
         <img
           src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
           alt="Dart arrow"
-          className="w-[80px] md:w-[100px] rounded"
+          className="w-[80px] md:w-[100px] rotate-[180deg] drop-shadow-lg"
         />
       </div>
     </div>

@@ -123,6 +123,18 @@ const Index = () => {
   const [musicEnabled, setMusicEnabled] = useState(false);
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const [selectedMusic, setSelectedMusic] = useState('synth_wave');
+  const [isDartFlying, setIsDartFlying] = useState(false);
+
+  useEffect(() => {
+    const handleImpact = () => setIsDartFlying(false);
+    const handleThrow = () => setIsDartFlying(true);
+    window.addEventListener('DART_HIT_IMPACT', handleImpact);
+    window.addEventListener('THROW_DART', handleThrow);
+    return () => {
+      window.removeEventListener('DART_HIT_IMPACT', handleImpact);
+      window.removeEventListener('THROW_DART', handleThrow);
+    };
+  }, []);
 
   const { address, isConnected } = useAccount();
   const { open } = useWeb3Modal();
@@ -149,22 +161,34 @@ const Index = () => {
     }
   });
 
+  useEffect(() => {
+    if (matchError) {
+      console.error("Match Lookup Error:", matchError);
+    }
+  }, [matchError]);
+
   // Verify match existence (ID should be non-zero)
   const isMatchValid = contractMatch && (contractMatch as any).id !== 0n;
 
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const prevBatchRef = useRef<number>(1);
 
-  // Auto-start private match when both are paid
-  useEffect(() => {
-    if (!gameStarted && contractMatch && isLobbyJoined && setupMode === 'multi') {
-      const m = contractMatch as any;
-      if (m.player1Paid && m.player2Paid) {
-        toast.info("Both commanders synced. Initiating sequence...", { duration: 2000 });
-        setTimeout(startGame, 2000);
-      }
-    }
-  }, [contractMatch, gameStarted, isLobbyJoined, setupMode]);
+  // Manual start only
+  const startGame = () => {
+    if (!contractMatch) return;
+
+    const m = contractMatch as any;
+    setIsVsCPU(false);
+    setGameState(createInitialGameState(
+      m.player1Name || 'Player 1',
+      m.player1,
+      m.player2Name || 'Player 2',
+      m.player2,
+      false
+    ));
+    setLogMessages([]);
+    setGameStarted(true);
+  };
 
   // Audio Logic
   useEffect(() => {
@@ -210,22 +234,6 @@ const Index = () => {
       window.removeEventListener('DART_HIT_IMPACT', handleHit);
     };
   }, [playSFX]);
-
-  const startGame = () => {
-    if (!contractMatch) return;
-
-    const m = contractMatch as any;
-    setIsVsCPU(false);
-    setGameState(createInitialGameState(
-      m.player1Name || 'Player 1',
-      m.player1,
-      m.player2Name || 'Player 2',
-      m.player2,
-      false
-    ));
-    setLogMessages([]);
-    setGameStarted(true);
-  };
 
   const startSoloGame = () => {
     setIsVsCPU(true);
@@ -481,9 +489,8 @@ const Index = () => {
                   ) : matchError ? (
                     <div className="py-6 text-center">
                       <XCircle className="w-8 h-8 text-red-500/50 mx-auto mb-2" />
-                      <span className="text-[10px] text-white/60 uppercase">Connection Error</span>
-                      <p className="text-[8px] text-red-400/60 mt-2 px-4 italic">Check if your wallet is on Avalanche Network.</p>
-                      {/* {matchError.message && <p className="text-[6px] text-white/10 mt-1">{matchError.message.slice(0, 50)}</p>} */}
+                      <p className="text-[8px] text-red-400/60 mt-2 px-4 italic font-bold">Details: {matchError.message ? matchError.message.slice(0, 150) : 'Unknown Error'}</p>
+                      <p className="text-[8px] text-white/30 mt-2 italic">Ensure you are connected to Avalanche C-Chain.</p>
                     </div>
                   ) : isMatchValid ? (
                     <div className="space-y-3">
@@ -536,9 +543,19 @@ const Index = () => {
                       </div>
                       <p className="text-[9px] text-white/40 italic text-center font-medium mt-2">
                         {(contractMatch as any).player1Paid && (contractMatch as any).player2Paid
-                          ? "All commanders confirmed. Launching game..."
+                          ? "Match details verified. Confirm your entry below."
                           : "Waiting for both commanders to join via fillinggame.vercel.app"}
                       </p>
+
+                      {/* Manual Confirmation Button */}
+                      {(contractMatch as any).player1Paid && (contractMatch as any).player2Paid && (
+                        <Button
+                          onClick={startGame}
+                          className="w-full h-12 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 animate-in zoom-in-50 duration-500"
+                        >
+                          🛸 Confirm & Enter Game
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="py-6 text-center">
@@ -642,12 +659,32 @@ const Index = () => {
               </div>
             )}
 
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Tactical Progress</div>
+                <div className="text-xl font-black italic text-primary">{gameState.closedNumbers.size} / 15</div>
+                <div className="text-[7px] text-white/20 uppercase tracking-tighter">Numbers Closed</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Match Success Rate</div>
+                <div className="text-xl font-black italic text-primary">
+                  {Math.round((gameState.players[gameState.winner!].totalScore / (15 * 12 + 10)) * 100)}%
+                </div>
+                <div className="text-[7px] text-white/20 uppercase tracking-tighter">Combat Efficiency</div>
+              </div>
+            </div>
+
             <div className="space-y-6 mb-10">
-              <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">Broadcast Victory To Command</div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">Broadcast Victory To Command</div>
+                <div className="text-[9px] text-primary/60 italic">📸 Tip: Take a screenshot to share with your tactical report!</div>
+                <div className="text-[10px] text-white/40 font-mono-game mt-2 font-bold tracking-widest opacity-50 underline decoration-primary/30">https://fillgamedart.vercel.app</div>
+              </div>
               <div className="flex justify-center gap-4">
                 <Button
                   onClick={() => {
-                    const text = `🎯 Just won a tactical match in Filling Game! Final Score: ${gameState.players[gameState.winner!].totalScore} pts. Batch 1: ${gameState.batch1Scores![0]} vs ${gameState.batch1Scores![1]}. Check it out!`;
+                    const siteUrl = "https://fillgamedart.vercel.app";
+                    const text = `🎯 Tactical Victory on Filling Game! \n🏆 Score: ${gameState.players[gameState.winner!].totalScore} pts\n📊 Batch 1: ${gameState.batch1Scores![0]} - ${gameState.batch1Scores![1]}\n🚀 Play now: ${siteUrl}`;
                     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
                   }}
                   variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-primary p-0 shadow-lg"
@@ -656,7 +693,8 @@ const Index = () => {
                 </Button>
                 <Button
                   onClick={() => {
-                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+                    const siteUrl = "https://fillgamedart.vercel.app";
+                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(siteUrl)}`, '_blank');
                   }}
                   variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-blue-500 p-0 shadow-lg"
                 >
@@ -664,8 +702,9 @@ const Index = () => {
                 </Button>
                 <Button
                   onClick={() => {
-                    const text = `🎯 Tactical Victory! Final Score: ${gameState.players[gameState.winner!].totalScore} pts. Join the fight!`;
-                    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(window.location.href)}`, '_blank');
+                    const siteUrl = "https://fillgamedart.vercel.app";
+                    const text = `🎯 Tactical Victory! Score: ${gameState.players[gameState.winner!].totalScore} pts. \nBatch 1 Breakdown: ${gameState.batch1Scores![0]} vs ${gameState.batch1Scores![1]}. \nJoin the fight at ${siteUrl}`;
+                    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`, '_blank');
                   }}
                   variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-purple-500 p-0 shadow-lg"
                 >
@@ -673,8 +712,10 @@ const Index = () => {
                 </Button>
                 <Button
                   onClick={() => {
-                    navigator.clipboard.writeText(`I won! ${gameState.players[gameState.winner!].totalScore} pts in Filling Game.`);
-                    toast.success("Score copied for Instagram!");
+                    const siteUrl = "https://fillgamedart.vercel.app";
+                    const summary = `🏆 I won! ${gameState.players[gameState.winner!].totalScore} pts on Filling Game. (B1: ${gameState.batch1Scores![0]}-${gameState.batch1Scores![1]}). \nPlay: ${siteUrl}`;
+                    navigator.clipboard.writeText(summary);
+                    toast.success("Score details copied! Share your screenshot on Instagram.");
                   }}
                   variant="outline" className="w-12 h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-pink-500 p-0 shadow-lg"
                 >
@@ -752,7 +793,14 @@ const Index = () => {
             <Dartboard gameState={gameState} onHitNumber={handleHitNumber} onHitRing={handleHitRing} disabled={gameState.gameOver} />
           </div>
           <div className="flex flex-col items-center gap-6 w-full max-w-md mt-6 h-48">
-            <DartArrow boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'} isFlying={false} isVisible={!gameState.gameOver} disabled={gameState.gameOver || gameState.currentPlayer === 1} onClick={() => window.dispatchEvent(new CustomEvent('THROW_DART'))} playerIdx={gameState.currentPlayer} />
+            <DartArrow
+              boardPhase={gameState.dartsRemaining > 0 ? 'idle' : 'throwing'}
+              isFlying={isDartFlying}
+              isVisible={!gameState.gameOver}
+              disabled={gameState.gameOver || gameState.currentPlayer === 1}
+              onClick={() => window.dispatchEvent(new CustomEvent('THROW_DART'))}
+              playerIdx={gameState.currentPlayer}
+            />
             <div className="text-center glass-panel px-10 py-5 rounded-3xl border-white/10 hover:bg-white/10 transition-colors cursor-pointer group active:scale-95 shadow-2xl min-w-[220px]" onClick={() => !gameState.gameOver && gameState.dartsRemaining > 0 && window.dispatchEvent(new CustomEvent('THROW_DART'))}>
               <span className="text-sm font-black tracking-[0.3em] text-primary uppercase">{gameState.dartsRemaining > 0 ? 'Launch Dart' : 'Turn Ending...'}</span>
             </div>

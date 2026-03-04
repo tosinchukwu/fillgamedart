@@ -7,6 +7,8 @@ export interface PlayerState {
   hits: Record<number, number>;
   completed: Record<number, boolean>;
   bonusPoints: Record<number, number>; // Points from rings that don't count as hits
+  num1AwardedBatch1: boolean;
+  num1AwardedBatch2: boolean;
 }
 
 export interface GameState {
@@ -43,7 +45,16 @@ export function createInitialPlayer(name: string, address: string): PlayerState 
     completed[i] = false;
     bonusPoints[i] = 0;
   }
-  return { name, address, totalScore: 0, hits, completed, bonusPoints };
+  return {
+    name,
+    address,
+    totalScore: 0,
+    hits,
+    completed,
+    bonusPoints,
+    num1AwardedBatch1: false,
+    num1AwardedBatch2: false
+  };
 }
 
 export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: string, p2Addr: string, isVsCPU = false): GameState {
@@ -78,10 +89,10 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
     // 1. Filler Points (+2 per hit, capped at number's value)
     // COMBINED with bonus points from rings, but still capped at n * 2
     // 1. Filler points (+2 per hit)
-    // Capped at n*2 EXCEPT for Number 1 which adds +2 for every hit
-    const baseFiller = player.hits[n] * 2;
+    // Capped at n*2 EXCEPT for Number 1 which is capped at ONE hit per batch
+    const baseFiller = n === 1 ? (player.hits[1] > 0 ? 2 : 0) : player.hits[n] * 2;
     const bonus = player.bonusPoints[n];
-    const totalFiller = n === 1 ? baseFiller + bonus : Math.min(baseFiller + bonus, n * 2);
+    const totalFiller = n === 1 ? baseFiller : Math.min(baseFiller + bonus, n * 2);
     score += totalFiller;
 
     // 2. Top Filler Bonus (+7 per number, split if tied)
@@ -102,10 +113,11 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
     }
 
     // 3. Fill-Up Bonus (+10 per number)
-    // For Number 1: Awarded for EVERY hit (+10 per hit)
+    // For Number 1: Awarded ONLY ONCE per batch (+10 pts)
     // For others: Awarded to the player who landings the final hit to close the number for BOTH players
     if (n === 1) {
-      score += player.hits[1] * 10;
+      if (player.num1AwardedBatch1) score += 10;
+      if (player.num1AwardedBatch2) score += 10;
     } else if (gameState.closedNumbers.has(n)) {
       const seq = gameState.hitSequences[n];
       let p1Rem = n;
@@ -140,6 +152,11 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
     // Record hit (Hits are uncapped for TFP comparison)
     player.hits[targetNumber]++;
     newState.hitSequences[targetNumber].push(cp);
+
+    if (targetNumber === 1) {
+      if (newState.batch === 1) player.num1AwardedBatch1 = true;
+      else if (newState.batch === 2) player.num1AwardedBatch2 = true;
+    }
 
     if (player.hits[targetNumber] >= targetNumber) {
       const wasCompleted = player.completed[targetNumber];
@@ -204,6 +221,11 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
     // 1. Record hit (similar to hitNumber)
     player.hits[num]++;
     newState.hitSequences[num].push(cp);
+
+    if (num === 1) {
+      if (newState.batch === 1) player.num1AwardedBatch1 = true;
+      else if (newState.batch === 2) player.num1AwardedBatch2 = true;
+    }
 
     // 2. Check personal completion
     if (player.hits[num] >= num) {

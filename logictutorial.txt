@@ -1,0 +1,76 @@
+# FILL GAME DART: COMPLETE LOGIC TUTORIAL
+
+Welcome to the official logic guide for Fill Game Dart. This tutorial covers everything from basic hits to advanced batch strategies and bonuses.
+
+---
+
+## 1. THE GAME STRUCTURE (BATCHES)
+
+The game is played in two distinct phases called "Batches".
+
+### BATCH 1: THE QUALIFICATION (221.5 PTS)
+- **Goal**: Be the first to reach or exceed the target score of **221.5 points**.
+- **The Bar**: Once a player hits 221.5, Batch 1 ends. Their final score becomes "The Bar" that the opponent must try to beat in Batch 2.
+
+### BATCH 2: THE FINAL RACE (BEAT THE BAR)
+- **Goal**: Reach a score higher than your opponent's final Batch 1 score.
+- **Victory**: The first player to surpass their specific target wins the entire game immediately.
+
+---
+
+## 2. THE DARTBOARD TARGETS
+
+### DIRECT NUMBER HITS (1-14)
+- You can target numbers 1 through 14 directly.
+- Each hit progresses your "Personal Completion" for that number (e.g., Number 10 requires 10 hits to complete).
+
+### RING HITS (GROUPS)
+Hitting a ring is a powerful move that awards hits to **ALL** numbers in that group:
+- **Ring 1 (Inner)**: 14, 13
+- **Ring 2**: 12, 9, 5, 10
+- **Ring 3**: 11, 1, 3, 8
+- **Ring 4 (Outer)**: 7, 4, 2, 6
+
+---
+
+## 3. THE SCORING SYSTEM
+
+### A. FILLER POINTS (+2 PER HIT)
+- **Numbers 2-14**: Every hit grants +2 pts, capped at `(Number Value * 2)`.
+- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch**. Your first hit on #1 in Batch 1 gives pts; subsequent hits in Batch 1 give 0 filler pts. The same applies to Batch 2.
+
+### B. TOP FILLER BONUS (+7 PER NUMBER)
+- **Applicable**: Numbers 2 - 14.
+- **Condition**: Awarded once **BOTH** players have hit more than half of the number's requirement.
+- **Winner**: The player with the most hits on that number gets +7 pts.
+- **Tie**: Both players get +3.5 pts each.
+
+### C. FILL-UP BONUS (+10 PER NUMBER)
+- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch**. Your first hit on #1 in Batch 1 gives +10 pts; subsequent hits in Batch 1 give 0. The same applies to Batch 2.
+- **Numbers 2-14**: Awarded to the player who "closes" the number for the whole board (completes it for themselves after the opponent has already finished).
+
+---
+
+## 4. NUMBER 1 SUMMARY: THE "12-POINT RULE"
+- **Batch 1 (First Hit)**: Grants **+12 total points** (2 Filler + 10 Fill-Up).
+- **Batch 1 (Later Hits)**: Grants **0 points**.
+- **Batch 2 (First Hit)**: Grants **+12 total points**.
+- **Batch 2 (Later Hits)**: Grants **0 points**.
+
+---
+
+## 5. EXAMPLE SCENARIO: A RING 3 STRIKE (BATCH 1)
+
+If you hit **Ring 3** (Numbers 11, 1, 3, 8):
+1. **Hits Recorded**: You get +1 hit on all numbers.
+2. **Scoring for #1**: If this is your first hit on #1 in Batch 1, you get **+12 pts**.
+3. **Scoring for Others**: You get +2 pts for #11, +2 pts for #3, and +2 pts for #8 (assuming they aren't capped).
+4. **Total**: 12 + 2 + 2 + 2 = **18 points** from one ring hit!
+
+---
+
+## 6. PRO TIPS
+- **Don't Waste Darts on #1**: Since it only pays out once per batch, don't keep aiming for it (directly or via Ring 3) once you've collected your 12 points.
+- **Batch 1 Strategy**: Aim for high numbers to build a massive "Bar" that your opponent will struggle to beat in Batch 2.
+
+Good luck, Archer! 🎯

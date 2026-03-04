@@ -1,0 +1,47 @@
+# Fill Game Dart - Ring Strategy Logic
+
+## Ring Composition
+- **Ring 1 (Inner)**: 14, 13
+- **Ring 2**: 12, 9, 5, 10
+- **Ring 3**: 11, 1, 3, 8
+- **Ring 4 (Outer)**: 7, 4, 2, 6
+
+## Impact Rule
+- A hit on any Ring (1, 2, 3, or 4) acts as a **direct hit on EVERY number** contained within that ring's group.
+
+## Scoring Logic per Number (1st to 14th Dart)
+
+### 1. Filler Points (+2 Pts)
+- **Numbers 2-14**: Every hit grants +2 filler points, capped at `(Number Value * 2)`.
+- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch** (+2 pts).
+
+### 2. Top Filler Bonus (+7 Pts)
+- **Applicable to**: Numbers 2 through 14.
+- **Condition**: Awarded once **BOTH** players have hit more than half of the number's value.
+- **Winner**: The player with the higher total hit count on that specific number receives +7 pts.
+
+### 3. Fill-Up Bonus (+10 Pts)
+- **Number 1 SPECIAL**: Awarded **ONLY ONCE per batch** (+10 pts).
+- **Numbers 2-14**: Awarded only when a hit **completes board closure** for that specific number.
+
+---
+
+## THE "12-POINT RULE" FOR NUMBER 1
+- **First Hit of Batch (1 or 2)**: Grants **+12 pts** (2 Filler + 10 Fill-Up).
+- **All Subsequent Hits in Batch**: Grants **0 pts**.
+
+---
+
+## CALCULATION EXAMPLES
+
+### Example 1: Hit on Ring 1 (Numbers 13, 14)
+Scenario: Player A hits Ring 1. 
+- **Number 13**: +2 Filler (plus potential +7 TFP or +10 Fill-Up).
+- **Number 14**: +2 Filler (plus potential +7 TFP or +10 Fill-Up).
+
+### Example 2: Hit on Ring 3 (Numbers 11, 1, 3, 8) in Batch 1
+Scenario: Player A hits Ring 3 for the first time.
+- **Number 1**: Grants **+12 pts** immediately.
+- **Number 11, 3, 8**: +2 Filler each.
+- **Grand Total**: 12 + 2 + 2 + 2 = **18 points**.
+- *Subsequent hits on Ring 3 in the same batch will give 0 points for #1.*

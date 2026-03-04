@@ -105,8 +105,8 @@ const RulesScroll = () => (
 const Index = () => {
   const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight'>('neon');
   const [gameStarted, setGameStarted] = useState(false);
-  const [p1Name, setP1Name] = useState('Player 1');
-  const [p2Name, setP2Name] = useState('Player 2');
+  const [p1Name, setP1Name] = useState('');
+  const [p2Name, setP2Name] = useState('');
   const [p1Address, setP1Address] = useState<string | null>(null);
   const [p2Address, setP2Address] = useState<string | null>(null);
   const [isVsCPU, setIsVsCPU] = useState(false);
@@ -174,14 +174,18 @@ const Index = () => {
 
   const startGame = () => {
     if (!p1Address || !p2Address) return;
-    setGameState(createInitialGameState(p1Name, p1Address, p2Name, p2Address, false));
+    const finalP1Name = p1Name.trim() || 'Player 1';
+    const finalP2Name = p2Name.trim() || 'Player 2';
+    setGameState(createInitialGameState(finalP1Name, p1Address, finalP2Name, p2Address, false));
     setLogMessages([]);
     setGameStarted(true);
   };
 
   const startSoloGame = () => {
     setIsVsCPU(true);
-    setGameState(createInitialGameState('Guest', '0xGUEST', 'Computer AI', '0xCOMPUTER', true));
+    const player1Name = p1Name.trim() || (isConnected && address ? 'You' : 'Guest');
+    const player1Address = isConnected && address ? address : '0x0000000000000000000000000000000000000001';
+    setGameState(createInitialGameState(player1Name, player1Address, 'Computer AI (CPU)', '0x0000000000000000000000000000000000000000', true));
     setLogMessages([]);
     setGameStarted(true);
   };
@@ -316,6 +320,10 @@ const Index = () => {
       return;
     }
 
+    const p1Addr = gameState.players[0].address === '0x0000000000000000000000000000000000000001' && address
+      ? address
+      : gameState.players[0].address;
+
     try {
       writeContract({
         address: CONTRACT_ADDRESS as `0x${string}`,
@@ -323,7 +331,7 @@ const Index = () => {
         functionName: 'recordScore',
         args: [
           gameState.players[0].name,
-          gameState.players[0].address as `0x${string}`,
+          p1Addr as `0x${string}`,
           BigInt(gameState.players[0].totalScore),
           gameState.players[1].name,
           gameState.players[1].address as `0x${string}`,
@@ -352,14 +360,32 @@ const Index = () => {
             <h1 className="text-6xl text-white tracking-[0.2em] mb-2">FILLING GAME</h1>
             <p className="text-primary text-sm font-mono-game uppercase tracking-[0.3em] opacity-80">Strategic Dart Simulation</p>
             <div className="space-y-4 pt-4">
-              {/* Wallet registration slots */}
               <div className="grid gap-4">
-                <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="h-12 border-white/10 text-white/60">
-                  {p1Address ? `P1: ${p1Address.slice(0, 6)}...` : 'Link P1 Wallet'}
-                </Button>
-                <Button onClick={() => isConnected ? setP2Address(address!) : open()} variant="outline" className="h-12 border-white/10 text-white/60">
-                  {p2Address ? `P2: ${p2Address.slice(0, 6)}...` : 'Link P2 Wallet'}
-                </Button>
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Player 1 Name</label>
+                  <Input
+                    value={p1Name}
+                    onChange={(e) => setP1Name(e.target.value)}
+                    placeholder="Enter Player 1 Name"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/10"
+                  />
+                  <Button onClick={() => isConnected ? setP1Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2">
+                    {p1Address ? `Wallet: ${p1Address.slice(0, 6)}...` : 'Link P1 Wallet'}
+                  </Button>
+                </div>
+
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] uppercase tracking-widest text-white/30 font-black ml-1">Player 2 Name</label>
+                  <Input
+                    value={p2Name}
+                    onChange={(e) => setP2Name(e.target.value)}
+                    placeholder="Enter Player 2 Name"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/10"
+                  />
+                  <Button onClick={() => isConnected ? setP2Address(address!) : open()} variant="outline" className="w-full h-10 border-white/10 text-white/60 text-xs mt-2">
+                    {p2Address ? `Wallet: ${p2Address.slice(0, 6)}...` : 'Link P2 Wallet'}
+                  </Button>
+                </div>
               </div>
               <Button onClick={startGame} disabled={!p1Address || !p2Address} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl">🎯 Start Match</Button>
               <div className="flex gap-2">
@@ -444,18 +470,10 @@ const Index = () => {
               </div>
             )}
             {gameState.batch === 1 && (
-              <>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-white tracking-tighter italic">221.5</span>
-                  <span className="text-[10px] font-mono-game text-white/20 uppercase tracking-widest">points</span>
-                </div>
-                <div className="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary shadow-[0_0_10px_rgba(232,65,66,0.5)] transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.min((gameState.players[gameState.currentPlayer].totalScore / 221.5) * 100, 100)}%` }}
-                  />
-                </div>
-              </>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-white tracking-tighter italic">221.5</span>
+                <span className="text-[10px] font-mono-game text-white/20 uppercase tracking-widest">points</span>
+              </div>
             )}
             {gameState.batch === 2 && gameState.batch1Scores && (
               <div className="mt-1 space-y-1.5 border-t border-white/5 pt-3">
@@ -525,14 +543,14 @@ const BatchTransitionOverlay = ({ show, scores, players, onClose }: any) => {
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">🎯</div>
               <p className="text-white/90 text-[13px] leading-relaxed">
-                <strong>{players[0].name}</strong> needs to surpass <strong>{scores[1]} pts</strong> (Player B's score) to win.
+                <strong>{players[0].name}</strong> needs to surpass <strong>{scores[1]} pts</strong> ({players[1].name}'s score) to win.
               </p>
             </div>
             <div className="h-[1px] bg-white/5 w-full" />
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold">🏁</div>
               <p className="text-white/90 text-[13px] leading-relaxed">
-                <strong>{players[1].name}</strong> needs to surpass <strong>{scores[0]} pts</strong> (Player A's score) to win.
+                <strong>{players[1].name}</strong> needs to surpass <strong>{scores[0]} pts</strong> ({players[0].name}'s score) to win.
               </p>
             </div>
           </div>

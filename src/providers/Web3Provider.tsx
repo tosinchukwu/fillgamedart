@@ -30,7 +30,7 @@ createWeb3Modal({
     wagmiConfig: config,
     projectId,
     enableAnalytics: true,
-    enableOnramp: true
+    enableOnramp: true,
 })
 
 const queryClient = new QueryClient()

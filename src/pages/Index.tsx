@@ -472,7 +472,7 @@ const Index = () => {
                     disabled={isConnected && !matchId}
                     className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
                   >
-                    {isConnected ? '📡 Join Private Lobby' : '🔌 Connect Wallet to Join'}
+                    {isConnected ? '📡 Join Private Lobby' : '🔌 Connect Wallet (Passkeys & Smart Wallets Supported)'}
                   </Button>
                 </div>
               ) : (
@@ -566,15 +566,11 @@ const Index = () => {
                 </div>
               )}
 
-              {setupMode === 'solo' ? (
+              {setupMode === 'solo' && (
                 <Button onClick={startSoloGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
                   🚀 Start Solo Mission
                 </Button>
-              ) : isLobbyJoined ? (
-                <Button onClick={startGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
-                  🎯 Force Start (Debug)
-                </Button>
-              ) : null}
+              )}
 
               <div className="flex justify-center">
                 <Button onClick={shareGame} variant="ghost" className="bg-white/5 border border-white/10 text-white/80 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 px-6 py-2 rounded-lg hover:bg-white/10">

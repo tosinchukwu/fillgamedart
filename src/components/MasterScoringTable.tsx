@@ -56,11 +56,11 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
         let fuB = 0;
         if (n === 1) {
             const earners = [];
-            if (p1.hits[1] > 0) earners.push('A');
-            if (p2.hits[1] > 0) earners.push('B');
+            if (p1.num1AwardedBatch1 || p1.num1AwardedBatch2) earners.push('A');
+            if (p2.num1AwardedBatch1 || p2.num1AwardedBatch2) earners.push('B');
             fuEarner = earners.join(', ') || '-';
-            fuA = p1.hits[1] * 10;
-            fuB = p2.hits[1] * 10;
+            fuA = (p1.num1AwardedBatch1 ? 10 : 0) + (p1.num1AwardedBatch2 ? 10 : 0);
+            fuB = (p2.num1AwardedBatch1 ? 10 : 0) + (p2.num1AwardedBatch2 ? 10 : 0);
         } else if (gameState.closedNumbers.has(n)) {
             let p1Rem = n;
             let p2Rem = n;
@@ -75,8 +75,8 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
         }
 
         // Filler points for this row (Capped at n*2, EXCEPT for Number 1)
-        const fillerA = n === 1 ? p1.hits[1] * 2 + p1.bonusPoints[1] : Math.min(p1.hits[n] * 2 + p1.bonusPoints[n], n * 2);
-        const fillerB = n === 1 ? p2.hits[1] * 2 + p2.bonusPoints[1] : Math.min(p2.hits[n] * 2 + p2.bonusPoints[n], n * 2);
+        const fillerA = n === 1 ? ((p1.num1AwardedBatch1 ? 2 : 0) + (p1.num1AwardedBatch2 ? 2 : 0)) : Math.min(p1.hits[n] * 2 + p1.bonusPoints[n], n * 2);
+        const fillerB = n === 1 ? ((p2.num1AwardedBatch1 ? 2 : 0) + (p2.num1AwardedBatch2 ? 2 : 0)) : Math.min(p2.hits[n] * 2 + p2.bonusPoints[n], n * 2);
 
         const totalA = fillerA + tfpA + fuA;
         const totalB = fillerB + tfpB + fuB;
@@ -118,13 +118,13 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
                     <thead>
                         <tr className="bg-black/40 text-[9px] uppercase tracking-widest text-white/40 border-b border-white/10">
                             <th className="py-3 px-3 font-black">Dart No</th>
-                            <th className="py-3 px-3 font-black">PLAYER A (Hit Position)</th>
-                            <th className="py-3 px-3 font-black">PLAYER B (Hit Position)</th>
+                            <th className="py-3 px-3 font-black">{gameState.players[0].name.toUpperCase()} (Hit Position)</th>
+                            <th className="py-3 px-3 font-black">{gameState.players[1].name.toUpperCase()} (Hit Position)</th>
                             <th className="py-3 px-3 font-black text-center">Filler +2 (Who Earned)</th>
                             <th className="py-3 px-3 font-black text-center">Top Filler +7</th>
                             <th className="py-3 px-3 font-black text-center">Fill Up +10</th>
-                            <th className="py-3 px-3 font-black text-center">PLAYER A Total</th>
-                            <th className="py-3 px-3 font-black text-center">PLAYER B Total</th>
+                            <th className="py-3 px-3 font-black text-center">{gameState.players[0].name.toUpperCase()} Total</th>
+                            <th className="py-3 px-3 font-black text-center">{gameState.players[1].name.toUpperCase()} Total</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -142,11 +142,11 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
                 </div>
                 <div className="flex gap-6">
                     <div className="text-right">
-                        <span className="block text-[8px] text-white/40 uppercase">Total A</span>
+                        <span className="block text-[8px] text-white/40 uppercase">Total {gameState.players[0].name}</span>
                         <span className="text-xl font-black text-white">{gameState.players[0].totalScore}</span>
                     </div>
                     <div className="text-right">
-                        <span className="block text-[8px] text-white/40 uppercase">Total B</span>
+                        <span className="block text-[8px] text-white/40 uppercase">Total {gameState.players[1].name}</span>
                         <span className="text-xl font-black text-white">{gameState.players[1].totalScore}</span>
                     </div>
                 </div>

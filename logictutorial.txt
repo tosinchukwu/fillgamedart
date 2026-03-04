@@ -25,7 +25,7 @@ The game is played in two distinct phases called "Batches".
 - Each hit progresses your "Personal Completion" for that number (e.g., Number 10 requires 10 hits to complete).
 
 ### RING HITS (GROUPS)
-Hitting a ring is a powerful move that awards hits to **ALL** numbers in that group:
+Hitting a ring is a powerful move that awards points to **ALL** numbers in that group, but **DOES NOT** count as a "hit" toward completion:
 - **Ring 1 (Inner)**: 14, 13
 - **Ring 2**: 12, 9, 5, 10
 - **Ring 3**: 11, 1, 3, 8
@@ -118,12 +118,12 @@ Once the shared target is reached (Board Closed):
 **Example 2: Board Closure & Fill-Up Bonus (#3)**
 - **Scenario**: Player A lands 1 hit on #3. Player B lands 1 hit on #3. Player A then lands a second hit on #3 (the "3rd" total board hit).
 - **Logic**: Total board hits = 1 + 1 + 1 = 3. Since `3rd hit` closes #3, Board is now **Closed**.
-- **Result**: Player A earns **+4 filler pts** (for the 2 hits landed) AND **+10 pts Fill-Up Bonus** for being the one to close the board. Any subsequent hits on #3 by either player give 0 points.
+- **Result**: Player A earns **+4 filler pts** (for the 2 hits landed) AND **+10 pts Fill-Up Bonus** for being the one to close the board. Any subsequent hits on #3 by either player give 0 points. And Player B earns his own +2 filler pts (for the 1 hits landed)
 
 **Example 3: Ring Impact on Completion**
 - **Scenario**: Player A hits **Ring 1** (contains #14 and #13). Player A needed 1 more hit for #13 but 5 more for #14.
-- **Logic**: Both numbers get +1 hit. 
-- **Result**: Player A completes #13 (+2 filler pts) but #14 remains open (+2 filler pts).
+- **Logic**: All numbers in the ring get their point value (+2, or +12 for #1) added to your score, but your hit count for these numbers remains unchanged.
+- **Result**: Player A earns filler pts for #13 and #14, but neither moves closer to being closed.
 
 **Example 4: Skipping a Closed Number**
 - **Scenario**: #13 is Closed. Player B hits **Ring 1** (#14, #13).

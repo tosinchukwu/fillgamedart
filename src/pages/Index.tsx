@@ -279,57 +279,59 @@ const Index = () => {
   const cpuAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (gameStarted && gameState && gameState.isVsCPU && gameState.currentPlayer === 1 && !gameState.gameOver && gameState.dartsRemaining > 0 && !showBatchOverlay) {
+    // CPU Turn Logic
+    if (
+      gameStarted &&
+      gameState &&
+      gameState.isVsCPU &&
+      gameState.currentPlayer === 1 &&
+      !gameState.gameOver &&
+      gameState.dartsRemaining > 0 &&
+      !showBatchOverlay &&
+      !isDartFlying
+    ) {
       // 6s delay for the first dart of the turn, 2s for others
       const delay = gameState.dartsRemaining === 3 ? 6000 : 2000;
 
       cpuTurnTimeoutRef.current = setTimeout(() => {
-        // We use a functional state update to get the absolute latest state
-        setGameState(current => {
-          if (!current || current.currentPlayer !== 1 || current.gameOver) return current;
+        // Use the current state to compute the move
+        const move = computeCPUMove(gameState);
 
-          const move = computeCPUMove(current);
-          window.dispatchEvent(new CustomEvent('THROW_DART'));
+        // Trigger visual throw
+        window.dispatchEvent(new CustomEvent('THROW_DART'));
 
-          // Wait for throw animation (1s) before processing the hit
-          cpuAnimationTimeoutRef.current = setTimeout(() => {
-            setGameState(prevState => {
-              if (!prevState) return null;
+        // Wait for throw animation (1s) before processing the logic hit
+        cpuAnimationTimeoutRef.current = setTimeout(() => {
+          setGameState(prevState => {
+            if (!prevState || prevState.currentPlayer !== 1 || prevState.gameOver) return prevState;
 
-              let updated: GameState;
-              let summary = '';
+            let updated: GameState;
+            if (move.type === 'number') {
+              const result = hitNumber(prevState, move.index);
+              updated = result.state;
+            } else {
+              const result = hitRing(prevState, move.index, RING_NUMBERS[move.index]);
+              updated = result.state;
+            }
 
-              if (move.type === 'number') {
-                const result = hitNumber(prevState, move.index);
-                updated = result.state;
-                summary = `Hit #${move.index}`;
-              } else {
-                const result = hitRing(prevState, move.index, RING_NUMBERS[move.index]);
-                updated = result.state;
-                const match = updated.lastAction?.match(/Total: ([\d.]+) pts/);
-                summary = `Ring ${move.index + 1} (${RING_NUMBERS[move.index].join(', ')}) [${match ? match[1] : 0} pts]`;
-              }
+            if (updated.lastAction) {
+              setLogMessages(p => [...p, updated.lastAction!]);
+            }
 
-              cpuActionBuffer.current.push(summary);
+            if (updated.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+            prevBatchRef.current = updated.batch;
 
-              if (updated.dartsRemaining === 0 || updated.gameOver) {
-                const combinedLog = `[PLAYER B (CPU)]: Turn - ${cpuActionBuffer.current.join(', ')}. [Total: ${updated.players[1].totalScore} pts]`;
-                setLogMessages(p => [...p, combinedLog]);
-                cpuActionBuffer.current = [];
-              }
-
-              if (updated.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-              prevBatchRef.current = updated.batch;
-
-              return updated;
-            });
-          }, 1000);
-
-          return current; // Return current state immediately while animation plays
-        });
+            return updated;
+          });
+        }, 1000);
       }, delay);
     }
-  }, [gameStarted, gameState, showBatchOverlay, isDartFlying, isVsCPU]);
+
+    return () => {
+      if (cpuTurnTimeoutRef.current) clearTimeout(cpuTurnTimeoutRef.current);
+      if (cpuAnimationTimeoutRef.current) clearTimeout(cpuAnimationTimeoutRef.current);
+    };
+  }, [gameStarted, gameState, showBatchOverlay, isDartFlying]);
 
   const canIThrow = (() => {
     if (!gameState || gameState.gameOver || gameState.dartsRemaining <= 0 || showBatchOverlay) return false;

@@ -82,27 +82,27 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
 function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
   let score = 0;
   const player = gameState.players[playerIdx];
+  const otherIdx = playerIdx === 0 ? 1 : 0;
+  const other = gameState.players[otherIdx];
 
   for (let n = 1; n <= TOTAL_NUMBERS; n++) {
+    // Number 1 Rule: +12 on first hit per batch
     if (n === 1) {
-      const mainAwarded = gameState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
-      if (mainAwarded) score += 12;
-      score += (player.bonusPoints[1] || 0);
+      const awarded = gameState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
+      if (awarded) score += 12;
       continue;
     }
 
-    let filler = 0;
-    const baseFiller = (player.hits[n] || 0) * 2;
-    const bonus = (player.bonusPoints[n] || 0);
-    filler = Math.min(baseFiller + bonus, n * 2);
+    // Filler Points (2-14): +2 per hit, capped at n * 2
+    const filler = Math.min((player.hits[n] || 0) * 2, n * 2);
     score += filler;
 
-    if (n >= 2 && gameState.closedNumbers.has(n)) {
+    // Top Filler Bonus (2-14): Both > n/2
+    if (gameState.closedNumbers.has(n)) {
       const p1Hits = gameState.players[0].hits[n] || 0;
       const p2Hits = gameState.players[1].hits[n] || 0;
       const threshold = n / 2;
 
-      // Rule: Only awarded if BOTH players have passed the half-count threshold
       if (p1Hits > threshold && p2Hits > threshold) {
         if (playerIdx === 0) {
           if (p1Hits > p2Hits) score += 7;
@@ -112,13 +112,19 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
           else if (p2Hits === p1Hits) score += 3.5;
         }
       }
-    }
 
-    if (gameState.closedNumbers.has(n)) {
-      const seq = gameState.hitSequences[n] || [];
-      if (seq.length >= n) {
-        if (seq[n - 1] === playerIdx) {
-          score += 10;
+      // Fill-Up Bonus (2-14): Second player to finish
+      // To find who closed it, we find the first hit in hitSequences where both hit counts >= n
+      const seq = gameState.hitSequences[n];
+      let h0 = 0;
+      let h1 = 0;
+      for (let i = 0; i < seq.length; i++) {
+        if (seq[i] === 0) h0++;
+        else h1++;
+
+        if (h0 >= n && h1 >= n) {
+          if (seq[i] === playerIdx) score += 10;
+          break; // This hit was the closure
         }
       }
     }
@@ -131,6 +137,7 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
   const newState = structuredClone(state) as GameState;
   const cp = newState.currentPlayer;
   const player = newState.players[cp];
+  const other = newState.players[cp === 0 ? 1 : 0];
   let message = '';
 
   if (!isMultiHit) newState.dartsRemaining--;
@@ -142,19 +149,23 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
     newState.hitSequences[targetNumber].push(cp);
 
     if (targetNumber === 1) {
-      if (newState.batch === 1) player.num1AwardedBatch1 = true;
-      else if (newState.batch === 2) player.num1AwardedBatch2 = true;
+      const alreadyAwarded = newState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
+      if (!alreadyAwarded) {
+        if (newState.batch === 1) player.num1AwardedBatch1 = true;
+        else if (newState.batch === 2) player.num1AwardedBatch2 = true;
+        message = "Hit #1! +12 pts special bonus.";
+      } else {
+        message = "Hit #1! (Already awarded points this batch)";
+      }
+
+      // Number 1 closure remains shared/fast for speed in this game
       player.completed[1] = true;
       newState.closedNumbers.add(1);
-      message = "Hit #1! +12 pts special bonus.";
     } else {
-      const totalBoardHits = (newState.players[0].hits[targetNumber] || 0) + (newState.players[1].hits[targetNumber] || 0);
-      if (totalBoardHits >= targetNumber) {
+      // Board closure: BOTH players finished
+      if (player.hits[targetNumber] >= targetNumber && other.hits[targetNumber] >= targetNumber) {
         newState.closedNumbers.add(targetNumber);
-        message = `Number ${targetNumber} is fully closed!`;
-        if (newState.hitSequences[targetNumber][targetNumber - 1] === cp) {
-          message += " +10 Fill-Up Bonus awarded!";
-        }
+        message = `Number ${targetNumber} is fully closed! +10 Fill-Up Bonus!`;
       } else {
         message = `Hit ${targetNumber}! (${player.hits[targetNumber]}/${targetNumber})`;
       }
@@ -183,33 +194,34 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
 }
 
 export function hitRing(state: GameState, ringIndex: number, ringNumbers: number[]): { state: GameState; messages: string[] } {
-  const newState = structuredClone(state) as GameState;
-  const cp = newState.currentPlayer;
-  const player = newState.players[cp];
-  const oldScore = player.totalScore;
+  // Ring hits now count as direct hits for EVERY number in the group
+  let currentResult = { state, message: '' };
+  const messages: string[] = [];
+
+  // Decrement dart once for the ring hit
+  const baseState = structuredClone(state) as GameState;
+  baseState.dartsRemaining--;
+  currentResult.state = baseState;
 
   for (const num of ringNumbers) {
-    if (newState.closedNumbers.has(num)) continue;
-
-    player.bonusPoints[num] = (player.bonusPoints[num] || 0) + 2;
+    const result = hitNumber(currentResult.state, num, true);
+    currentResult = { state: result.state, message: result.message };
+    messages.push(result.message);
   }
 
-  newState.players[0].totalScore = recalcTotalScore(newState, 0);
-  newState.players[1].totalScore = recalcTotalScore(newState, 1);
+  const cp = currentResult.state.currentPlayer;
+  const player = currentResult.state.players[cp];
+  currentResult.state.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${player.totalScore} pts`;
 
-  const pointsEarnedInHit = player.totalScore - oldScore;
-  newState.dartsRemaining--;
-  newState.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${pointsEarnedInHit} pts`;
-
-  if (newState.dartsRemaining <= 0) {
-    checkBatchConditions(newState);
-    if (!newState.gameOver && newState.dartsRemaining === 0) {
-      newState.currentPlayer = cp === 0 ? 1 : 0;
-      newState.dartsRemaining = 3;
+  if (currentResult.state.dartsRemaining <= 0) {
+    checkBatchConditions(currentResult.state);
+    if (!currentResult.state.gameOver && currentResult.state.dartsRemaining === 0) {
+      currentResult.state.currentPlayer = cp === 0 ? 1 : 0;
+      currentResult.state.dartsRemaining = 3;
     }
   }
 
-  return { state: newState, messages: [] };
+  return { state: currentResult.state, messages };
 }
 
 function checkBatchConditions(state: GameState) {

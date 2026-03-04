@@ -96,19 +96,16 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
     score += totalFiller;
 
     // 2. Top Filler Bonus (+7 per number, split if tied)
-    // Awarded based on highest total hits for THIS number (Only for 2-14)
-    // CONDITION: Only awarded once BOTH players have hit more than half of the number
-    if (n >= 2) {
+    // Awarded based on contribution share when the number is CLOSED
+    // Majority contributor (> N/2 hits) gets +7. Equal contribution (N/2 each) gets +3.5.
+    if (n >= 2 && gameState.closedNumbers.has(n)) {
       const pHits = player.hits[n];
-      const oHits = opponent.hits[n];
       const threshold = n / 2;
 
-      if (pHits > threshold && oHits > threshold) {
-        if (pHits > oHits) {
-          score += 7;
-        } else if (pHits === oHits) {
-          score += 3.5;
-        }
+      if (pHits > threshold) {
+        score += 7;
+      } else if (pHits > 0 && pHits === threshold) {
+        score += 3.5;
       }
     }
 
@@ -120,16 +117,10 @@ function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
       if (player.num1AwardedBatch2) score += 10;
     } else if (gameState.closedNumbers.has(n)) {
       const seq = gameState.hitSequences[n];
-      let p1Rem = n;
-      let p2Rem = n;
-      for (let i = 0; i < seq.length; i++) {
-        const p = seq[i];
-        if (p === 0) p1Rem--;
-        else p2Rem--;
-
-        if (p1Rem <= 0 && p2Rem <= 0) {
-          if (p === playerIdx) score += 10;
-          break;
+      if (seq.length >= n) {
+        const closingPlayerIdx = seq[n - 1]; // The player who landed the Nth hit
+        if (closingPlayerIdx === playerIdx) {
+          score += 10;
         }
       }
     }
@@ -146,34 +137,43 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
   const player = newState.players[cp];
   let message = '';
 
+  // 1. Record hit
+  player.hits[targetNumber]++;
+  newState.hitSequences[targetNumber].push(cp);
+
+  if (targetNumber === 1) {
+    if (newState.batch === 1) player.num1AwardedBatch1 = true;
+    else if (newState.batch === 2) player.num1AwardedBatch2 = true;
+    // Special rule: Number 1 closes for everyone after any 1 player hits it once in that batch
+    newState.closedNumbers.add(1);
+  }
+
+  // SHARED COMPLETION CHECK:
+  const totalBoardHits = newState.players[0].hits[targetNumber] + newState.players[1].hits[targetNumber];
+  if (totalBoardHits >= targetNumber) {
+    newState.closedNumbers.add(targetNumber);
+  }
+
+  // Update player's personal completion status
+  if (player.hits[targetNumber] >= targetNumber) {
+    player.completed[targetNumber] = true;
+  }
+
   if (newState.closedNumbers.has(targetNumber)) {
-    message = `Number ${targetNumber} is fully closed (both finished). No more points.`;
-  } else {
-    // Record hit (Hits are uncapped for TFP comparison)
-    player.hits[targetNumber]++;
-    newState.hitSequences[targetNumber].push(cp);
-
-    if (targetNumber === 1) {
-      if (newState.batch === 1) player.num1AwardedBatch1 = true;
-      else if (newState.batch === 2) player.num1AwardedBatch2 = true;
-    }
-
-    if (player.hits[targetNumber] >= targetNumber) {
-      const wasCompleted = player.completed[targetNumber];
-      player.completed[targetNumber] = true;
-      message = `Hit ${targetNumber}!`;
-      if (!wasCompleted) message += ` Personal Completion reached!`;
-
-      // Check if this fully closes the board
-      const opponent = newState.players[1 - cp];
-      if (opponent.completed[targetNumber]) {
-        newState.closedNumbers.add(targetNumber);
-        message += " Board closed for both! +10 Fill-Up Bonus awarded!";
-      } else {
-        message += ` Waiting for opponent to finish.`;
+    message = `Number ${targetNumber} is fully closed!`;
+    if (targetNumber !== 1) { // Number 1 fill-up bonus is handled by num1AwardedBatchX flags
+      const seq = newState.hitSequences[targetNumber];
+      if (seq.length >= targetNumber) {
+        const closingPlayerIdx = seq[targetNumber - 1];
+        if (closingPlayerIdx === cp) {
+          message += " +10 Fill-Up Bonus awarded!";
+        }
       }
-    } else {
-      message = `Hit ${targetNumber}! (${player.hits[targetNumber]}/${targetNumber}) +2 filler pts`;
+    }
+  } else {
+    message = `Hit ${targetNumber}! (${player.hits[targetNumber]}/${targetNumber})`;
+    if (player.completed[targetNumber]) {
+      message += ` Personal Completion reached!`;
     }
   }
 
@@ -218,24 +218,24 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
   for (const num of ringNumbers) {
     if (newState.closedNumbers.has(num)) continue;
 
-    // 1. Record hit (similar to hitNumber)
+    // 1. Record hit (similar to  // 1. Record hit
     player.hits[num]++;
     newState.hitSequences[num].push(cp);
 
     if (num === 1) {
       if (newState.batch === 1) player.num1AwardedBatch1 = true;
       else if (newState.batch === 2) player.num1AwardedBatch2 = true;
+      newState.closedNumbers.add(1);
     }
 
-    // 2. Check personal completion
+    // SHARED COMPLETION CHECK:
+    const totalBoardHits = newState.players[0].hits[num] + newState.players[1].hits[num];
+    if (totalBoardHits >= num) {
+      newState.closedNumbers.add(num);
+    }
+    // Update player's personal completion status
     if (player.hits[num] >= num) {
       player.completed[num] = true;
-
-      // 3. Check board closure
-      const opponent = newState.players[1 - cp];
-      if (opponent.completed[num]) {
-        newState.closedNumbers.add(num);
-      }
     }
   }
 

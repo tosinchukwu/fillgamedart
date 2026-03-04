@@ -73,4 +73,61 @@ If you hit **Ring 3** (Numbers 11, 1, 3, 8):
 - **Don't Waste Darts on #1**: Since it only pays out once per batch, don't keep aiming for it (directly or via Ring 3) once you've collected your 12 points.
 - **Batch 1 Strategy**: Aim for high numbers to build a massive "Bar" that your opponent will struggle to beat in Batch 2.
 
+---
+
+## 7. DART HIT CALCULATION
+
+### FOR HUMAN PLAYERS (RANDOMIZED RESOLUTION)
+When you click to throw, the game calculates your landing coordinates `(lx, ly)` using:
+- **Target Choice**: 70% chance to aim for a specific Number Badge, 30% to aim for a Ring Line.
+- **Coordinate Generation**:
+  - Hits are calculated using `polarToXY(angle, radius)`.
+  - **Number Hit**: Centers on the mid-angle of the number's segment and its specific ring radius.
+  - **Ring Hit**: Hits the exact boundary line (radius) of the ring at a random angle.
+- **Visual Realism**: A random tilt of ±20° is applied to every dart for a more natural appearance.
+
+### FOR THE CPU (STRATEGIC RESOLUTION)
+The CPU uses an algorithm to decide its target:
+1. **Ring Evaluation**: It calculates a "Desirability Score" for each ring by summing the point values of all uncompleted/unclosed numbers on that ring.
+2. **Threshold**: If any ring has a score > 20, the CPU prioritizes hitting that ring for maximum efficiency.
+3. **Fallback**: If no ring is highly desirable, it targets the highest remaining uncompleted number (e.g., #14, then #13).
+4. **Processing**: Once a target is picked, it uses the same logic engine as human players to ensure fairness.
+
+---
+
+## 8. COMPLETION & CLOSURE LOGIC
+
+### HIT TRACKING & SHARED BOARD COMPLETION
+The game maintains hits for both players, but completion is **Shared**.
+- `player.hits[n]++` is incremented.
+- A number is **Closed** for the entire board when `PlayerA.hits[n] + PlayerB.hits[n] >= n`.
+- **Logic**: No single player is mandatory to hit a dart number for the full count. The hits of **both players** count toward the shared target.
+
+### SCORING UPON CLOSURE
+Once the shared target is reached (Board Closed):
+1. **Filler Points**: Distributed based on each player's individual hits (capped at their contribution).
+2. **Top Filler Bonus (+7)**: Awarded to the player who landed the most hits (majority share). Split if tied.
+3. **Fill-Up Bonus (+10)**: Awarded to the player who lands the **final (Nth)** hit that closes the number.
+
+### EXAMPLES OF COMPLETION & CLOSURE
+
+**Example 1: Majority Share (#10)**
+- **Scenario**: Player A has 6 hits, Player B has 4 hits on #10.
+- **Result**: Board Closes. Player A gets +7 Top Filler Bonus. Player B earns 4 hits worth of filler pts but no bonus.
+
+**Example 2: Board Closure & Fill-Up Bonus (#3)**
+- **Scenario**: Player A lands 1 hit on #3. Player B lands 1 hit on #3. Player A then lands a second hit on #3 (the "3rd" total board hit).
+- **Logic**: Total board hits = 1 + 1 + 1 = 3. Since `3rd hit` closes #3, Board is now **Closed**.
+- **Result**: Player A earns +2 pts for the hit AND **+10 pts Fill-Up Bonus** for being the one to close the board. Any subsequent hits on #3 by either player give 0 points.
+
+**Example 3: Ring Impact on Completion**
+- **Scenario**: Player A hits **Ring 1** (contains #14 and #13). Player A needed 1 more hit for #13 but 5 more for #14.
+- **Logic**: Both numbers get +1 hit. 
+- **Result**: Player A completes #13 (+2 filler pts) but #14 remains open (+2 filler pts).
+
+**Example 4: Skipping a Closed Number**
+- **Scenario**: #13 is Closed. Player B hits **Ring 1** (#14, #13).
+- **Logic**: Game checks index for #13 in the closed set. It is found.
+- **Result**: Player B gets +1 hit and +2 pts for #14. For #13, the hit is ignored entirely: 0 hits and 0 pts recorded.
+
 Good luck, Archer! 🎯

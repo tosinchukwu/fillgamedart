@@ -1,3 +1,21 @@
+# GAME LOGIC UPDATE
+
+## Key Rules
+- **Per-Hit Scoring**: Every hit calculates points independently.
+  - **Filler**: +2
+  - **Top-Filler (Lead)**: +7
+  - **Top-Filler (Tie)**: +3.5
+  - **Top-Filler (Trailing)**: +0
+- **Global Completion**: Numbers close based on the **total combined hits** of both players.
+  - **Fill-Up Bonus**: +10 to the player who lands the final hit.
+
+## Examples
+- **Number 12 (Lead)**: A,A,B,B,A,A,A,A(A) -> +2 (Filler) + 7 (Lead) = **9 pts**.
+- **Number 9 (Trailing + Closure)**: B,B,B,A,A,B,B,A(A) -> +2 (Filler) + 10 (Fill-Up) = **12 pts**.
+- **Number 5 (Lead + Closure)**: A,A,B,B(A) -> +2 (Filler) + 7 (Lead) + 10 (Fill-Up) = **19 pts**.
+
+---
+
 # Fill Game Dart - Ring Strategy Logic
 
 ## Ring Composition

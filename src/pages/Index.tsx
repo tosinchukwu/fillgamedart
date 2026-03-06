@@ -22,6 +22,7 @@ import { avalanche } from 'viem/chains';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../lib/constants';
 import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
+import SpectatorView from './SpectatorView';
 
 // Audio assets (Local paths in public/audio/)
 const AUDIO_ASSETS = {
@@ -126,6 +127,8 @@ const Index = () => {
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const [selectedMusic, setSelectedMusic] = useState('synth_wave');
   const [isDartFlying, setIsDartFlying] = useState(false);
+  const [makePublic, setMakePublic] = useState(false);
+  const [isSpectatorMode, setIsSpectatorMode] = useState(false);
 
   useEffect(() => {
     const handleImpact = () => setIsDartFlying(false);
@@ -201,6 +204,10 @@ const Index = () => {
         setIsLobbyJoined(true);
         toast.info("Joining invite match...");
         // Keep hash so we know it's an invite link until game starts
+      } else if (hash === '#spectate' || hash.startsWith('#watch=')) {
+        setIsSpectatorMode(true);
+      } else {
+        setIsSpectatorMode(false);
       }
     };
 
@@ -337,6 +344,13 @@ const Index = () => {
   const broadcastGameState = useCallback(async (state: GameState) => {
     const activeMatchId = setupMode === 'invite' ? inviteCode : String(parsedMatchId || '');
     if (!activeMatchId || (setupMode !== 'multi' && setupMode !== 'invite') || isVsCPU) return;
+
+    // If game just ended in an invite match, release the featured spectator slot
+    if (state.gameOver && setupMode === 'invite' && inviteCode) {
+      try {
+        await supabase.from('matches').update({ status: 'finished' }).eq('match_id', inviteCode);
+      } catch { /* non-critical */ }
+    }
 
     try {
       const serializedState = {
@@ -545,6 +559,25 @@ const Index = () => {
     setIsLobbyJoined(true);
     setP1Address(address);
 
+    // Check how many featured slots are already taken
+    let isFeatured = false;
+    if (makePublic) {
+      try {
+        const { count } = await supabase
+          .from('matches')
+          .select('match_id', { count: 'exact', head: true })
+          .eq('is_featured', true)
+          .eq('status', 'active');
+        if ((count ?? 0) < 3) {
+          isFeatured = true;
+        } else {
+          toast.info("All 3 featured spectator slots are taken. Your game will be private.");
+        }
+      } catch {
+        // Silently fall back to private if check fails
+      }
+    }
+
     // Write host lobby row to Supabase so the subscription channel is ready
     try {
       const { error } = await supabase.from('matches').upsert({
@@ -552,6 +585,8 @@ const Index = () => {
         lobby_host: { name: p1Name, address },
         lobby_guest: null,
         game_state: null,
+        is_featured: isFeatured,
+        status: 'active',
       }, { onConflict: 'match_id' });
 
       if (error) {
@@ -567,7 +602,7 @@ const Index = () => {
 
     const inviteLink = `${window.location.origin}${window.location.pathname}#invite=${newCode}`;
     await navigator.clipboard.writeText(inviteLink);
-    toast.success("Invite Link Copied!", {
+    toast.success(isFeatured ? "Invite Link Copied! Match is PUBLIC — spectators can watch live." : "Invite Link Copied!", {
       description: "Send this to your opponent."
     });
   };
@@ -761,6 +796,11 @@ const Index = () => {
   };
 
   const renderSetupContent = () => {
+    // ── Spectator mode: show SpectatorView instead of setup ──
+    if (isSpectatorMode) {
+      return <SpectatorView />;
+    }
+
     if (setupMode === 'solo') {
       return (
         <div className="space-y-1 text-left">
@@ -917,13 +957,28 @@ const Index = () => {
           </div>
 
           {!isLobbyJoined ? (
-            <Button
-              onClick={createInviteMatch}
-              disabled={!isConnected || !p1Name}
-              className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
-            >
-              {isConnected ? '🔗 Create Invite Link' : '🔌 Connect Wallet to Host'}
-            </Button>
+            <>
+              {/* Public Spectator Toggle */}
+              <div
+                className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10 mb-2 cursor-pointer select-none"
+                onClick={() => setMakePublic(v => !v)}
+              >
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Allow Spectators</span>
+                  <span className="text-[9px] text-white/30 mt-0.5">Make this a public live match (max 3 slots)</span>
+                </div>
+                <div className={`w-10 h-5 rounded-full transition-all relative ${makePublic ? 'bg-primary' : 'bg-white/10'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${makePublic ? 'left-5' : 'left-0.5'}`} />
+                </div>
+              </div>
+              <Button
+                onClick={createInviteMatch}
+                disabled={!isConnected || !p1Name}
+                className="w-full h-12 bg-primary/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl border border-primary/30 hover:bg-primary/30 transition-all"
+              >
+                {isConnected ? '🔗 Create Invite Link' : '🔌 Connect Wallet to Host'}
+              </Button>
+            </>
           ) : (
             <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 duration-300">
               <div className="flex items-center justify-between mb-2">
@@ -1067,6 +1122,14 @@ const Index = () => {
                   <Share2 className="w-3 h-3 text-primary" />
                   Invite Friend
                 </Button>
+              </div>
+              <div className="flex justify-center">
+                <button
+                  onClick={() => { window.location.hash = '#spectate'; }}
+                  className="bg-white/5 border border-white/10 text-white/60 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 px-6 py-2 rounded-lg hover:bg-white/10 transition-all"
+                >
+                  📺 Watch Live Matches
+                </button>
               </div>
               <Button onClick={() => setShowRules(!showRules)} variant="ghost" className="w-full text-white/40 text-[10px] uppercase tracking-widest h-8 mt-2">📜 Game Rules & Strategy</Button>
               {showRules && <RulesScroll />}

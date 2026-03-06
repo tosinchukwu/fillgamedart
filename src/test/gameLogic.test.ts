@@ -35,7 +35,7 @@ describe("Game Logic Per-Number Bonus Tests (New Rules)", () => {
     });
 
     it("should follow the user's Number 12 example Lead Scoring", () => {
-        let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
+        const state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
         // Number 12: A,A,B,B,A,A,A,A(A) -> 9th hit by A
         // A hits: 1, 2, 5, 6, 7, 8, 9 (7 hits)
         // B hits: 3, 4 (2 hits)
@@ -54,7 +54,7 @@ describe("Game Logic Per-Number Bonus Tests (New Rules)", () => {
     });
 
     it("should follow the user's Number 9 example Trailing Scoring", () => {
-        let state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
+        const state = createInitialGameState(p1.name, p1.addr, p2.name, p2.addr);
         // Number 9: B,B,B,A,A,B,B,A(A) -> 9th hit by A
         // B hits: 1, 2, 3, 6, 7 (5 hits)
         // A hits: 4, 5, 8, 9 (4 hits)

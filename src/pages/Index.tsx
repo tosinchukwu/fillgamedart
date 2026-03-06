@@ -126,6 +126,40 @@ const Index = () => {
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const [selectedMusic, setSelectedMusic] = useState('synth_wave');
   const [isDartFlying, setIsDartFlying] = useState(false);
+  const [closureBanner, setClosureBanner] = useState<{ numbers: number[], message: string } | null>(null);
+  const prevClosedNumbersRef = useRef<Set<number>>(new Set());
+  const closureBannerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (gameState) {
+      const currentClosed = gameState.closedNumbers;
+      const prevClosed = prevClosedNumbersRef.current;
+
+      if (currentClosed.size > prevClosed.size) {
+        const newlyClosed = Array.from(currentClosed).filter(n => !prevClosed.has(n));
+        if (newlyClosed.length > 0) {
+          const bannerMessages = [
+            "Good! This number is closed.",
+            "Excellent! Number secured.",
+            "Awesome! Target neutralized.",
+            "Brilliant! Sector locked.",
+            "Outstanding! Area cleared."
+          ];
+          const randomMsg = bannerMessages[Math.floor(Math.random() * bannerMessages.length)];
+
+          setClosureBanner({ numbers: newlyClosed, message: randomMsg });
+
+          if (closureBannerTimeoutRef.current) clearTimeout(closureBannerTimeoutRef.current);
+          closureBannerTimeoutRef.current = setTimeout(() => {
+            setClosureBanner(null);
+          }, 4000);
+        }
+        prevClosedNumbersRef.current = new Set(currentClosed);
+      } else {
+        prevClosedNumbersRef.current = new Set();
+      }
+    }
+  }, [gameState, gameState?.closedNumbers?.size]);
 
   useEffect(() => {
     const handleImpact = () => setIsDartFlying(false);
@@ -1324,6 +1358,25 @@ const Index = () => {
       />
 
       <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} theme={theme} onThemeChange={setTheme} volume={volume} onVolumeChange={setVolume} musicEnabled={musicEnabled} onMusicToggle={setMusicEnabled} sfxEnabled={sfxEnabled} onSfxToggle={setSfxEnabled} selectedMusic={selectedMusic} onMusicChange={setSelectedMusic} />
+
+      {/* Number Closure Banner */}
+      {closureBanner && !gameState.gameOver && (
+        <div className="fixed inset-x-0 top-[25%] z-[150] flex items-center justify-center pointer-events-none animate-in fade-in zoom-in slide-in-from-top-12 duration-500">
+          <div className="bg-black/90 backdrop-blur-md px-12 py-6 rounded-[3rem] border-4 border-primary shadow-[0_0_80px_rgba(232,65,66,0.6)] flex items-center gap-6">
+            <div className={`rounded-[2rem] bg-primary flex items-center justify-center text-white font-black border-4 border-white/20 shadow-inner ${closureBanner.numbers.length > 1 ? 'px-6 py-4 text-3xl' : 'w-20 h-20 text-4xl'}`}>
+              {closureBanner.numbers.join(', ')}
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-4xl text-white font-black uppercase tracking-widest italic text-glow-theme">
+                {closureBanner.message.split('!')[0]}!
+              </span>
+              <span className="text-sm text-primary font-mono-game uppercase tracking-[0.2em] mt-2">
+                {closureBanner.message.split('!').slice(1).join('!').trim() || "Number Closed"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

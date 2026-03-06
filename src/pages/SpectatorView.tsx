@@ -14,6 +14,7 @@ interface FeaturedMatch {
     lobby_host: { name: string; address: string } | null;
     lobby_guest: { name: string; address: string } | null;
     status: string;
+    updated_at: string;
 }
 
 // Deserialize game state from Supabase (convert closedNumbers array back to Set)
@@ -33,13 +34,20 @@ const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
     const fetchMatches = async () => {
         const { data, error } = await supabase
             .from('matches')
-            .select('match_id, lobby_host, lobby_guest, status')
+            .select('match_id, lobby_host, lobby_guest, status, updated_at')
             .eq('is_featured', true)
             .eq('status', 'active')
-            .limit(3);
+            .limit(10); // Fetch more to filter down to 3 fresh ones
 
         if (!error && data) {
-            setMatches(data as FeaturedMatch[]);
+            // Filter out "stale" matches where updated_at is older than 90 seconds
+            const now = Date.now();
+            const freshMatches = (data as FeaturedMatch[]).filter(m => {
+                const updated = new Date(m.updated_at).getTime();
+                return (now - updated) < 90000; // 90 seconds threshold
+            }).slice(0, 3);
+
+            setMatches(freshMatches);
         }
         setLoading(false);
     };

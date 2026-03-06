@@ -441,7 +441,35 @@ const Index = () => {
     } catch (e) {
       console.error("Sync broadcast failed:", e);
     }
-  }, [setupMode, parsedMatchId, inviteCode, isVsCPU]);
+  }, [setupMode, parsedMatchId, inviteCode, isVsCPU, theme]);
+
+  // Heartbeat to keep live match active in spectator list
+  useEffect(() => {
+    const activeMatchId = setupMode === 'invite' ? inviteCode : String(parsedMatchId || '');
+    if (!gameStarted || !isHost || !activeMatchId || setupMode === 'solo') return;
+
+    const interval = setInterval(async () => {
+      // Just "touch" the row to update updated_at. 
+      // Using 'status' as a safe field to overwrite with same value.
+      try {
+        await supabase
+          .from('matches')
+          .update({ status: 'active' }) // Triggers updated_at
+          .eq('match_id', activeMatchId);
+      } catch (e) {
+        console.error("Heartbeat failed:", e);
+      }
+    }, 45000); // Every 45 seconds
+
+    return () => {
+      clearInterval(interval);
+      // Optional: on unmount (refresh/leave), try to mark as inactive if match is over or host left
+      // Note: this might not always complete on tab close, but helps on navigation
+      if (isHost && activeMatchId) {
+        supabase.from('matches').update({ status: 'finished' }).eq('match_id', activeMatchId).then();
+      }
+    };
+  }, [gameStarted, isHost, setupMode, inviteCode, parsedMatchId]);
 
   // Audio Logic
   useEffect(() => {

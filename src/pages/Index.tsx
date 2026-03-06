@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send } from 'lucide-react';
-import SettingsDialog from '../components/SettingsDialog';
+import SettingsDialog, { CustomTrack } from '../components/SettingsDialog';
+import BackgroundLayer, { BackgroundMode } from '../components/BackgroundLayer';
 import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
@@ -60,7 +61,7 @@ const RulesScroll = () => (
           🏹 Taking Your Turn
         </h4>
         <p className="pl-4 border-l border-white/10">
-          Each player throws <strong>3 darts</strong> per turn. Player A throws 3 darts, then Player B throws 3 darts, and so on. Just click a number or ring on the board, then hit <strong>Launch Dart</strong>.
+          Each player throws <strong>3 darts</strong> per turn. Player A throws 3 darts, then Player B throws 3 darts, and so on.
         </p>
       </section>
 
@@ -95,7 +96,7 @@ const RulesScroll = () => (
         <div className="pl-4 border-l border-white/10 space-y-1">
           <p>Once more than half the hits needed for a number have been made, the player who is <strong>leading</strong> in hits on that number gets a <span className="text-secondary font-bold">+7 bonus</span> on top of the usual +2.</p>
           <p>If both players have the <strong>same number of hits</strong> on a number, they <strong>split the bonus</strong> — each gets <span className="text-secondary font-bold">+3.5 points</span>.</p>
-          <p className="text-white/50 italic">Example: For number 6, once 4+ total hits exist, the player with more hits gets +7 every time they hit it. If tied, both get +3.5.</p>
+          <p className="text-white/50 italic">Example: For number 6, once 4+ total hits exist, the player with more hits gets +7. If tied, both get +3.5.</p>
         </div>
       </section>
 
@@ -127,7 +128,7 @@ const RulesScroll = () => (
           🌟 Number 1 is Special!
         </h4>
         <p className="pl-4 border-l border-white/10">
-          Number 1 <strong>never closes</strong>. Every single hit on it always gives you <span className="text-secondary font-bold">+2 Filler</span> and <span className="text-primary font-bold">+10 Fill-Up</span> = <strong>12 points instantly</strong>, every time!
+          Number 1 closes. First single hit on it gives you <span className="text-secondary font-bold">+2 Filler</span> and <span className="text-primary font-bold">+10 Fill-Up</span> = <strong>12 points instantly.</strong>
         </p>
       </section>
 
@@ -172,6 +173,21 @@ const Index = () => {
   const [isDartFlying, setIsDartFlying] = useState(false);
   const [makePublic, setMakePublic] = useState(false);
   const [isSpectatorMode, setIsSpectatorMode] = useState(false);
+  const [customTracks, setCustomTracks] = useState<CustomTrack[]>([]);
+  const [background, setBackground] = useState<BackgroundMode>('sky');
+  const [customWallpaperUrl, setCustomWallpaperUrl] = useState<string | undefined>(undefined);
+
+  const handleCustomTrackAdd = (track: CustomTrack) => {
+    setCustomTracks(prev => [...prev, track]);
+  };
+
+  const handleCustomTrackDelete = (index: number) => {
+    setCustomTracks(prev => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed.url);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   useEffect(() => {
     const handleImpact = () => setIsDartFlying(false);
@@ -443,18 +459,29 @@ const Index = () => {
 
   useEffect(() => {
     if (musicEnabled && gameStarted) {
+      // Resolve the audio source — custom tracks use blob URLs, built-ins use file paths
+      let src: string | undefined;
+      if (selectedMusic.startsWith('custom_')) {
+        const idx = parseInt(selectedMusic.split('_')[1], 10);
+        src = customTracks[idx]?.url;
+      } else {
+        src = (AUDIO_ASSETS.music as any)[selectedMusic];
+      }
+
+      if (!src) return; // track was deleted or not found
+
       if (!musicRef.current) {
-        musicRef.current = new Audio((AUDIO_ASSETS.music as any)[selectedMusic]);
+        musicRef.current = new Audio(src);
         musicRef.current.loop = true;
       } else {
-        musicRef.current.src = (AUDIO_ASSETS.music as any)[selectedMusic];
+        musicRef.current.src = src;
       }
       musicRef.current.volume = volume * 0.4;
       musicRef.current.play().catch(e => console.warn("Music play delayed", e));
     } else {
       if (musicRef.current) musicRef.current.pause();
     }
-  }, [musicEnabled, gameStarted, selectedMusic, volume]);
+  }, [musicEnabled, gameStarted, selectedMusic, volume, customTracks]);
 
   const playSFX = useCallback((type: 'throw' | 'hit') => {
     if (!sfxEnabled) return;
@@ -1103,6 +1130,7 @@ const Index = () => {
   if (!gameStarted || !gameState) {
     return (
       <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
+        <BackgroundLayer mode={background} customUrl={customWallpaperUrl} />
         <div className="fixed top-6 left-6 z-50">
           <a
             href="https://fillinggame.vercel.app/"
@@ -1185,6 +1213,7 @@ const Index = () => {
 
   return (
     <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans`}>
+      <BackgroundLayer mode={background} customUrl={customWallpaperUrl} />
       <div className="fixed top-6 left-6 z-50">
         <a
           href="https://fillinggame.vercel.app/join-match"
@@ -1429,7 +1458,27 @@ const Index = () => {
         onClose={() => setShowBatchOverlay(false)}
       />
 
-      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} theme={theme} onThemeChange={setTheme} volume={volume} onVolumeChange={setVolume} musicEnabled={musicEnabled} onMusicToggle={setMusicEnabled} sfxEnabled={sfxEnabled} onSfxToggle={setSfxEnabled} selectedMusic={selectedMusic} onMusicChange={setSelectedMusic} />
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        theme={theme}
+        onThemeChange={setTheme}
+        volume={volume}
+        onVolumeChange={setVolume}
+        musicEnabled={musicEnabled}
+        onMusicToggle={setMusicEnabled}
+        sfxEnabled={sfxEnabled}
+        onSfxToggle={setSfxEnabled}
+        selectedMusic={selectedMusic}
+        onMusicChange={setSelectedMusic}
+        customTracks={customTracks}
+        onCustomTrackAdd={handleCustomTrackAdd}
+        onCustomTrackDelete={handleCustomTrackDelete}
+        background={background}
+        onBackgroundChange={setBackground}
+        customWallpaperUrl={customWallpaperUrl}
+        onCustomWallpaperChange={setCustomWallpaperUrl}
+      />
 
     </div>
   );

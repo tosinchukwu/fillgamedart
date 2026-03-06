@@ -42,7 +42,7 @@
 
 ### 3. Fill-Up Bonus (+10 Pts)
 - **Number 1**: Special Rule - **Every hit** grants +10 Fill-Up points.
-- **Numbers 2-14**: Awarded only when a hit **completes board closure** for that specific number (both players finished).
+- **Numbers 2-14**: Awarded only when a hit **completes board closure** for that specific number (both players finished). This event is prominently displayed in the Game Activity Log as **"NUMBER [X] IS CLOSED"**.
 
 ---
 

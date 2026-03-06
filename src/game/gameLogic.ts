@@ -164,6 +164,7 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
       newState.closedNumbers.add(targetNumber);
       player.completed[targetNumber] = true;
       message = `Hit #${targetNumber}! ${breakdown}. ${targetNumber === 1 ? 'Closed!' : 'Fully closed!'}`;
+      newState.logMessages.push(`NUMBER ${targetNumber} IS CLOSED`);
     } else {
       message = `Hit ${targetNumber}! ${breakdown}. (${currentTotalHits}/${targetNumber})`;
     }

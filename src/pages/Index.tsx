@@ -126,40 +126,6 @@ const Index = () => {
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const [selectedMusic, setSelectedMusic] = useState('synth_wave');
   const [isDartFlying, setIsDartFlying] = useState(false);
-  const [closureBanner, setClosureBanner] = useState<{ numbers: number[], message: string } | null>(null);
-  const prevClosedNumbersRef = useRef<Set<number>>(new Set());
-  const closureBannerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (gameState) {
-      const currentClosed = gameState.closedNumbers;
-      const prevClosed = prevClosedNumbersRef.current;
-
-      if (currentClosed.size > prevClosed.size) {
-        const newlyClosed = Array.from(currentClosed).filter(n => !prevClosed.has(n));
-        if (newlyClosed.length > 0) {
-          const bannerMessages = [
-            "Good! This number is closed.",
-            "Excellent! Number secured.",
-            "Awesome! Target neutralized.",
-            "Brilliant! Sector locked.",
-            "Outstanding! Area cleared."
-          ];
-          const randomMsg = bannerMessages[Math.floor(Math.random() * bannerMessages.length)];
-
-          setClosureBanner({ numbers: newlyClosed, message: randomMsg });
-
-          if (closureBannerTimeoutRef.current) clearTimeout(closureBannerTimeoutRef.current);
-          closureBannerTimeoutRef.current = setTimeout(() => {
-            setClosureBanner(null);
-          }, 4000);
-        }
-        prevClosedNumbersRef.current = new Set(currentClosed);
-      } else {
-        prevClosedNumbersRef.current = new Set();
-      }
-    }
-  }, [gameState, gameState?.closedNumbers?.size]);
 
   useEffect(() => {
     const handleImpact = () => setIsDartFlying(false);
@@ -1329,20 +1295,6 @@ const Index = () => {
                 {getLauncherText()}
               </span>
             </div>
-
-            {/* Number Closure Banner (Small, under button) */}
-            {closureBanner && !gameState.gameOver && (
-              <div className="absolute top-[200px] w-full flex justify-center animate-in fade-in zoom-in slide-in-from-top-4 duration-500 pointer-events-none z-50">
-                <div className="bg-black/80 backdrop-blur-sm px-4 py-2 flex items-center gap-3 rounded-full border border-primary/50 shadow-[0_0_15px_rgba(232,65,66,0.3)]">
-                  <div className="bg-primary text-white text-xs font-black uppercase px-2 py-0.5 rounded-full">
-                    #{closureBanner.numbers.join(', ')}
-                  </div>
-                  <span className="text-white/90 text-[10px] uppercase font-black tracking-widest">
-                    {closureBanner.message}
-                  </span>
-                </div>
-              </div>
-            )}
 
             {!gameState.isVsCPU && (
               <Button

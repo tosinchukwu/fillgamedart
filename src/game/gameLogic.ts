@@ -113,8 +113,6 @@ function calculateHitPoints(state: GameState, playerIdx: 0 | 1, n: number): { po
     } else {
       breakdown += " +0 Top-Filler (Trailing)";
     }
-  } else {
-    breakdown += " +0 Top-Filler (Pre-threshold)";
   }
 
   // Fill-Up

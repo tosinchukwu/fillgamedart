@@ -160,6 +160,10 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
   const finalScore = player.totalScore;
   newState.lastAction = `[${player.name}]: 🎯 Dart landed on ${targetNumber}! (${message}) [Total: ${finalScore} pts]`;
 
+  if (message.includes('+7 Top-Filler')) {
+    newState.logMessages.push(`🔥 [${player.name}] claims the Top Filler Bonus (+7 pts) for Number ${targetNumber}!`);
+  }
+
   if (!isMultiHit) {
     newState.logMessages.push(newState.lastAction);
   }

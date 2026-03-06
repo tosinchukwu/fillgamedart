@@ -17,6 +17,7 @@ export interface GameState {
   dartsRemaining: number;
   turnHistory: TurnAction[];
   closedNumbers: Set<number>;
+  topFillerAwarded: Record<number, boolean>;
   hitSequences: Record<number, (0 | 1)[]>;
   batch: 1 | 2;
   batch1Score: number | null;
@@ -59,8 +60,10 @@ export function createInitialPlayer(name: string, address: string): PlayerState 
 
 export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: string, p2Addr: string, isVsCPU = false): GameState {
   const hitSequences: Record<number, (0 | 1)[]> = {};
+  const topFillerAwarded: Record<number, boolean> = {};
   for (let i = 1; i <= TOTAL_NUMBERS; i++) {
     hitSequences[i] = [];
+    topFillerAwarded[i] = false;
   }
   return {
     players: [createInitialPlayer(p1Name, p1Addr), createInitialPlayer(p2Name, p2Addr)],
@@ -68,6 +71,7 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
     dartsRemaining: 3,
     turnHistory: [],
     closedNumbers: new Set(),
+    topFillerAwarded,
     hitSequences,
     batch: 1,
     batch1Score: null,
@@ -100,7 +104,8 @@ function calculateHitPoints(state: GameState, playerIdx: 0 | 1, n: number): { po
   const triggerThreshold = n / 2;
   const isTriggered = myHits > triggerThreshold || otherHits > triggerThreshold;
 
-  if (isTriggered) {
+  if (isTriggered && !state.topFillerAwarded[n]) {
+    state.topFillerAwarded[n] = true;
     if (myHits > otherHits) {
       points += 7;
       breakdown += " +7 Top-Filler (Lead)";
@@ -238,6 +243,7 @@ function checkBatchConditions(state: GameState) {
       state.closedNumbers = new Set();
       for (let i = 1; i <= TOTAL_NUMBERS; i++) {
         state.hitSequences[i] = [];
+        state.topFillerAwarded[i] = false;
       }
 
       state.currentPlayer = (1 - b1w) as (0 | 1);

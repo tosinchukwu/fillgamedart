@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send } from 'lucide-react';
-import SettingsDialog from '../components/SettingsDialog';
+import SettingsDialog, { CustomTrack } from '../components/SettingsDialog';
+import BackgroundLayer, { BackgroundMode } from '../components/BackgroundLayer';
 import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
@@ -22,7 +23,7 @@ import { avalanche } from 'viem/chains';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../lib/constants';
 import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
-import SpectatorView from './SpectatorView';
+import { useNavigate } from 'react-router-dom';
 
 // Audio assets (Local paths in public/audio/)
 const AUDIO_ASSETS = {
@@ -60,7 +61,7 @@ const RulesScroll = () => (
           🏹 Taking Your Turn
         </h4>
         <p className="pl-4 border-l border-white/10">
-          Each player throws <strong>3 darts</strong> per turn. Player A throws 3 darts, then Player B throws 3 darts, and so on. Just click a number or ring on the board, then hit <strong>Launch Dart</strong>.
+          Each player throws <strong>3 darts</strong> per turn. Player A throws 3 darts, then Player B throws 3 darts, and so on.
         </p>
       </section>
 
@@ -95,7 +96,7 @@ const RulesScroll = () => (
         <div className="pl-4 border-l border-white/10 space-y-1">
           <p>Once more than half the hits needed for a number have been made, the player who is <strong>leading</strong> in hits on that number gets a <span className="text-secondary font-bold">+7 bonus</span> on top of the usual +2.</p>
           <p>If both players have the <strong>same number of hits</strong> on a number, they <strong>split the bonus</strong> — each gets <span className="text-secondary font-bold">+3.5 points</span>.</p>
-          <p className="text-white/50 italic">Example: For number 6, once 4+ total hits exist, the player with more hits gets +7 every time they hit it. If tied, both get +3.5.</p>
+          <p className="text-white/50 italic">Example: For number 6, once 4+ total hits exist, the player with more hits gets +7. If tied, both get +3.5.</p>
         </div>
       </section>
 
@@ -127,7 +128,7 @@ const RulesScroll = () => (
           🌟 Number 1 is Special!
         </h4>
         <p className="pl-4 border-l border-white/10">
-          Number 1 <strong>never closes</strong>. Every single hit on it always gives you <span className="text-secondary font-bold">+2 Filler</span> and <span className="text-primary font-bold">+10 Fill-Up</span> = <strong>12 points instantly</strong>, every time!
+          Number 1 closes. First single hit on it gives you <span className="text-secondary font-bold">+2 Filler</span> and <span className="text-primary font-bold">+10 Fill-Up</span> = <strong>12 points instantly.</strong>
         </p>
       </section>
 
@@ -149,6 +150,7 @@ const RulesScroll = () => (
 
 
 const Index = () => {
+  const navigate = useNavigate();
   const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight'>('neon');
   const [gameStarted, setGameStarted] = useState(false);
   const [p1Name, setP1Name] = useState('');
@@ -171,7 +173,21 @@ const Index = () => {
   const [selectedMusic, setSelectedMusic] = useState('synth_wave');
   const [isDartFlying, setIsDartFlying] = useState(false);
   const [makePublic, setMakePublic] = useState(false);
-  const [isSpectatorMode, setIsSpectatorMode] = useState(false);
+  const [customTracks, setCustomTracks] = useState<CustomTrack[]>([]);
+  const [background, setBackground] = useState<BackgroundMode>('sky');
+  const [customWallpaperUrl, setCustomWallpaperUrl] = useState<string | undefined>(undefined);
+
+  const handleCustomTrackAdd = (track: CustomTrack) => {
+    setCustomTracks(prev => [...prev, track]);
+  };
+
+  const handleCustomTrackDelete = (index: number) => {
+    setCustomTracks(prev => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed.url);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   useEffect(() => {
     const handleImpact = () => setIsDartFlying(false);
@@ -247,10 +263,6 @@ const Index = () => {
         setIsLobbyJoined(true);
         toast.info("Joining invite match...");
         // Keep hash so we know it's an invite link until game starts
-      } else if (hash === '#spectate' || hash.startsWith('#watch=')) {
-        setIsSpectatorMode(true);
-      } else {
-        setIsSpectatorMode(false);
       }
     };
 
@@ -398,6 +410,8 @@ const Index = () => {
     try {
       const serializedState = {
         ...state,
+        theme, // Sync the current theme
+        lastDarts: state.lastDarts || [], // Sync the last darts' positions
         closedNumbers: Array.from(state.closedNumbers)
       };
 
@@ -427,7 +441,35 @@ const Index = () => {
     } catch (e) {
       console.error("Sync broadcast failed:", e);
     }
-  }, [setupMode, parsedMatchId, inviteCode, isVsCPU]);
+  }, [setupMode, parsedMatchId, inviteCode, isVsCPU, theme]);
+
+  // Heartbeat to keep live match active in spectator list
+  useEffect(() => {
+    const activeMatchId = setupMode === 'invite' ? inviteCode : String(parsedMatchId || '');
+    if (!gameStarted || !isHost || !activeMatchId || setupMode === 'solo') return;
+
+    const interval = setInterval(async () => {
+      // Just "touch" the row to update updated_at. 
+      // Using 'status' as a safe field to overwrite with same value.
+      try {
+        await supabase
+          .from('matches')
+          .update({ status: 'active' }) // Triggers updated_at
+          .eq('match_id', activeMatchId);
+      } catch (e) {
+        console.error("Heartbeat failed:", e);
+      }
+    }, 45000); // Every 45 seconds
+
+    return () => {
+      clearInterval(interval);
+      // Optional: on unmount (refresh/leave), try to mark as inactive if match is over or host left
+      // Note: this might not always complete on tab close, but helps on navigation
+      if (isHost && activeMatchId) {
+        supabase.from('matches').update({ status: 'finished' }).eq('match_id', activeMatchId).then();
+      }
+    };
+  }, [gameStarted, isHost, setupMode, inviteCode, parsedMatchId]);
 
   // Audio Logic
   useEffect(() => {
@@ -443,18 +485,29 @@ const Index = () => {
 
   useEffect(() => {
     if (musicEnabled && gameStarted) {
+      // Resolve the audio source — custom tracks use blob URLs, built-ins use file paths
+      let src: string | undefined;
+      if (selectedMusic.startsWith('custom_')) {
+        const idx = parseInt(selectedMusic.split('_')[1], 10);
+        src = customTracks[idx]?.url;
+      } else {
+        src = (AUDIO_ASSETS.music as any)[selectedMusic];
+      }
+
+      if (!src) return; // track was deleted or not found
+
       if (!musicRef.current) {
-        musicRef.current = new Audio((AUDIO_ASSETS.music as any)[selectedMusic]);
+        musicRef.current = new Audio(src);
         musicRef.current.loop = true;
       } else {
-        musicRef.current.src = (AUDIO_ASSETS.music as any)[selectedMusic];
+        musicRef.current.src = src;
       }
       musicRef.current.volume = volume * 0.4;
       musicRef.current.play().catch(e => console.warn("Music play delayed", e));
     } else {
       if (musicRef.current) musicRef.current.pause();
     }
-  }, [musicEnabled, gameStarted, selectedMusic, volume]);
+  }, [musicEnabled, gameStarted, selectedMusic, volume, customTracks]);
 
   const playSFX = useCallback((type: 'throw' | 'hit') => {
     if (!sfxEnabled) return;
@@ -490,34 +543,61 @@ const Index = () => {
     prevBatchRef.current = 1;
   };
 
-  const handleHitNumber = useCallback((num: number) => {
+  const handleHitNumber = useCallback((num: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => {
     setGameState(prev => {
       if (!prev || prev.gameOver) return prev;
       const result = hitNumber(prev, num);
-      if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-      prevBatchRef.current = result.state.batch;
+      const updatedState = result.state;
+
+      // Sync visual state
+      updatedState.theme = theme;
+      if (dartPos) {
+        const newDart = { ...dartPos, playerIdx: prev.currentPlayer };
+        // If it's a new turn (dartsRemaining was 3 before hitNumber subtracted 1), start a new list
+        if (prev.dartsRemaining === 3) {
+          updatedState.lastDarts = [newDart];
+        } else {
+          updatedState.lastDarts = [...(prev.lastDarts || []), newDart];
+        }
+      }
+
+      if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+      prevBatchRef.current = updatedState.batch;
 
       // Auto-broadcast the new state
-      broadcastGameState(result.state);
+      broadcastGameState(updatedState);
 
-      return result.state;
+      return updatedState;
     });
-  }, [broadcastGameState]);
+  }, [broadcastGameState, theme]);
 
-  const handleHitRing = useCallback((ringIdx: number) => {
+  const handleHitRing = useCallback((ringIdx: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => {
     setGameState(prev => {
       if (!prev || prev.gameOver) return prev;
       const nums = RING_NUMBERS[ringIdx];
       const result = hitRing(prev, ringIdx, nums);
-      if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-      prevBatchRef.current = result.state.batch;
+      const updatedState = result.state;
+
+      // Sync visual state
+      updatedState.theme = theme;
+      if (dartPos) {
+        const newDart = { ...dartPos, playerIdx: prev.currentPlayer };
+        if (prev.dartsRemaining === 3) {
+          updatedState.lastDarts = [newDart];
+        } else {
+          updatedState.lastDarts = [...(prev.lastDarts || []), newDart];
+        }
+      }
+
+      if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+      prevBatchRef.current = updatedState.batch;
 
       // Auto-broadcast the new state
-      broadcastGameState(result.state);
+      broadcastGameState(updatedState);
 
-      return result.state;
+      return updatedState;
     });
-  }, [broadcastGameState]);
+  }, [broadcastGameState, theme]);
 
   const cpuActionBuffer = useRef<string[]>([]);
   const cpuTurnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -839,11 +919,6 @@ const Index = () => {
   };
 
   const renderSetupContent = () => {
-    // ── Spectator mode: show SpectatorView instead of setup ──
-    if (isSpectatorMode) {
-      return <SpectatorView />;
-    }
-
     if (setupMode === 'solo') {
       return (
         <div className="space-y-1 text-left">
@@ -1103,6 +1178,7 @@ const Index = () => {
   if (!gameStarted || !gameState) {
     return (
       <div className={`min-h-screen theme-${theme} transition-colors duration-700 font-sans`}>
+        <BackgroundLayer mode={background} customUrl={customWallpaperUrl} />
         <div className="fixed top-6 left-6 z-50">
           <a
             href="https://fillinggame.vercel.app/"
@@ -1168,7 +1244,7 @@ const Index = () => {
               </div>
               <div className="flex justify-center">
                 <button
-                  onClick={() => { window.location.hash = '#spectate'; }}
+                  onClick={() => navigate('/watch')}
                   className="bg-white/5 border border-white/10 text-white/60 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 px-6 py-2 rounded-lg hover:bg-white/10 transition-all"
                 >
                   📺 Watch Live Matches
@@ -1185,6 +1261,7 @@ const Index = () => {
 
   return (
     <div className={`min-h-screen theme-${theme} p-3 md:p-6 flex flex-col items-center transition-colors duration-700 font-sans`}>
+      <BackgroundLayer mode={background} customUrl={customWallpaperUrl} />
       <div className="fixed top-6 left-6 z-50">
         <a
           href="https://fillinggame.vercel.app/join-match"
@@ -1429,7 +1506,27 @@ const Index = () => {
         onClose={() => setShowBatchOverlay(false)}
       />
 
-      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} theme={theme} onThemeChange={setTheme} volume={volume} onVolumeChange={setVolume} musicEnabled={musicEnabled} onMusicToggle={setMusicEnabled} sfxEnabled={sfxEnabled} onSfxToggle={setSfxEnabled} selectedMusic={selectedMusic} onMusicChange={setSelectedMusic} />
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        theme={theme}
+        onThemeChange={setTheme}
+        volume={volume}
+        onVolumeChange={setVolume}
+        musicEnabled={musicEnabled}
+        onMusicToggle={setMusicEnabled}
+        sfxEnabled={sfxEnabled}
+        onSfxToggle={setSfxEnabled}
+        selectedMusic={selectedMusic}
+        onMusicChange={setSelectedMusic}
+        customTracks={customTracks}
+        onCustomTrackAdd={handleCustomTrackAdd}
+        onCustomTrackDelete={handleCustomTrackDelete}
+        background={background}
+        onBackgroundChange={setBackground}
+        customWallpaperUrl={customWallpaperUrl}
+        onCustomWallpaperChange={setCustomWallpaperUrl}
+      />
 
     </div>
   );

@@ -4,9 +4,10 @@ import { GameState } from '../game/gameLogic';
 
 interface DartboardProps {
   gameState: GameState;
-  onHitNumber: (num: number) => void;
-  onHitRing: (ringIndex: number) => void;
+  onHitNumber: (num: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => void;
+  onHitRing: (ringIndex: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => void;
   disabled: boolean;
+  isSpectator?: boolean;
 }
 
 const CENTER = 250;
@@ -30,7 +31,7 @@ let dartIdCounter = 0;
 
 type BoardPhase = 'idle' | 'throwing';
 
-const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing, disabled }) => {
+const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing, disabled, isSpectator = false }) => {
   const cp = gameState.currentPlayer;
   const player = gameState.players[cp];
 
@@ -50,8 +51,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
     const totalHits = Object.values(gameState.hitSequences).reduce((acc, seq) => acc + seq.length, 0);
     if (totalHits === 0 && stuckDarts.length > 0) {
       setStuckDarts([]);
+    } else if (gameState.lastDarts && gameState.lastDarts.length !== stuckDarts.length) {
+      // Sync darts from game state (important for spectators and joined players)
+      setStuckDarts(gameState.lastDarts.map((d, i) => ({ id: i, ...d })));
     }
-  }, [gameState.hitSequences]);
+  }, [gameState.hitSequences, gameState.lastDarts]);
 
   const prevCpRef = useRef(cp);
   useEffect(() => {
@@ -120,17 +124,18 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       setStuckDarts([{ id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
       setFlightDest(null);
 
+      const dartPos = { x: lx, y: ly, angle, tilt };
       if (hitRingLine && hitRingLineIdx >= 0) {
         setHitPulse({ id: `ring-${hitRingLineIdx}`, type: 'ring' });
         const rNums = RING_NUMBERS[hitRingLineIdx] ?? [];
-        if (rNums.length > 0) onHitRing(hitRingLineIdx);
+        if (rNums.length > 0) onHitRing(hitRingLineIdx, dartPos);
       } else if (closestNum !== -1) {
         setHitPulse({ id: `num-${closestNum}`, type: 'number' });
         if (!gameState.closedNumbers.has(closestNum)) {
-          onHitNumber(closestNum);
+          onHitNumber(closestNum, dartPos);
         } else {
           const rNums = RING_NUMBERS[hitRingIdx] ?? [];
-          if (rNums.length > 0) onHitRing(hitRingIdx);
+          if (rNums.length > 0) onHitRing(hitRingIdx, dartPos);
         }
       }
       setTimeout(() => setHitPulse(null), 1000);

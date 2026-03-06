@@ -27,6 +27,8 @@ export interface GameState {
   lastAction: string | null;
   logMessages: string[];
   isVsCPU: boolean;
+  theme: 'neon' | 'avalanche' | 'gold' | 'midnight';
+  lastDarts: { x: number; y: number; angle: number; tilt: number; playerIdx: number }[];
 }
 
 export interface TurnAction {
@@ -78,6 +80,8 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
     lastAction: null,
     logMessages: [],
     isVsCPU,
+    theme: 'neon',
+    lastDarts: [],
   };
 }
 

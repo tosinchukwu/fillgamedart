@@ -23,7 +23,7 @@ import { avalanche } from 'viem/chains';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../lib/constants';
 import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
-import SpectatorView from './SpectatorView';
+import { useNavigate } from 'react-router-dom';
 
 // Audio assets (Local paths in public/audio/)
 const AUDIO_ASSETS = {
@@ -150,6 +150,7 @@ const RulesScroll = () => (
 
 
 const Index = () => {
+  const navigate = useNavigate();
   const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight'>('neon');
   const [gameStarted, setGameStarted] = useState(false);
   const [p1Name, setP1Name] = useState('');
@@ -172,7 +173,6 @@ const Index = () => {
   const [selectedMusic, setSelectedMusic] = useState('synth_wave');
   const [isDartFlying, setIsDartFlying] = useState(false);
   const [makePublic, setMakePublic] = useState(false);
-  const [isSpectatorMode, setIsSpectatorMode] = useState(false);
   const [customTracks, setCustomTracks] = useState<CustomTrack[]>([]);
   const [background, setBackground] = useState<BackgroundMode>('sky');
   const [customWallpaperUrl, setCustomWallpaperUrl] = useState<string | undefined>(undefined);
@@ -263,10 +263,6 @@ const Index = () => {
         setIsLobbyJoined(true);
         toast.info("Joining invite match...");
         // Keep hash so we know it's an invite link until game starts
-      } else if (hash === '#spectate' || hash.startsWith('#watch=')) {
-        setIsSpectatorMode(true);
-      } else {
-        setIsSpectatorMode(false);
       }
     };
 
@@ -414,6 +410,8 @@ const Index = () => {
     try {
       const serializedState = {
         ...state,
+        theme, // Sync the current theme
+        lastDarts: state.lastDarts || [], // Sync the last darts' positions
         closedNumbers: Array.from(state.closedNumbers)
       };
 
@@ -517,34 +515,61 @@ const Index = () => {
     prevBatchRef.current = 1;
   };
 
-  const handleHitNumber = useCallback((num: number) => {
+  const handleHitNumber = useCallback((num: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => {
     setGameState(prev => {
       if (!prev || prev.gameOver) return prev;
       const result = hitNumber(prev, num);
-      if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-      prevBatchRef.current = result.state.batch;
+      const updatedState = result.state;
+
+      // Sync visual state
+      updatedState.theme = theme;
+      if (dartPos) {
+        const newDart = { ...dartPos, playerIdx: prev.currentPlayer };
+        // If it's a new turn (dartsRemaining was 3 before hitNumber subtracted 1), start a new list
+        if (prev.dartsRemaining === 3) {
+          updatedState.lastDarts = [newDart];
+        } else {
+          updatedState.lastDarts = [...(prev.lastDarts || []), newDart];
+        }
+      }
+
+      if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+      prevBatchRef.current = updatedState.batch;
 
       // Auto-broadcast the new state
-      broadcastGameState(result.state);
+      broadcastGameState(updatedState);
 
-      return result.state;
+      return updatedState;
     });
-  }, [broadcastGameState]);
+  }, [broadcastGameState, theme]);
 
-  const handleHitRing = useCallback((ringIdx: number) => {
+  const handleHitRing = useCallback((ringIdx: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => {
     setGameState(prev => {
       if (!prev || prev.gameOver) return prev;
       const nums = RING_NUMBERS[ringIdx];
       const result = hitRing(prev, ringIdx, nums);
-      if (result.state.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-      prevBatchRef.current = result.state.batch;
+      const updatedState = result.state;
+
+      // Sync visual state
+      updatedState.theme = theme;
+      if (dartPos) {
+        const newDart = { ...dartPos, playerIdx: prev.currentPlayer };
+        if (prev.dartsRemaining === 3) {
+          updatedState.lastDarts = [newDart];
+        } else {
+          updatedState.lastDarts = [...(prev.lastDarts || []), newDart];
+        }
+      }
+
+      if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+      prevBatchRef.current = updatedState.batch;
 
       // Auto-broadcast the new state
-      broadcastGameState(result.state);
+      broadcastGameState(updatedState);
 
-      return result.state;
+      return updatedState;
     });
-  }, [broadcastGameState]);
+  }, [broadcastGameState, theme]);
 
   const cpuActionBuffer = useRef<string[]>([]);
   const cpuTurnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -866,11 +891,6 @@ const Index = () => {
   };
 
   const renderSetupContent = () => {
-    // ── Spectator mode: show SpectatorView instead of setup ──
-    if (isSpectatorMode) {
-      return <SpectatorView />;
-    }
-
     if (setupMode === 'solo') {
       return (
         <div className="space-y-1 text-left">
@@ -1196,7 +1216,7 @@ const Index = () => {
               </div>
               <div className="flex justify-center">
                 <button
-                  onClick={() => { window.location.hash = '#spectate'; }}
+                  onClick={() => navigate('/watch')}
                   className="bg-white/5 border border-white/10 text-white/60 font-mono-game uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 px-6 py-2 rounded-lg hover:bg-white/10 transition-all"
                 >
                   📺 Watch Live Matches

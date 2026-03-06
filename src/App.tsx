@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Web3Provider } from "./providers/Web3Provider";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import SpectatorView from "./pages/SpectatorView";
 
 const App = () => (
   <Web3Provider>
@@ -14,6 +15,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/watch" element={<SpectatorView />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

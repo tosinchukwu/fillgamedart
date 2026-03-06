@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GameState } from '../game/gameLogic';
 import Dartboard from '../components/Dartboard';
@@ -24,6 +25,7 @@ function deserializeGameState(raw: Record<string, unknown>): GameState {
 
 // ─── LOBBY: list of up to 3 featured live matches ────────────────────────────
 const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
+    const navigate = useNavigate();
     const [matches, setMatches] = useState<FeaturedMatch[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -59,7 +61,7 @@ const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
                     <Button
                         variant="ghost"
                         className="text-white/30 hover:text-white/70 p-2 rounded-xl"
-                        onClick={() => { window.location.hash = ''; }}
+                        onClick={() => navigate('/')}
                     >
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
@@ -190,7 +192,7 @@ const SpectatorGame = ({ matchCode, onBack }: { matchCode: string; onBack: () =>
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
+        <div className={`min-h-screen bg-[#0a0a0f] flex flex-col theme-${gameState.theme || 'neon'}`}>
             {/* Top bar — wraps on small screens */}
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/5 bg-black/40 backdrop-blur-sm">
                 <Button variant="ghost" onClick={onBack} className="text-white/30 hover:text-white/70 p-2 rounded-xl shrink-0">
@@ -241,6 +243,7 @@ const SpectatorGame = ({ matchCode, onBack }: { matchCode: string; onBack: () =>
                             onHitNumber={() => { }}
                             onHitRing={() => { }}
                             disabled={true}
+                            isSpectator={true}
                         />
                     </div>
                     <div className="mt-3 px-6 py-2 rounded-2xl glass-panel border-white/5 text-center opacity-40">
@@ -260,25 +263,15 @@ const SpectatorGame = ({ matchCode, onBack }: { matchCode: string; onBack: () =>
 
 // ─── MAIN EXPORT: routes between lobby and game view ─────────────────────────
 const SpectatorView = () => {
-    const [watchCode, setWatchCode] = useState<string | null>(null);
-
-    useEffect(() => {
-        const readHash = () => {
-            const hash = window.location.hash;
-            const match = hash.match(/^#watch=([a-zA-Z0-9]+)$/);
-            setWatchCode(match ? match[1] : null);
-        };
-        readHash();
-        window.addEventListener('hashchange', readHash);
-        return () => window.removeEventListener('hashchange', readHash);
-    }, []);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const watchCode = searchParams.get('match');
 
     const handleWatch = (code: string) => {
-        window.location.hash = `#watch=${code}`;
+        setSearchParams({ match: code });
     };
 
     const handleBack = () => {
-        window.location.hash = '#spectate';
+        setSearchParams({});
     };
 
     if (watchCode) {

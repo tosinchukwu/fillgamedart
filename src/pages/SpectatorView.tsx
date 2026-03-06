@@ -191,34 +191,35 @@ const SpectatorGame = ({ matchCode, onBack }: { matchCode: string; onBack: () =>
 
     return (
         <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
-            {/* Top bar */}
-            <div className="flex items-center gap-4 px-6 py-3 border-b border-white/5 bg-black/40 backdrop-blur-sm">
-                <Button variant="ghost" onClick={onBack} className="text-white/30 hover:text-white/70 p-2 rounded-xl">
+            {/* Top bar — wraps on small screens */}
+            <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/5 bg-black/40 backdrop-blur-sm">
+                <Button variant="ghost" onClick={onBack} className="text-white/30 hover:text-white/70 p-2 rounded-xl shrink-0">
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     <Radio className="w-3 h-3 text-red-400 animate-pulse" />
                     <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Live</span>
                 </div>
-                <span className="text-white/50 text-[11px] font-black tracking-widest uppercase">
+                <span className="text-white/60 text-[11px] font-black tracking-widest uppercase flex-1 text-center">
                     {hostName} <span className="text-primary">vs</span> {guestName}
                 </span>
-                <div className={`ml-auto flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase ${connected ? 'border border-emerald-500/30 text-emerald-400' : 'border border-orange-500/30 text-orange-400'}`}>
+                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-[9px] font-black tracking-widest uppercase shrink-0 ${connected ? 'border border-emerald-500/30 text-emerald-400' : 'border border-orange-500/30 text-orange-400'}`}>
                     <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500'}`} />
-                    {connected ? 'Sync Active' : 'Connecting...'}
+                    {connected ? 'Sync' : 'Connecting'}
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-xl">
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 border border-white/10 rounded-xl shrink-0">
                     <Eye className="w-3 h-3 text-white/40" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-widest font-black">Spectating</span>
+                    <span className="text-[9px] text-white/40 uppercase tracking-widest font-black hidden sm:block">Spectating</span>
                 </div>
             </div>
 
-            {/* Read-only game board — same layout as normal game, but all interactions disabled */}
-            <div className="flex-1 flex gap-4 p-4 pointer-events-none select-none">
-                {/* Left: Log */}
-                <div className="xl:w-[280px] w-full flex-shrink-0 flex flex-col h-full">
-                    <div className="glass-panel rounded-3xl flex-1 flex flex-col border-white/10 overflow-hidden shadow-2xl">
-                        <div className="bg-white/5 p-4 border-b border-white/10 flex items-center justify-between">
+            {/* Responsive game board layout */}
+            <div className="flex-1 flex flex-col xl:flex-row gap-3 p-3 md:p-4 pointer-events-none select-none overflow-auto">
+
+                {/* Game Log — full width on mobile, fixed sidebar on desktop */}
+                <div className="w-full xl:w-[260px] xl:flex-shrink-0 xl:flex xl:flex-col">
+                    <div className="glass-panel rounded-2xl flex flex-col border-white/10 overflow-hidden shadow-xl h-48 xl:h-full">
+                        <div className="bg-white/5 px-4 py-2.5 border-b border-white/10 flex items-center justify-between">
                             <h3 className="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">Game Activity Log</h3>
                             <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                         </div>
@@ -232,23 +233,26 @@ const SpectatorGame = ({ matchCode, onBack }: { matchCode: string; onBack: () =>
                     </div>
                 </div>
 
-                {/* Center: Board */}
-                <div className="flex-1 flex flex-col items-center justify-center min-w-0">
-                    <Dartboard
-                        gameState={gameState}
-                        onHitNumber={() => { }}
-                        onHitRing={() => { }}
-                        disabled={true}
-                    />
-                    <div className="mt-6 px-8 py-4 rounded-3xl glass-panel border-white/5 text-center opacity-30">
-                        <span className="text-[11px] font-black tracking-[0.3em] uppercase text-white/40">Spectator Mode</span>
+                {/* Center: Dartboard — grows to fill available space, stays centered */}
+                <div className="flex-1 flex flex-col items-center justify-center min-w-0 py-2">
+                    <div className="w-full flex items-center justify-center">
+                        <Dartboard
+                            gameState={gameState}
+                            onHitNumber={() => { }}
+                            onHitRing={() => { }}
+                            disabled={true}
+                        />
+                    </div>
+                    <div className="mt-3 px-6 py-2 rounded-2xl glass-panel border-white/5 text-center opacity-40">
+                        <span className="text-[10px] font-black tracking-[0.25em] uppercase text-white/40">👁 Spectator Mode</span>
                     </div>
                 </div>
 
-                {/* Right: Scoreboard */}
-                <div className="xl:w-[580px] w-full flex-shrink-0 flex flex-col h-full shadow-2xl">
+                {/* Right: Scoreboard — full width on mobile, fixed sidebar on desktop */}
+                <div className="w-full xl:w-[580px] xl:flex-shrink-0 shadow-xl">
                     <MasterScoringTable gameState={gameState} />
                 </div>
+
             </div>
         </div>
     );

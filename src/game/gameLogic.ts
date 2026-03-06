@@ -25,6 +25,7 @@ export interface GameState {
   gameOver: boolean;
   winner: 0 | 1 | null;
   lastAction: string | null;
+  logMessages: string[];
   isVsCPU: boolean;
 }
 
@@ -75,62 +76,47 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
     gameOver: false,
     winner: null,
     lastAction: null,
+    logMessages: [],
     isVsCPU,
   };
 }
 
-function recalcTotalScore(gameState: GameState, playerIdx: 0 | 1): number {
-  let score = 0;
-  const player = gameState.players[playerIdx];
-  const otherIdx = playerIdx === 0 ? 1 : 0;
-  const other = gameState.players[otherIdx];
-
-  for (let n = 1; n <= TOTAL_NUMBERS; n++) {
-    // Number 1 Rule: +12 on first hit per batch
-    if (n === 1) {
-      const awarded = gameState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
-      if (awarded) score += 12;
-      continue;
-    }
-
-    // Filler Points (2-14): +2 per hit, capped at n * 2
-    const filler = Math.min((player.hits[n] || 0) * 2, n * 2);
-    score += filler;
-
-    // Top Filler Bonus (2-14): Both > n/2
-    if (gameState.closedNumbers.has(n)) {
-      const p1Hits = gameState.players[0].hits[n] || 0;
-      const p2Hits = gameState.players[1].hits[n] || 0;
-      const threshold = n / 2;
-
-      if (p1Hits > threshold && p2Hits > threshold) {
-        if (playerIdx === 0) {
-          if (p1Hits > p2Hits) score += 7;
-          else if (p1Hits === p2Hits) score += 3.5;
-        } else {
-          if (p2Hits > p1Hits) score += 7;
-          else if (p2Hits === p1Hits) score += 3.5;
-        }
-      }
-
-      // Fill-Up Bonus (2-14): Second player to finish
-      // To find who closed it, we find the first hit in hitSequences where both hit counts >= n
-      const seq = gameState.hitSequences[n];
-      let h0 = 0;
-      let h1 = 0;
-      for (let i = 0; i < seq.length; i++) {
-        if (seq[i] === 0) h0++;
-        else h1++;
-
-        if (h0 >= n && h1 >= n) {
-          if (seq[i] === playerIdx) score += 10;
-          break; // This hit was the closure
-        }
-      }
-    }
+function calculateHitPoints(state: GameState, playerIdx: 0 | 1, n: number): { points: number; breakdown: string } {
+  if (n === 1) {
+    // Number 1 specialized rule: +2 Filler + 10 Fill-Up = 12 total.
+    return { points: 12, breakdown: "+2 Filler +10 Fill-Up" };
   }
 
-  return score;
+  const player = state.players[playerIdx];
+  const other = state.players[playerIdx === 0 ? 1 : 0];
+  const myHits = player.hits[n];
+  const otherHits = other.hits[n];
+  const totalHits = myHits + otherHits;
+
+  let points = 2; // Base Filler
+  let breakdown = "+2 Filler";
+
+  // Top Filler with Sharing Logic
+  if (myHits > otherHits) {
+    points += 7;
+    breakdown += " +7 Top-Filler (Lead)";
+  } else if (myHits === otherHits) {
+    points += 3.5;
+    breakdown += " +3.5 Top-Filler (Tie)";
+    // Sharing Rule: If we reach a tie, we split the opponent's previous lead bonus
+    other.totalScore -= 3.5;
+    breakdown += " (Opponent bonus shared -3.5)";
+  } else {
+    breakdown += " +0 Top-Filler (Trailing)";
+  }
+
+  // Fill-Up
+  if (totalHits >= n) {
+    points += 10;
+    breakdown += " +10 Fill-Up";
+  }
+
+  return { points, breakdown };
 }
 
 export function hitNumber(state: GameState, targetNumber: number, isMultiHit = false): { state: GameState; message: string } {
@@ -142,45 +128,36 @@ export function hitNumber(state: GameState, targetNumber: number, isMultiHit = f
 
   if (!isMultiHit) newState.dartsRemaining--;
 
-  if (newState.closedNumbers.has(targetNumber)) {
+  const totalHitsBefore = (player.hits[targetNumber] || 0) + (other.hits[targetNumber] || 0);
+
+  if (newState.closedNumbers.has(targetNumber) || totalHitsBefore >= targetNumber) {
     message = `Number ${targetNumber} is already closed.`;
   } else {
+    // Record the hit
     player.hits[targetNumber] = (player.hits[targetNumber] || 0) + 1;
     newState.hitSequences[targetNumber].push(cp);
 
-    if (targetNumber === 1) {
-      const alreadyAwarded = newState.batch === 1 ? player.num1AwardedBatch1 : player.num1AwardedBatch2;
-      if (!alreadyAwarded) {
-        if (newState.batch === 1) player.num1AwardedBatch1 = true;
-        else if (newState.batch === 2) player.num1AwardedBatch2 = true;
-        message = "Hit #1! +12 pts special bonus.";
-      } else {
-        message = "Hit #1! (Already awarded points this batch)";
-      }
+    // Calculate points for THIS hit
+    const { points, breakdown } = calculateHitPoints(newState, cp, targetNumber);
+    player.totalScore += points;
 
-      // Number 1 closure remains shared/fast for speed in this game
-      player.completed[1] = true;
-      newState.closedNumbers.add(1);
-    } else {
-      // Board closure: BOTH players finished
-      if (player.hits[targetNumber] >= targetNumber && other.hits[targetNumber] >= targetNumber) {
-        newState.closedNumbers.add(targetNumber);
-        message = `Number ${targetNumber} is fully closed! +10 Fill-Up Bonus!`;
-      } else {
-        message = `Hit ${targetNumber}! (${player.hits[targetNumber]}/${targetNumber})`;
-      }
-    }
+    const currentTotalHits = player.hits[targetNumber] + other.hits[targetNumber];
 
-    if (player.hits[targetNumber] >= targetNumber) {
+    if (targetNumber === 1 || currentTotalHits >= targetNumber) {
+      newState.closedNumbers.add(targetNumber);
       player.completed[targetNumber] = true;
+      message = `Hit #${targetNumber}! ${breakdown}. ${targetNumber === 1 ? 'Closed!' : 'Fully closed!'}`;
+    } else {
+      message = `Hit ${targetNumber}! ${breakdown}. (${currentTotalHits}/${targetNumber})`;
     }
-
-    newState.players[0].totalScore = recalcTotalScore(newState, 0);
-    newState.players[1].totalScore = recalcTotalScore(newState, 1);
   }
 
-  const finalScore = newState.players[cp].totalScore;
+  const finalScore = player.totalScore;
   newState.lastAction = `[${player.name}]: 🎯 Dart landed on ${targetNumber}! (${message}) [Total: ${finalScore} pts]`;
+
+  if (!isMultiHit) {
+    newState.logMessages.push(newState.lastAction);
+  }
 
   if (!isMultiHit && newState.dartsRemaining <= 0) {
     checkBatchConditions(newState);
@@ -211,7 +188,9 @@ export function hitRing(state: GameState, ringIndex: number, ringNumbers: number
 
   const cp = currentResult.state.currentPlayer;
   const player = currentResult.state.players[cp];
-  currentResult.state.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${ringNumbers.join(', ')}) = Total: ${player.totalScore} pts`;
+  const numsJoined = ringNumbers.join(', ');
+  currentResult.state.lastAction = `[${player.name}]: ⭕ Direct hit on Ring ${ringIndex + 1}! (${numsJoined}) = Total: ${player.totalScore} pts`;
+  currentResult.state.logMessages.push(currentResult.state.lastAction);
 
   if (currentResult.state.dartsRemaining <= 0) {
     checkBatchConditions(currentResult.state);
@@ -229,8 +208,8 @@ function checkBatchConditions(state: GameState) {
   const p2Score = state.players[1].totalScore;
 
   if (state.batch === 1) {
-    if (p1Score >= TARGET_SCORE || p2Score >= TARGET_SCORE) {
-      const b1w = p1Score >= TARGET_SCORE ? 0 : 1;
+    if (p1Score > TARGET_SCORE || p2Score > TARGET_SCORE) {
+      const b1w = p1Score > TARGET_SCORE ? 0 : 1;
       const benchmark = b1w === 0 ? p1Score : p2Score;
 
       state.batch = 2;
@@ -255,18 +234,21 @@ function checkBatchConditions(state: GameState) {
       state.currentPlayer = (1 - b1w) as (0 | 1);
       state.dartsRemaining = 3;
       state.lastAction = `[SYSTEM]: 🚀 ${state.players[b1w].name} set the Bar at ${benchmark}! BATCH 2 START. ${state.players[1 - b1w].name}'s turn to beat it!`;
+      state.logMessages.push(state.lastAction);
     }
   } else if (state.batch === 2 && state.batch1Scores !== null) {
     const [p1Target, p2Target] = [state.batch1Scores[1], state.batch1Scores[0]];
 
-    if (p1Score > p1Target) {
+    if (p1Score >= p1Target) {
       state.gameOver = true;
       state.winner = 0;
-      state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} surpassed the target of ${p1Target} and WINS!`;
-    } else if (p2Score > p2Target) {
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[0].name} reached the target of ${p1Target} and WINS!`;
+      state.logMessages.push(state.lastAction);
+    } else if (p2Score >= p2Target) {
       state.gameOver = true;
       state.winner = 1;
-      state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} surpassed the target of ${p2Target} and WINS!`;
+      state.lastAction = `[SYSTEM]: 🏆 ${state.players[1].name} reached the target of ${p2Target} and WINS!`;
+      state.logMessages.push(state.lastAction);
     }
   }
 }

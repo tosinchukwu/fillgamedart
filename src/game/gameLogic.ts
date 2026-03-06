@@ -17,7 +17,6 @@ export interface GameState {
   dartsRemaining: number;
   turnHistory: TurnAction[];
   closedNumbers: Set<number>;
-  topFillerAwarded: Record<number, boolean>;
   hitSequences: Record<number, (0 | 1)[]>;
   batch: 1 | 2;
   batch1Score: number | null;
@@ -60,10 +59,8 @@ export function createInitialPlayer(name: string, address: string): PlayerState 
 
 export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: string, p2Addr: string, isVsCPU = false): GameState {
   const hitSequences: Record<number, (0 | 1)[]> = {};
-  const topFillerAwarded: Record<number, boolean> = {};
   for (let i = 1; i <= TOTAL_NUMBERS; i++) {
     hitSequences[i] = [];
-    topFillerAwarded[i] = false;
   }
   return {
     players: [createInitialPlayer(p1Name, p1Addr), createInitialPlayer(p2Name, p2Addr)],
@@ -71,7 +68,6 @@ export function createInitialGameState(p1Name: string, p1Addr: string, p2Name: s
     dartsRemaining: 3,
     turnHistory: [],
     closedNumbers: new Set(),
-    topFillerAwarded,
     hitSequences,
     batch: 1,
     batch1Score: null,
@@ -100,23 +96,34 @@ function calculateHitPoints(state: GameState, playerIdx: 0 | 1, n: number): { po
   let points = 2; // Base Filler
   let breakdown = "+2 Filler";
 
-  // Top Filler with Sharing Logic (Trigger: At least one player must have more than 50% hits)
-  const triggerThreshold = n / 2;
-  const isTriggered = myHits > triggerThreshold || otherHits > triggerThreshold;
+  // Top Filler Dynamic Tie/Lead Logic
+  const threshold = n / 2;
+  const prevMyHits = myHits - 1;
+  const prevOtherHits = otherHits;
 
-  if (isTriggered && !state.topFillerAwarded[n]) {
-    state.topFillerAwarded[n] = true;
-    if (myHits > otherHits) {
-      points += 7;
-      breakdown += " +7 Top-Filler (Lead)";
-    } else if (myHits === otherHits) {
-      points += 3.5;
-      breakdown += " +3.5 Top-Filler (Tie)";
-      // Sharing Rule: If we reach a tie, we split the opponent's previous lead bonus
-      other.totalScore -= 3.5;
-      breakdown += " (Opponent bonus shared -3.5)";
+  const currentTriggered = myHits > threshold || otherHits > threshold;
+  const prevTriggered = prevMyHits > threshold || prevOtherHits > threshold;
+
+  if (currentTriggered) {
+    if (!prevTriggered) {
+      // First time hitting boundary
+      if (myHits > otherHits) {
+        points += 7;
+        breakdown += " +7 Top-Filler (Lead)";
+      }
     } else {
-      breakdown += " +0 Top-Filler (Trailing)";
+      // Awarded already, check if tie state changed
+      if (prevMyHits < prevOtherHits && myHits === prevOtherHits) {
+        points += 3.5;
+        breakdown += " +3.5 Top-Filler (Tied the Lead)";
+        other.totalScore -= 3.5;
+        breakdown += " (Opponent bonus shared -3.5)";
+      } else if (prevMyHits === prevOtherHits && myHits > prevOtherHits) {
+        points += 3.5;
+        breakdown += " +3.5 Top-Filler (Broke Tie to Lead)";
+        other.totalScore -= 3.5;
+        breakdown += " (Opponent tie shared -3.5)";
+      }
     }
   }
 
@@ -243,7 +250,6 @@ function checkBatchConditions(state: GameState) {
       state.closedNumbers = new Set();
       for (let i = 1; i <= TOTAL_NUMBERS; i++) {
         state.hitSequences[i] = [];
-        state.topFillerAwarded[i] = false;
       }
 
       state.currentPlayer = (1 - b1w) as (0 | 1);

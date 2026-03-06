@@ -96,18 +96,25 @@ function calculateHitPoints(state: GameState, playerIdx: 0 | 1, n: number): { po
   let points = 2; // Base Filler
   let breakdown = "+2 Filler";
 
-  // Top Filler with Sharing Logic
-  if (myHits > otherHits) {
-    points += 7;
-    breakdown += " +7 Top-Filler (Lead)";
-  } else if (myHits === otherHits) {
-    points += 3.5;
-    breakdown += " +3.5 Top-Filler (Tie)";
-    // Sharing Rule: If we reach a tie, we split the opponent's previous lead bonus
-    other.totalScore -= 3.5;
-    breakdown += " (Opponent bonus shared -3.5)";
+  // Top Filler with Sharing Logic (Trigger: At least one player must have more than 50% hits)
+  const triggerThreshold = n / 2;
+  const isTriggered = myHits > triggerThreshold || otherHits > triggerThreshold;
+
+  if (isTriggered) {
+    if (myHits > otherHits) {
+      points += 7;
+      breakdown += " +7 Top-Filler (Lead)";
+    } else if (myHits === otherHits) {
+      points += 3.5;
+      breakdown += " +3.5 Top-Filler (Tie)";
+      // Sharing Rule: If we reach a tie, we split the opponent's previous lead bonus
+      other.totalScore -= 3.5;
+      breakdown += " (Opponent bonus shared -3.5)";
+    } else {
+      breakdown += " +0 Top-Filler (Trailing)";
+    }
   } else {
-    breakdown += " +0 Top-Filler (Trailing)";
+    breakdown += " +0 Top-Filler (Pre-threshold)";
   }
 
   // Fill-Up

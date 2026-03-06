@@ -29,13 +29,13 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
         const fillerEarners = seq.map(p => p === 0 ? 'A' : 'B').join(', ');
 
         // Top Filler bonus (Highest hits) - Only for 2-14
-        // CONDITION: Only awarded once BOTH players have hit more than half of the number
+        // CONDITION: Triggered once at least ONE player has hit more than half of the number
         let tfpEarner = '-';
         let tfpA = 0;
         let tfpB = 0;
         if (n >= 2) {
             const threshold = n / 2;
-            if (p1.hits[n] > threshold && p2.hits[n] > threshold) {
+            if (p1.hits[n] > threshold || p2.hits[n] > threshold) {
                 if (p1.hits[n] > p2.hits[n]) {
                     tfpEarner = 'A';
                     tfpA = 7;
@@ -61,17 +61,10 @@ const MasterScoringTable: React.FC<MasterScoringTableProps> = ({ gameState }) =>
             fuEarner = earners.join(', ') || '-';
             fuA = (p1.num1AwardedBatch1 ? 10 : 0) + (p1.num1AwardedBatch2 ? 10 : 0);
             fuB = (p2.num1AwardedBatch1 ? 10 : 0) + (p2.num1AwardedBatch2 ? 10 : 0);
-        } else if (gameState.closedNumbers.has(n)) {
-            let p1Rem = n;
-            let p2Rem = n;
-            for (const p of seq) {
-                if (p === 0) p1Rem--; else p2Rem--;
-                if (p1Rem <= 0 && p2Rem <= 0) {
-                    fuEarner = p === 0 ? 'A' : 'B';
-                    if (p === 0) fuA = 10; else fuB = 10;
-                    break;
-                }
-            }
+        } else if (gameState.closedNumbers.has(n) && seq.length > 0) {
+            const lastPlayer = seq[seq.length - 1];
+            fuEarner = lastPlayer === 0 ? 'A' : 'B';
+            if (lastPlayer === 0) fuA = 10; else fuB = 10;
         }
 
         // Filler points for this row (Capped at n*2, EXCEPT for Number 1)

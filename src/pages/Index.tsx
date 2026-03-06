@@ -1330,6 +1330,20 @@ const Index = () => {
               </span>
             </div>
 
+            {/* Number Closure Banner (Small, under button) */}
+            {closureBanner && !gameState.gameOver && (
+              <div className="absolute top-[200px] w-full flex justify-center animate-in fade-in zoom-in slide-in-from-top-4 duration-500 pointer-events-none z-50">
+                <div className="bg-black/80 backdrop-blur-sm px-4 py-2 flex items-center gap-3 rounded-full border border-primary/50 shadow-[0_0_15px_rgba(232,65,66,0.3)]">
+                  <div className="bg-primary text-white text-xs font-black uppercase px-2 py-0.5 rounded-full">
+                    #{closureBanner.numbers.join(', ')}
+                  </div>
+                  <span className="text-white/90 text-[10px] uppercase font-black tracking-widest">
+                    {closureBanner.message}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {!gameState.isVsCPU && (
               <Button
                 variant="outline"
@@ -1359,24 +1373,6 @@ const Index = () => {
 
       <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} theme={theme} onThemeChange={setTheme} volume={volume} onVolumeChange={setVolume} musicEnabled={musicEnabled} onMusicToggle={setMusicEnabled} sfxEnabled={sfxEnabled} onSfxToggle={setSfxEnabled} selectedMusic={selectedMusic} onMusicChange={setSelectedMusic} />
 
-      {/* Number Closure Banner */}
-      {closureBanner && !gameState.gameOver && (
-        <div className="fixed inset-x-0 top-[25%] z-[150] flex items-center justify-center pointer-events-none animate-in fade-in zoom-in slide-in-from-top-12 duration-500">
-          <div className="bg-black/90 backdrop-blur-md px-12 py-6 rounded-[3rem] border-4 border-primary shadow-[0_0_80px_rgba(232,65,66,0.6)] flex items-center gap-6">
-            <div className={`rounded-[2rem] bg-primary flex items-center justify-center text-white font-black border-4 border-white/20 shadow-inner ${closureBanner.numbers.length > 1 ? 'px-6 py-4 text-3xl' : 'w-20 h-20 text-4xl'}`}>
-              {closureBanner.numbers.join(', ')}
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-4xl text-white font-black uppercase tracking-widest italic text-glow-theme">
-                {closureBanner.message.split('!')[0]}!
-              </span>
-              <span className="text-sm text-primary font-mono-game uppercase tracking-[0.2em] mt-2">
-                {closureBanner.message.split('!').slice(1).join('!').trim() || "Number Closed"}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

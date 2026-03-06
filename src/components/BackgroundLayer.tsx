@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type BackgroundMode = 'sky' | 'galaxy' | 'globe' | 'custom';
+export type BackgroundMode = 'sky' | 'galaxy' | 'globe' | 'stadium' | 'custom';
 
 interface BackgroundLayerProps {
     mode: BackgroundMode;
@@ -146,6 +146,38 @@ const GlobeBackground = () => (
     </div>
 );
 
+// ─── Stadium Background for Live Matches ─────────────────────────────────────
+const StadiumBackground = () => (
+    <div className="fixed inset-0 z-[-1] overflow-hidden">
+        <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+                backgroundImage: "url('/stadium-bg.png')",
+                filter: 'brightness(0.6)'
+            }}
+        />
+        {/* Overlay gradient for better UI readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+
+        {/* Subtle atmospheric light beams */}
+        <div
+            className="absolute top-0 left-1/4 w-[1px] h-full bg-primary/20 blur-[100px] rotate-12 transform-gpu"
+            style={{ animation: 'sweep 10s ease-in-out infinite alternate' }}
+        />
+        <div
+            className="absolute top-0 right-1/4 w-[1px] h-full bg-blue-500/20 blur-[100px] -rotate-12 transform-gpu"
+            style={{ animation: 'sweep 12s ease-in-out infinite alternate-reverse' }}
+        />
+
+        <style>{`
+            @keyframes sweep {
+                from { opacity: 0.3; transform: translateX(-50px) rotate(10deg); }
+                to { opacity: 0.7; transform: translateX(50px) rotate(15deg); }
+            }
+        `}</style>
+    </div>
+);
+
 // ─── Main exported component ─────────────────────────────────────────────────
 const BackgroundLayer: React.FC<BackgroundLayerProps> = ({ mode, customUrl }) => {
     if (mode === 'sky') return null; // uses body::before with /sky-bg.png
@@ -153,6 +185,8 @@ const BackgroundLayer: React.FC<BackgroundLayerProps> = ({ mode, customUrl }) =>
     if (mode === 'galaxy') return <GalaxyBackground />;
 
     if (mode === 'globe') return <GlobeBackground />;
+
+    if (mode === 'stadium') return <StadiumBackground />;
 
     if (mode === 'custom' && customUrl) {
         return (

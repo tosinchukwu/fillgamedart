@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { GameState } from '../game/gameLogic';
 import Dartboard from '../components/Dartboard';
+import BackgroundLayer from '../components/BackgroundLayer';
 import GameLog from '../components/GameLog';
 import MasterScoringTable from '../components/MasterScoringTable';
 import { Loader2, Eye, Tv, ArrowLeft, Radio } from 'lucide-react';
@@ -54,7 +55,8 @@ const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
 
     return (
         <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6 font-mono-game">
-            <div className="w-full max-w-xl">
+            <BackgroundLayer mode="stadium" />
+            <div className="w-full max-w-xl relative z-10">
 
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-8">
@@ -193,6 +195,7 @@ const SpectatorGame = ({ matchCode, onBack }: { matchCode: string; onBack: () =>
 
     return (
         <div className={`min-h-screen bg-[#0a0a0f] flex flex-col theme-${gameState.theme || 'neon'}`}>
+            <BackgroundLayer mode="stadium" />
             {/* Top bar — wraps on small screens */}
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/5 bg-black/40 backdrop-blur-sm">
                 <Button variant="ghost" onClick={onBack} className="text-white/30 hover:text-white/70 p-2 rounded-xl shrink-0">

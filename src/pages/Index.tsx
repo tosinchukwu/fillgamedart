@@ -37,73 +37,116 @@ const AUDIO_ASSETS = {
 };
 
 const RulesScroll = () => (
-  <div className="mt-2 text-left glass-panel p-6 rounded-2xl border-white/10 bg-black/40 space-y-4 max-h-72 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-4 duration-500">
+  <div className="mt-2 text-left glass-panel p-6 rounded-2xl border-white/10 bg-black/40 space-y-5 max-h-72 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-4 duration-500">
     <h3 className="text-primary font-mono-game tracking-[0.3em] uppercase text-xs font-black border-b border-white/10 pb-3 flex items-center justify-between">
-      Rules of Engagement
+      📖 How To Play
       <span className="text-[9px] text-white/30 animate-pulse">Scroll to read more</span>
     </h3>
     <div className="text-white/80 text-[11px] space-y-5 font-medium leading-relaxed">
+
       <section className="space-y-2">
         <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          🏹 Turn Structure
+          🎯 The Goal
         </h4>
-        <p className="pl-4 border-l border-white/10">Each player throws 3 darts per turn. Player A throws 3, then Player B. Turns alternate. Goal: Accumulate points and pass the target score.</p>
+        <p className="pl-4 border-l border-white/10">
+          Score as many points as you can by throwing darts at numbers on the board. Numbers go from <strong>1 to 14</strong>. The player with the highest score wins.
+        </p>
       </section>
 
       <section className="space-y-2">
         <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          📊 Number Completion
+          🏹 Taking Your Turn
+        </h4>
+        <p className="pl-4 border-l border-white/10">
+          Each player throws <strong>3 darts</strong> per turn. Player A throws 3 darts, then Player B throws 3 darts, and so on. Just click a number or ring on the board, then hit <strong>Launch Dart</strong>.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          💰 Filler Points (+2 each hit)
         </h4>
         <div className="pl-4 border-l border-white/10 space-y-1">
-          <p>Hit each number equal to its value (e.g., 14 hits for #14).</p>
-          <p>Once completed, no more filler points from that number.</p>
-          <p className="text-secondary/80">Fully closed when BOTH players complete it.</p>
+          <p>Every time you hit a number, you earn <span className="text-secondary font-bold">+2 points</span>. Simple as that!</p>
+          <p className="text-white/50 italic">Example: Hit number 7 three times → earn 6 points.</p>
         </div>
       </section>
 
       <section className="space-y-2">
         <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          💰 Filler Points
+          📊 Closing a Number
         </h4>
-        <p className="pl-4 border-l border-white/10">Every hit on an uncompleted number earns <span className="text-secondary font-bold">2 filler points</span> and counts toward its required total.</p>
+        <div className="pl-4 border-l border-white/10 space-y-1">
+          <p>Each number needs to be hit a certain number of times <strong>in total by BOTH players</strong> before it "closes." The required total equals the number itself.</p>
+          <p className="text-white/50 italic">Example: Number <strong>4</strong> needs 4 total hits (between both players). Number <strong>10</strong> needs 10 total hits.</p>
+          <p>Once a number closes, no more points can be earned from it.</p>
+        </div>
       </section>
 
       <section className="space-y-2">
         <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          🔵 Circular Line Advantage
+          🔥 Top Filler Bonus (+7 or +3.5)
         </h4>
-        <p className="pl-4 border-l border-white/10 italic text-white/60">Hitting a ring awards hits and filler points for ALL numbers on that ring simultaneously. Faster progress, higher strategy.</p>
+        <div className="pl-4 border-l border-white/10 space-y-1">
+          <p>Once more than half the hits needed for a number have been made, the player who is <strong>leading</strong> in hits on that number gets a <span className="text-secondary font-bold">+7 bonus</span> on top of the usual +2.</p>
+          <p>If both players have the <strong>same number of hits</strong> on a number, they <strong>split the bonus</strong> — each gets <span className="text-secondary font-bold">+3.5 points</span>.</p>
+          <p className="text-white/50 italic">Example: For number 6, once 4+ total hits exist, the player with more hits gets +7 every time they hit it. If tied, both get +3.5.</p>
+        </div>
       </section>
 
       <section className="space-y-2">
         <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          🎁 Bonus System
+          ⚡ Fill-Up Bonus (+10)
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-1">
+          <p>Whoever lands the <strong>final dart</strong> that closes a number earns a big <span className="text-primary font-bold">+10 bonus</span>!</p>
+          <p className="text-white/50 italic">Example: Number 5 needs 5 total hits. The player who throws the 5th hit gets +2 (filler) + +10 (fill-up) = 12 points from that single dart.</p>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          ⭕ Special: Hit a Ring
+        </h4>
+        <div className="pl-4 border-l border-white/10 space-y-1">
+          <p>The board has <strong>4 rings</strong> (circles). Each ring contains multiple numbers. When you hit a ring, your dart counts as a hit on <strong>ALL numbers in that ring at once!</strong></p>
+          <p className="text-white/50 italic">Example: Ring 3 contains numbers 11, 1, 3, and 8. One dart hit = one hit on all four numbers simultaneously!</p>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🌟 Number 1 is Special!
+        </h4>
+        <p className="pl-4 border-l border-white/10">
+          Number 1 <strong>never closes</strong>. Every single hit on it always gives you <span className="text-secondary font-bold">+2 Filler</span> and <span className="text-primary font-bold">+10 Fill-Up</span> = <strong>12 points instantly</strong>, every time!
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          🏆 The Two-Batch System
         </h4>
         <div className="pl-4 border-l border-white/10 space-y-2">
-          <p><strong>🔥 Top Filler (7 pts):</strong> Awarded per number (<span className="text-secondary font-bold">2–14</span>). Earned if you have the most hits on that specific number. Shared (3.5 each) if hits are equal.</p>
-          <p><strong>⚡ Fill-Up (10 pts):</strong> Awarded to the <span className="text-primary font-bold">last player</span> to complete a number. This fully closes the number for the board.</p>
+          <p><strong>Batch 1:</strong> Play until someone reaches <strong>221.5 points</strong>. Both players' scores are saved.</p>
+          <p><strong>Batch 2 (The Comeback Round!):</strong> Now each player's target becomes their <em>opponent's</em> Batch 1 score. The first player to beat it wins the whole game!</p>
+          <p className="text-secondary font-bold italic">Anyone can win in Batch 2 — even if you were behind in Batch 1!</p>
         </div>
       </section>
 
-      <section className="space-y-2">
-        <h4 className="text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          🏆 Batch System (Final Race)
-        </h4>
-        <div className="pl-4 border-l border-white/10 space-y-2">
-          <p><strong>Batch 1:</strong> First to exceed <strong>221.5 pts</strong> ends the round. Both scores are recorded.</p>
-          <p><strong>Batch 2 (The Race):</strong> Each player now has a <span className="text-primary font-bold">Unique Target</span>: your opponent's final Batch 1 score.</p>
-          <p className="text-secondary font-bold">First to surpass their opponent's record wins the entire game immediately.</p>
-        </div>
-      </section>
     </div>
   </div>
 );
+
 
 const Index = () => {
   const [theme, setTheme] = useState<'neon' | 'avalanche' | 'gold' | 'midnight'>('neon');

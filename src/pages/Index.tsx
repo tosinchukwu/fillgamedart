@@ -415,14 +415,14 @@ const Index = () => {
         closedNumbers: Array.from(state.closedNumbers)
       };
 
-      // Use upsert for both modes to ensure reliability, but keep specific logic if needed
+      // Use update instead of upsert to preserve other columns like lobby info and featured status
       const { error } = await supabase
         .from('matches')
-        .upsert({
-          match_id: activeMatchId,
+        .update({
           game_state: serializedState,
           updated_at: new Date().toISOString() // Force updated_at update
-        }, { onConflict: 'match_id' });
+        })
+        .eq('match_id', activeMatchId);
 
       if (error) {
         console.error("Broadcast error:", error);

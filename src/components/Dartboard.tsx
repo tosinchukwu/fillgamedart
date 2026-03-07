@@ -48,10 +48,11 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
 
   // Sync stuck darts from game state (for spectators or joined players)
   useEffect(() => {
-    if (isSpectator && gameState?.latestDart !== undefined) {
+    // If we are currently animating a local throw, don't let remote state override the visual position mid-air
+    if (!dartFlying && gameState?.latestDart !== undefined) {
       setStuckDarts(gameState.latestDart);
     }
-  }, [gameState?.latestDart, isSpectator]);
+  }, [gameState?.latestDart, dartFlying]);
 
   // Reset stuck dart if game state indicates no hits or new round
   useEffect(() => {

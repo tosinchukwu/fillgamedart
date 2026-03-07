@@ -44,7 +44,7 @@ const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
             const now = Date.now();
             const freshMatches = (data as FeaturedMatch[]).filter(m => {
                 const updated = new Date(m.updated_at).getTime();
-                return (now - updated) < 90000; // 90 seconds threshold
+                return (now - updated) < 150000; // 150 seconds threshold (relaxed for slower heartbeats)
             }).slice(0, 3);
 
             setMatches(freshMatches);

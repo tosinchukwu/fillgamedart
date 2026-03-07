@@ -62,7 +62,7 @@ const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
     const slots = [0, 1, 2];
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6 font-mono-game">
+        <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-6 font-mono-game relative overflow-hidden">
             <BackgroundLayer mode="stadium" />
             <div className="w-full max-w-xl relative z-10">
 
@@ -100,7 +100,7 @@ const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
                         return (
                             <div
                                 key={i}
-                                className={`rounded-2xl border p-5 transition-all ${match
+                                className={`rounded-2xl border p-5 transition-all backdrop-blur-md ${match
                                     ? 'bg-white/5 border-primary/30 hover:border-primary/60 hover:bg-white/8 cursor-pointer'
                                     : 'bg-white/[0.02] border-white/5 cursor-not-allowed opacity-40'}`}
                                 onClick={() => match && onWatch(match.match_id)}
@@ -194,15 +194,18 @@ const SpectatorGame = ({ matchCode, onBack }: { matchCode: string; onBack: () =>
 
     if (!gameState) {
         return (
-            <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4">
-                <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                <p className="text-white/40 text-[11px] uppercase tracking-widest">Loading live match...</p>
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 relative">
+                <BackgroundLayer mode="stadium" />
+                <div className="relative z-10 flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <p className="text-white/40 text-[11px] uppercase tracking-widest">Loading live match...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className={`min-h-screen bg-[#0a0a0f] flex flex-col theme-${gameState.theme || 'neon'}`}>
+        <div className={`min-h-screen bg-transparent flex flex-col theme-${gameState.theme || 'neon'} relative overflow-hidden`}>
             <BackgroundLayer mode="stadium" />
             {/* Top bar — wraps on small screens */}
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/5 bg-black/40 backdrop-blur-sm">

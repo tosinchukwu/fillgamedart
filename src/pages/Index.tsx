@@ -411,7 +411,7 @@ const Index = () => {
       const serializedState = {
         ...state,
         theme, // Sync the current theme
-        lastDarts: state.lastDarts || [], // Sync the last darts' positions
+        latestDart: state.latestDart || null, // Sync the single latest dart
         closedNumbers: Array.from(state.closedNumbers)
       };
 
@@ -552,13 +552,11 @@ const Index = () => {
       // Sync visual state
       updatedState.theme = theme;
       if (dartPos) {
-        const newDart = { ...dartPos, playerIdx: prev.currentPlayer };
-        // If it's a new turn (dartsRemaining was 3 before hitNumber subtracted 1), start a new list
-        if (prev.dartsRemaining === 3) {
-          updatedState.lastDarts = [newDart];
-        } else {
-          updatedState.lastDarts = [...(prev.lastDarts || []), newDart];
-        }
+        updatedState.latestDart = { ...dartPos, playerIdx: prev.currentPlayer };
+      }
+
+      if (updatedState.gameOver) {
+        updatedState.latestDart = null;
       }
 
       if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
@@ -581,12 +579,11 @@ const Index = () => {
       // Sync visual state
       updatedState.theme = theme;
       if (dartPos) {
-        const newDart = { ...dartPos, playerIdx: prev.currentPlayer };
-        if (prev.dartsRemaining === 3) {
-          updatedState.lastDarts = [newDart];
-        } else {
-          updatedState.lastDarts = [...(prev.lastDarts || []), newDart];
-        }
+        updatedState.latestDart = { ...dartPos, playerIdx: prev.currentPlayer };
+      }
+
+      if (updatedState.gameOver) {
+        updatedState.latestDart = null;
       }
 
       if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);

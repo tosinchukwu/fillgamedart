@@ -36,7 +36,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   const player = gameState.players[cp];
 
   const [boardPhase, setBoardPhase] = useState<BoardPhase>('idle');
-  const [stuckDarts, setStuckDarts] = useState<DartStuck[]>([]);
+  const [stuckDarts, setStuckDarts] = useState<{ x: number; y: number; angle: number; tilt: number; playerIdx: number } | null>(null);
   const [dartVisible, setDartVisible] = useState(true);
   const [dartFlying, setDartFlying] = useState(false);
   const [isLaunched, setIsLaunched] = useState(false);
@@ -46,16 +46,21 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   const phaseRef = useRef<BoardPhase>('idle');
   useEffect(() => { phaseRef.current = boardPhase; }, [boardPhase]);
 
-  // Sync stuck darts with game state resets
+  // Sync stuck darts from game state (for spectators or joined players)
+  useEffect(() => {
+    if (isSpectator && gameState?.latestDart !== undefined) {
+      setStuckDarts(gameState.latestDart);
+    }
+  }, [gameState?.latestDart, isSpectator]);
+
+  // Reset stuck dart if game state indicates no hits or new round
   useEffect(() => {
     const totalHits = Object.values(gameState.hitSequences).reduce((acc, seq) => acc + seq.length, 0);
-    if (totalHits === 0 && stuckDarts.length > 0) {
-      setStuckDarts([]);
-    } else if (gameState.lastDarts && gameState.lastDarts.length !== stuckDarts.length) {
-      // Sync darts from game state (important for spectators and joined players)
-      setStuckDarts(gameState.lastDarts.map((d, i) => ({ id: i, ...d })));
+    if (totalHits === 0 && stuckDarts !== null) {
+      setStuckDarts(null);
     }
-  }, [gameState.hitSequences, gameState.lastDarts]);
+  }, [gameState.hitSequences, stuckDarts]);
+
 
   const prevCpRef = useRef(cp);
   useEffect(() => {
@@ -97,7 +102,7 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
     phaseRef.current = 'throwing';
 
     if (gameState.dartsRemaining === 3) {
-      setStuckDarts([]);
+      setStuckDarts(null); // Clear previous dart if starting a new turn
     }
 
     const res = resolveDartLanding();
@@ -120,11 +125,10 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
       phaseRef.current = 'idle';
       window.dispatchEvent(new CustomEvent('DART_HIT_IMPACT'));
 
-      const id = ++dartIdCounter;
-      setStuckDarts([{ id, x: lx, y: ly, angle, tilt, playerIdx: cp }]);
+      const dartPos = { x: lx, y: ly, angle, tilt };
+      setStuckDarts({ x: lx, y: ly, angle, tilt, playerIdx: cp });
       setFlightDest(null);
 
-      const dartPos = { x: lx, y: ly, angle, tilt };
       if (hitRingLine && hitRingLineIdx >= 0) {
         setHitPulse({ id: `ring-${hitRingLineIdx}`, type: 'ring' });
         const rNums = RING_NUMBERS[hitRingLineIdx] ?? [];
@@ -294,20 +298,20 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
               );
             })}
 
-            {/* Stuck dart impact spots - Permanent Image Markers */}
-            {stuckDarts.map((dart) => (
-              <g key={dart.id}>
+            {/* Stuck Darts */}
+            {stuckDarts && (
+              <g>
                 <image
-                  href={dart.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
-                  x={dart.x - 29}
-                  y={dart.y - 135 + 15}
+                  href={stuckDarts.playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
+                  x={stuckDarts.x - 29}
+                  y={stuckDarts.y - 135 + 15}
                   width="58"
                   height="135"
-                  transform={`rotate(${dart.angle + dart.tilt} ${dart.x} ${dart.y})`}
+                  transform={`rotate(${stuckDarts.angle + stuckDarts.tilt} ${stuckDarts.x} ${stuckDarts.y})`}
                   style={{ filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.6))' }}
                 />
               </g>
-            ))}
+            )}
 
             {/* flying dart */}
             {dartFlying && flightDest && (

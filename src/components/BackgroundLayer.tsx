@@ -148,31 +148,77 @@ const GlobeBackground = () => (
 
 // ─── Stadium Background for Live Matches ─────────────────────────────────────
 const StadiumBackground = () => (
-    <div className="fixed inset-0 z-[-1] overflow-hidden">
+    <div className="fixed inset-0 z-[-1] overflow-hidden bg-black">
+        {/* The Base Stadium Image */}
         <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
             style={{
                 backgroundImage: "url('/stadium-bg.png')",
-                filter: 'brightness(0.6)'
+                filter: 'brightness(0.5) contrast(1.2) saturate(1.2)'
             }}
         />
-        {/* Overlay gradient for better UI readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
 
-        {/* Subtle atmospheric light beams */}
+        {/* Cinematic Overlays */}
+        {/* 1. Deep Vignette & Bottom Shadow */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.8)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/40 to-transparent" />
+
+        {/* 2. Holographic Sports Grid */}
         <div
-            className="absolute top-0 left-1/4 w-[1px] h-full bg-primary/20 blur-[100px] rotate-12 transform-gpu"
-            style={{ animation: 'sweep 10s ease-in-out infinite alternate' }}
+            className="absolute inset-0 opacity-[0.15]"
+            style={{
+                backgroundImage: `linear-gradient(rgba(0, 242, 254, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 254, 0.3) 1px, transparent 1px)`,
+                backgroundSize: '80px 80px',
+                transform: 'perspective(1000px) rotateX(60deg) translateY(-100px) scale(2)',
+                transformOrigin: 'top'
+            }}
+        />
+
+        {/* 3. Volumetric Light Beams (Dual Tone) */}
+        <div
+            className="absolute top-0 left-[-10%] w-[30%] h-[150%] bg-primary/20 blur-[120px] rotate-[25deg] transform-gpu mix-blend-screen"
+            style={{ animation: 'beam-main 15s ease-in-out infinite alternate' }}
         />
         <div
-            className="absolute top-0 right-1/4 w-[1px] h-full bg-blue-500/20 blur-[100px] -rotate-12 transform-gpu"
-            style={{ animation: 'sweep 12s ease-in-out infinite alternate-reverse' }}
+            className="absolute top-0 right-[-10%] w-[35%] h-[150%] bg-blue-500/15 blur-[140px] rotate-[-20deg] transform-gpu mix-blend-screen"
+            style={{ animation: 'beam-sub 18s ease-in-out infinite alternate-reverse' }}
         />
+
+        {/* 4. Digital Scanlines */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+
+        {/* 5. Floating Dust/Particles */}
+        <div className="absolute inset-0 pointer-events-none">
+            {Array.from({ length: 20 }).map((_, i) => (
+                <div
+                    key={i}
+                    className="absolute bg-white/20 rounded-full blur-[1px]"
+                    style={{
+                        width: Math.random() * 3 + 1 + 'px',
+                        height: Math.random() * 3 + 1 + 'px',
+                        left: Math.random() * 100 + '%',
+                        top: Math.random() * 100 + '%',
+                        animation: `float-particle ${Math.random() * 10 + 10}s linear infinite`,
+                        animationDelay: `-${Math.random() * 10}s`
+                    }}
+                />
+            ))}
+        </div>
 
         <style>{`
-            @keyframes sweep {
-                from { opacity: 0.3; transform: translateX(-50px) rotate(10deg); }
-                to { opacity: 0.7; transform: translateX(50px) rotate(15deg); }
+            @keyframes beam-main {
+                0% { opacity: 0.3; transform: translateX(-5%) rotate(20deg); }
+                100% { opacity: 0.6; transform: translateX(10%) rotate(30deg); }
+            }
+            @keyframes beam-sub {
+                0% { opacity: 0.2; transform: translateX(5%) rotate(-15deg); }
+                100% { opacity: 0.5; transform: translateX(-10%) rotate(-25deg); }
+            }
+            @keyframes float-particle {
+                0% { transform: translateY(0) translateX(0); opacity: 0; }
+                20% { opacity: 0.4; }
+                80% { opacity: 0.4; }
+                100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
             }
         `}</style>
     </div>

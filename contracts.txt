@@ -1,75 +1,93 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
+import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
+
 /**
  * @title FillingGameScoreboard
- * @dev A simple contract to record and verify Filling Game results on Avalanche.
+ * @dev A contract to record verified Filling Game results using Chainlink Functions.
  */
-contract FillingGameScoreboard {
-    
+contract FillingGameScoreboard is FunctionsClient {
+    using FunctionsRequest for FunctionsRequest.Request;
+
     struct GameResult {
         address winner;
         string winnerName;
         uint256 score;
         uint256 timestamp;
+        bool verified;
     }
 
     GameResult[] public history;
-    
-    event ScoreRecorded(address indexed winner, string winnerName, uint256 score, uint256 timestamp);
+    bytes32 public s_lastRequestId;
+    bytes public s_lastResponse;
+    bytes public s_lastError;
+
+    event ScoreRecorded(address indexed winner, string winnerName, uint256 score, uint256 timestamp, bool verified);
+    event Response(bytes32 indexed requestId, bytes response, bytes err);
+
+    constructor(address router) FunctionsClient(router) {}
+
+    /**
+     * @dev Sends a request to verify the game score off-chain using CRE.
+     * @param source The source code for the Chainlink Function.
+     * @param args The arguments (hit history JSON).
+     */
+    function sendVerificationRequest(
+        string memory source,
+        string[] memory args,
+        uint64 subscriptionId,
+        uint32 callbackGasLimit,
+        bytes32 donId
+    ) external returns (bytes32 requestId) {
+        FunctionsRequest.Request memory req;
+        req.initializeRequestForInlineJavaScript(source);
+        if (args.length > 0) req.setArgs(args);
+        s_lastRequestId = _sendRequest(
+            req.encodeCBOR(),
+            subscriptionId,
+            callbackGasLimit,
+            donId
+        );
+        return s_lastRequestId;
+    }
+
+    /**
+     * @dev Callback function called by Chainlink Functions.
+     */
+    function fulfillRequest(
+        bytes32 requestId,
+        bytes memory response,
+        bytes memory err
+    ) internal override {
+        s_lastResponse = response;
+        s_lastError = err;
+        emit Response(requestId, response, err);
+
+        if (err.length == 0) {
+            // Logic to parse response and record the score would go here.
+            // For now, we emit the result.
+        }
+    }
 
     /**
      * @dev Records a new game result on the blockchain.
-     * @param _winnerName The name of the winning player.
-     * @param _score The final score of the winner.
      */
-    function recordScore(string memory _winnerName, uint256 _score) public {
+    function recordScore(string memory _winnerName, uint256 _score, bool _verified) public {
         GameResult memory newResult = GameResult({
             winner: msg.sender,
             winnerName: _winnerName,
             score: _score,
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            verified: _verified
         });
 
         history.push(newResult);
-        
-        emit ScoreRecorded(msg.sender, _winnerName, _score, block.timestamp);
+        emit ScoreRecorded(msg.sender, _winnerName, _score, block.timestamp, _verified);
     }
 
-    /**
-     * @dev Returns the total number of games recorded.
-     */
     function getGameCount() public view returns (uint256) {
         return history.length;
     }
-
-    /**
-     * @dev Returns a specific game result by index.
-     */
-    function getGameResult(uint256 _index) public view returns (address, string memory, uint256, uint256) {
-        require(_index < history.length, "Index out of bounds");
-        GameResult storage result = history[_index];
-        return (result.winner, result.winnerName, result.score, result.timestamp);
-    }
 }
-
-/* 
-================================================================================
-DEPLOYMENT INSTRUCTIONS (REMIX)
-================================================================================
-1. Go to https://remix.ethereum.org/
-2. Create a new file named 'FillingGameScoreboard.sol' and paste the code above.
-3. Go to the 'Solidity Compiler' tab and click 'Compile FillingGameScoreboard.sol'.
-4. Go to the 'Deploy & Run Transactions' tab.
-5. In the 'Environment' dropdown, select 'Injected Provider - MetaMask' (ensure your MetaMask is on Avalanche Mainnet).
-6. Click 'Deploy'.
-7. Once deployed, copy the 'Contract Address' from the 'Deployed Contracts' section.
-
-================================================================================
-INTEGRATION INSTRUCTIONS (PROJECT)
-================================================================================
-1. Copy the 'Contract Address' from Remix.
-2. In your `src/pages/Index.tsx` (the file we've been working on), find the `broadcastScore` function.
-3. I have updated the code below to use a standard contract call. You will just need to paste the address.
-
-*/

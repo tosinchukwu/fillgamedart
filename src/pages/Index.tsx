@@ -415,14 +415,14 @@ const Index = () => {
         closedNumbers: Array.from(state.closedNumbers)
       };
 
-      // Use upsert for both modes to ensure reliability, but keep specific logic if needed
+      // Use update instead of upsert to preserve other columns like lobby info and featured status
       const { error } = await supabase
         .from('matches')
-        .upsert({
-          match_id: activeMatchId,
+        .update({
           game_state: serializedState,
           updated_at: new Date().toISOString() // Force updated_at update
-        }, { onConflict: 'match_id' });
+        })
+        .eq('match_id', activeMatchId);
 
       if (error) {
         console.error("Broadcast error:", error);
@@ -536,57 +536,49 @@ const Index = () => {
   };
 
   const handleHitNumber = useCallback((num: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => {
-    setGameState(prev => {
-      if (!prev || prev.gameOver) return prev;
-      const result = hitNumber(prev, num);
-      const updatedState = result.state;
+    if (!gameState || gameState.gameOver) return;
 
-      // Sync visual state
-      updatedState.theme = theme;
-      if (dartPos) {
-        updatedState.latestDart = { ...dartPos, playerIdx: prev.currentPlayer };
-      }
+    const result = hitNumber(gameState, num);
+    const updatedState = result.state;
 
-      if (updatedState.gameOver) {
-        updatedState.latestDart = null;
-      }
+    // Apply visual sync state
+    updatedState.theme = theme;
+    if (dartPos) {
+      updatedState.latestDart = { ...dartPos, playerIdx: gameState.currentPlayer };
+    }
+    if (updatedState.gameOver) {
+      updatedState.latestDart = null;
+    }
 
-      if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-      prevBatchRef.current = updatedState.batch;
+    if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+    prevBatchRef.current = updatedState.batch;
 
-      // Auto-broadcast the new state
-      broadcastGameState(updatedState);
-
-      return updatedState;
-    });
-  }, [broadcastGameState, theme]);
+    setGameState(updatedState);
+    broadcastGameState(updatedState);
+  }, [gameState, broadcastGameState, theme]);
 
   const handleHitRing = useCallback((ringIdx: number, dartPos?: { x: number; y: number; angle: number; tilt: number }) => {
-    setGameState(prev => {
-      if (!prev || prev.gameOver) return prev;
-      const nums = RING_NUMBERS[ringIdx];
-      const result = hitRing(prev, ringIdx, nums);
-      const updatedState = result.state;
+    if (!gameState || gameState.gameOver) return;
 
-      // Sync visual state
-      updatedState.theme = theme;
-      if (dartPos) {
-        updatedState.latestDart = { ...dartPos, playerIdx: prev.currentPlayer };
-      }
+    const nums = RING_NUMBERS[ringIdx];
+    const result = hitRing(gameState, ringIdx, nums);
+    const updatedState = result.state;
 
-      if (updatedState.gameOver) {
-        updatedState.latestDart = null;
-      }
+    // Apply visual sync state
+    updatedState.theme = theme;
+    if (dartPos) {
+      updatedState.latestDart = { ...dartPos, playerIdx: gameState.currentPlayer };
+    }
+    if (updatedState.gameOver) {
+      updatedState.latestDart = null;
+    }
 
-      if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
-      prevBatchRef.current = updatedState.batch;
+    if (updatedState.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
+    prevBatchRef.current = updatedState.batch;
 
-      // Auto-broadcast the new state
-      broadcastGameState(updatedState);
-
-      return updatedState;
-    });
-  }, [broadcastGameState, theme]);
+    setGameState(updatedState);
+    broadcastGameState(updatedState);
+  }, [gameState, broadcastGameState, theme]);
 
   const cpuActionBuffer = useRef<string[]>([]);
   const cpuTurnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -652,10 +644,15 @@ const Index = () => {
       return gameState.currentPlayer === 0;
     }
 
-    // Private / Invite Match: Wallet must match current player's recorded address
-    if (!address) return false;
-    const currentPlayerAddress = gameState.players[gameState.currentPlayer].address;
-    return address.toLowerCase() === currentPlayerAddress.toLowerCase();
+    // Multiplayer (Invite or Private): 
+    // Compare current player's address with the connected wallet address.
+    const myAddr = address?.toLowerCase();
+    const activePlayerAddr = gameState.players[gameState.currentPlayer].address?.toLowerCase();
+
+    // Safety: if address is missing, we can't throw
+    if (!myAddr || !activePlayerAddr) return false;
+
+    return myAddr === activePlayerAddr;
   })();
 
   const createInviteMatch = async () => {
@@ -1440,12 +1437,18 @@ const Index = () => {
               isFlying={isDartFlying}
               isVisible={!gameState.gameOver}
               disabled={!canIThrow}
-              onClick={() => canIThrow && window.dispatchEvent(new CustomEvent('THROW_DART'))}
+              onClick={() => {
+                // The DartArrow internally handles sending the event,
+                // but we can also trigger it from the label below.
+                if (canIThrow) window.dispatchEvent(new CustomEvent('THROW_DART'));
+              }}
               playerIdx={gameState.currentPlayer}
             />
             <div
               className={`text-center glass-panel px-10 py-5 rounded-3xl border-white/10 transition-all shadow-2xl min-w-[220px] ${canIThrow ? 'hover:bg-white/10 cursor-pointer active:scale-95 group' : 'opacity-20 cursor-not-allowed pointer-events-none'}`}
-              onClick={() => canIThrow && window.dispatchEvent(new CustomEvent('THROW_DART'))}
+              onClick={() => {
+                if (canIThrow) window.dispatchEvent(new CustomEvent('THROW_DART'));
+              }}
             >
               <span className={`text-sm font-black tracking-[0.3em] uppercase ${canIThrow ? 'text-primary' : 'text-white/40'}`}>
                 {getLauncherText()}

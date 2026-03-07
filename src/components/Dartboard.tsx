@@ -49,7 +49,9 @@ const Dartboard: React.FC<DartboardProps> = ({ gameState, onHitNumber, onHitRing
   // Sync stuck darts from game state (for spectators or joined players)
   useEffect(() => {
     // If we are currently animating a local throw, don't let remote state override the visual position mid-air
-    if (!dartFlying && gameState?.latestDart !== undefined) {
+    if (dartFlying) return;
+
+    if (gameState?.latestDart !== undefined) {
       setStuckDarts(gameState.latestDart);
     }
   }, [gameState?.latestDart, dartFlying]);
@@ -381,12 +383,7 @@ export const DartArrow: React.FC<{
         ${canClick ? 'hover:scale-110 active:scale-90' : ''}
       `}
     >
-      <div className="relative" onClick={(e) => {
-        e.stopPropagation();
-        if (canClick) {
-          window.dispatchEvent(new CustomEvent('THROW_DART'));
-        }
-      }}>
+      <div className="relative">
         <img
           src={playerIdx === 0 ? "/green_dart.png" : "/red_dart.png"}
           alt="Dart arrow"

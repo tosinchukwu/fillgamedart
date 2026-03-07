@@ -37,7 +37,12 @@ const SpectatorLobby = ({ onWatch }: { onWatch: (code: string) => void }) => {
             .select('match_id, lobby_host, lobby_guest, status, updated_at')
             .eq('is_featured', true)
             .eq('status', 'active')
+            .order('updated_at', { ascending: false })
             .limit(10); // Fetch more to filter down to 3 fresh ones
+
+        if (error) {
+            console.error("Fetch Matches Error:", error);
+        }
 
         if (!error && data) {
             // Filter out "stale" matches where updated_at is older than 90 seconds

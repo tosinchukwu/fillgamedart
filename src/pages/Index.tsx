@@ -443,7 +443,10 @@ const Index = () => {
       try {
         await supabase
           .from('matches')
-          .update({ status: 'active' }) // Triggers updated_at
+          .update({
+            status: 'active',
+            updated_at: new Date().toISOString()
+          })
           .eq('match_id', activeMatchId);
       } catch (e) {
         console.error("Heartbeat failed:", e);
@@ -668,24 +671,8 @@ const Index = () => {
     setIsLobbyJoined(true);
     setP1Address(address);
 
-    // Check how many featured slots are already taken
-    let isFeatured = false;
-    if (makePublic) {
-      try {
-        const { count } = await supabase
-          .from('matches')
-          .select('match_id', { count: 'exact', head: true })
-          .eq('is_featured', true)
-          .eq('status', 'active');
-        if ((count ?? 0) < 3) {
-          isFeatured = true;
-        } else {
-          toast.info("All 3 featured spectator slots are taken. Your game will be private.");
-        }
-      } catch {
-        // Silently fall back to private if check fails
-      }
-    }
+    // If makePublic is checked, mark as featured so it shows in spectator lobby
+    const isFeatured = makePublic;
 
     // Write host lobby row to Supabase so the subscription channel is ready
     try {

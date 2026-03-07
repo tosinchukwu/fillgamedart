@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send } from 'lucide-react';
+import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send, Eye } from 'lucide-react';
 import SettingsDialog, { CustomTrack } from '../components/SettingsDialog';
 import BackgroundLayer, { BackgroundMode } from '../components/BackgroundLayer';
 import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
@@ -411,32 +411,21 @@ const Index = () => {
       const serializedState = {
         ...state,
         theme, // Sync the current theme
-        latestDart: state.latestDart || null, // Sync the single latest dart
+        latestDart: state.latestDart || null,
         closedNumbers: Array.from(state.closedNumbers)
       };
 
-      if (setupMode === 'invite') {
-        const { error } = await supabase
-          .from('matches')
-          .update({
-            game_state: serializedState
-          })
-          .eq('match_id', activeMatchId);
-        if (error) {
-          console.error("Broadcast update error:", error);
-          toast.error("Sync failed: " + error.message);
-        }
-      } else {
-        const { error } = await supabase
-          .from('matches')
-          .upsert({
-            match_id: activeMatchId,
-            game_state: serializedState
-          }, { onConflict: 'match_id' });
-        if (error) {
-          console.error("Broadcast upsert error:", error);
-          toast.error("Sync failed: " + error.message);
-        }
+      // Use upsert for both modes to ensure reliability, but keep specific logic if needed
+      const { error } = await supabase
+        .from('matches')
+        .upsert({
+          match_id: activeMatchId,
+          game_state: serializedState,
+          updated_at: new Date().toISOString() // Force updated_at update
+        }, { onConflict: 'match_id' });
+
+      if (error) {
+        console.error("Broadcast error:", error);
       }
     } catch (e) {
       console.error("Sync broadcast failed:", e);
@@ -1477,15 +1466,33 @@ const Index = () => {
             </div>
 
             {!gameState.isVsCPU && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={shareSyncLink}
-                className="mt-2 glass-panel border-primary/20 hover:bg-primary/10 text-primary-light text-[10px] tracking-widest uppercase font-black px-6 py-4 rounded-xl"
-              >
-                <Share2 className="w-3 h-3 mr-2" />
-                Share Sync Link
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={shareSyncLink}
+                  className="glass-panel border-primary/20 hover:bg-primary/10 text-primary-light text-[10px] tracking-widest uppercase font-black px-4 py-3 rounded-xl"
+                >
+                  <Share2 className="w-3 h-3 mr-2" />
+                  Sync Link
+                </Button>
+                {makePublic && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const activeMatchId = setupMode === 'invite' ? inviteCode : String(parsedMatchId || '');
+                      const specLink = `${window.location.origin}/watch?match=${activeMatchId}`;
+                      await navigator.clipboard.writeText(specLink);
+                      toast.success("Spectator Link Copied!", { description: "Anyone can watch this live match." });
+                    }}
+                    className="glass-panel border-emerald-500/20 hover:bg-emerald-500/10 text-emerald-400 text-[10px] tracking-widest uppercase font-black px-4 py-3 rounded-xl"
+                  >
+                    <Eye className="w-3 h-3 mr-2" />
+                    Spectator Link
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>

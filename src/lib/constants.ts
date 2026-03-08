@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = '0xD489347C36505370Cbb29C531511AD44629a6c16'; // Correct Tournament Contract
+export const CONTRACT_ADDRESS = '0x85c1B5304c00C2d09432C24B2f0F76Ac54a1D51F'; // Correct Tournament Contract
 
 export const WALLET_CONNECT_PROJECT_ID = 'df9103b089fad4ac16226c9ea96a15aa'; // Get from https://cloud.walletconnect.com
 

@@ -55,4 +55,43 @@ If a player hits a circular ring, they earn hits and filler points from **all nu
 
 ---
 
+# The Problem Your Project Addresses
+The online casual gaming and esports industry still struggles with trust. In most Web2 lobby-based games, players connect to a centralized server that calculates scores and declares the winner. Because everything happens on that server, players have no way to verify that the game logic wasn’t manipulated or that an opponent didn’t exploit the system.
+
+This becomes an even bigger issue when players compete for prize money.
+
+Building a truly trustless peer-to-peer wagering system for real-time multiplayer browser games is also extremely complex. It usually requires heavy backend infrastructure, state channels, and continuously running servers to manage game state. This level of complexity makes it very difficult for independent developers or small teams to build secure and fair competitive games.
+
+# How We’ve Addressed the Problem
+We built FillGame, a decentralized peer-to-peer 1v1 casual game that replaces closed server systems with transparent smart contracts and verifiable computation.
+
+Instead of relying on a centralized server to hold funds and decide the winner:
+
+Players lock their entry fees securely inside the FillGameTournament smart contract deployed on Avalanche.
+
+The game itself runs in the browser, tracking the dartboard state and recording player hits in real time.
+
+When a match ends, the raw gameplay data is sent to a decentralized oracle network. The network replays the match logic, recalculates the final score, and cryptographically verifies the winner before any prize funds are distributed.
+
+# How You’ve Used CRE (Chainlink Runtime Environment / Functions)
+We used the Chainlink Runtime Environment through Chainlink Functions to handle game verification.
+
+Running the full 2D dartboard physics engine directly on-chain would be extremely expensive and impractical due to gas costs. At the same time, simply trusting the browser to report the correct score would defeat the purpose of building a fair Web3 game.
+
+To solve this, we created a custom JavaScript verification script called scoreVerifier.ts.
+
+The FillingGameScoreboard contract sends the raw match analytics to Chainlink Functions.
+
+The oracle network executes the verification script off-chain, recalculates the sequence of dart hits, and independently determines the correct outcome of the match.
+
+Once the oracle network agrees on the final result, it signs the response and sends it back to the smart contract. The contract then resolves the game and unlocks the prize pool for the winner.
+
+This approach keeps the blockchain lightweight while still benefiting from decentralized consensus for verifying the game logic.
+
+# Chainlink
+For using Chainlink Functions to verify off-chain game logic.
+
+# Avalanche
+For deploying and testing the contracts on the Avalanche network.
+
 Designed for competition. Master the rings, claim the bonuses, and set the Bar.

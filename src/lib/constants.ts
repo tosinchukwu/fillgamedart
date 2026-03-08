@@ -1,5 +1,6 @@
 export const CONTRACT_ADDRESS = '0x306beA249FF7ee1057a5A0a5a17f108F5a1C7DF8';
 
+
 export const WALLET_CONNECT_PROJECT_ID = 'df9103b089fad4ac16226c9ea96a15aa'; // Get from https://cloud.walletconnect.com
 
 export const CONTRACT_ABI = [

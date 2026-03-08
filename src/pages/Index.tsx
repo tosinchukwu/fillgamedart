@@ -19,7 +19,7 @@ import BackgroundLayer, { BackgroundMode } from '../components/BackgroundLayer';
 import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
-import { avalanche } from 'viem/chains';
+import { avalancheFuji } from 'viem/chains';
 import { CONTRACT_ADDRESS, CONTRACT_ABI, VERIFIER_CONTRACT_ADDRESS, VERIFIER_CONTRACT_ABI, CHAINLINK_SUBSCRIPTION_ID } from '../lib/constants';
 import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
@@ -886,7 +886,7 @@ const Index = () => {
           `P1 (${gameState.players[0].name}): ${gameState.players[0].totalScore}, P2 (${gameState.players[1].name}): ${gameState.players[1].totalScore}`
         ],
         account: address as `0x${string}`,
-        chain: avalanche,
+        chain: avalancheFuji,
       });
     } catch (error) {
       console.error("Broadcast failed:", error);
@@ -1327,7 +1327,7 @@ const Index = () => {
                     const source = await response.text();
 
                     const args = [JSON.stringify(hitHistory)];
-                    const donId = stringToHex("fun-avalanche-mainnet-1", { size: 32 }); // Standard for Avalanche
+                    const donId = stringToHex("fun-avalanche-fuji-1", { size: 32 }); // Standard for Avalanche Fuji
 
                     writeContract({
                       address: VERIFIER_CONTRACT_ADDRESS as `0x${string}`,
@@ -1341,7 +1341,7 @@ const Index = () => {
                         donId
                       ],
                       account: address as `0x${string}`,
-                      chain: avalanche,
+                      chain: avalancheFuji,
                     });
 
                     toast.success("Verification request sent to Chainlink CRE!");

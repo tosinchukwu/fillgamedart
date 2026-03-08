@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = '0xD489347C36505370Cbb29C531511AD44629a6c16'; // Correct Tournament Contract
+export const CONTRACT_ADDRESS = '0x306beA249FF7ee1057a5A0a5a17f108F5a1C7DF8';
 
 export const WALLET_CONNECT_PROJECT_ID = 'df9103b089fad4ac16226c9ea96a15aa'; // Get from https://cloud.walletconnect.com
 
@@ -817,8 +817,8 @@ export const CONTRACT_ABI = [
     }
 ] as const;
 
-export const VERIFIER_CONTRACT_ADDRESS = '0x809E719EbB89e415c5d3A249D4a40172C28E4c99';
-export const CHAINLINK_SUBSCRIPTION_ID = 41;
+export const VERIFIER_CONTRACT_ADDRESS = '0xCA255bC9162167160337fd1f0c12909C78855d95';
+export const CHAINLINK_SUBSCRIPTION_ID = 15790;
 
 export const VERIFIER_CONTRACT_ABI = [
     {

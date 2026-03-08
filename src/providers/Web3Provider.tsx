@@ -1,7 +1,7 @@
 import { createWeb3Modal } from '@web3modal/wagmi/react'
 import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
 import { WagmiProvider } from 'wagmi'
-import { avalanche } from 'viem/chains'
+import { avalancheFuji } from 'viem/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 
@@ -18,7 +18,7 @@ const metadata = {
     icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-const chains = [avalanche] as const
+const chains = [avalancheFuji] as const
 const config = defaultWagmiConfig({
     chains,
     projectId,

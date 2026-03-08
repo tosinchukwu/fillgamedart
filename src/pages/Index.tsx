@@ -20,7 +20,7 @@ import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionRecei
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { encodeFunctionData, parseEther, stringToHex } from 'viem';
 import { avalanche } from 'viem/chains';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../lib/constants';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, VERIFIER_CONTRACT_ADDRESS, VERIFIER_CONTRACT_ABI, CHAINLINK_SUBSCRIPTION_ID } from '../lib/constants';
 import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
@@ -557,6 +557,7 @@ const Index = () => {
     prevBatchRef.current = updatedState.batch;
 
     setGameState(updatedState);
+    setHitHistory(prev => [...prev, { player: gameState.currentPlayer, value: num, type: 'number' }]);
     broadcastGameState(updatedState);
   }, [gameState, broadcastGameState, theme]);
 
@@ -580,6 +581,7 @@ const Index = () => {
     prevBatchRef.current = updatedState.batch;
 
     setGameState(updatedState);
+    setHitHistory(prev => [...prev, { player: gameState.currentPlayer, value: ringIdx, type: 'ring' }]);
     broadcastGameState(updatedState);
   }, [gameState, broadcastGameState, theme]);
 
@@ -626,6 +628,7 @@ const Index = () => {
             if (updated.batch === 2 && prevBatchRef.current === 1) setShowBatchOverlay(true);
             prevBatchRef.current = updated.batch;
 
+            setHitHistory(prev => [...prev, { player: 1, value: move.index, type: move.type }]);
             return updated;
           });
         }, 1000);
@@ -1311,19 +1314,45 @@ const Index = () => {
 
               <Button
                 onClick={async () => {
+                  if (!address) {
+                    toast.error("Please connect your wallet first!");
+                    return;
+                  }
+
                   setIsVerifying(true);
-                  // Mocking the Chainlink Verification for the hackathon UI
-                  toast.promise(
-                    new Promise((resolve) => setTimeout(resolve, 3000)),
-                    {
-                      loading: 'Connecting to Chainlink CRE...',
-                      success: 'Score Verified by Decentralized Oracles!',
-                      error: 'Verification failed',
-                    }
-                  );
-                  setTimeout(() => setIsVerifying(false), 3000);
+
+                  try {
+                    // Fetch the source code for verification
+                    const response = await fetch('/src/chainlink/scoreVerifier.ts');
+                    const source = await response.text();
+
+                    const args = [JSON.stringify(hitHistory)];
+                    const donId = stringToHex("fun-avalanche-mainnet-1", { size: 32 }); // Standard for Avalanche
+
+                    writeContract({
+                      address: VERIFIER_CONTRACT_ADDRESS as `0x${string}`,
+                      abi: VERIFIER_CONTRACT_ABI,
+                      functionName: 'sendVerificationRequest',
+                      args: [
+                        source,
+                        args,
+                        BigInt(CHAINLINK_SUBSCRIPTION_ID),
+                        300000, // callbackGasLimit
+                        donId
+                      ],
+                      account: address as `0x${string}`,
+                      chain: avalanche,
+                    });
+
+                    toast.success("Verification request sent to Chainlink CRE!");
+                  } catch (error) {
+                    console.error("Verification failed:", error);
+                    toast.error("Failed to initiate verification.");
+                  } finally {
+                    setIsVerifying(false);
+                  }
                 }}
-                disabled={isVerifying}
+                disabled={isVerifying || !hitHistory.length}
                 variant="outline"
                 className="w-full h-12 border-primary/30 text-primary font-black uppercase tracking-widest text-xs rounded-xl hover:bg-primary/5 transition-all"
               >

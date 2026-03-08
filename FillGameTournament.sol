@@ -5,6 +5,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
+// deploy with Optimizer: Enabled 
+
+interface IFillGameVictoryNFT {
+    function mintVictoryNft(address to, uint256 matchId) external returns (uint256);
+}
+
 contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
     struct Match {
         uint256 id;
@@ -27,6 +33,8 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
     uint256 public protocolFeeBps = 1000; // 10.00%
     uint256 public matchTimeout = 7 days;
 
+    address public nftContract;
+
     mapping(uint256 => Match) public matches;
 
     // ──────────────────────────────────────────────
@@ -46,6 +54,7 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
     );
     event PrizeDistributed(uint256 indexed matchId, address indexed winner, uint256 amount);
     event ProtocolFeeCollected(uint256 indexed matchId, uint256 amount);
+    event VictoryNFTMinted(uint256 indexed matchId, address indexed winner, uint256 tokenId);
 
     // ──────────────────────────────────────────────
     // Errors
@@ -88,6 +97,11 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
         matchTimeout = _seconds;
     }
 
+    function setNftContract(address _nft) external onlyOwner {
+        require(_nft != address(0), "Invalid address");
+        nftContract = _nft;
+    }
+
     function pause() external onlyOwner {
         _pause();
     }
@@ -97,12 +111,9 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
     }
 
     // ──────────────────────────────────────────────
-    // Match Creation
+    // Match Creation – split assignment to avoid stack-too-deep
     // ──────────────────────────────────────────────
 
-    /**
-     * @dev Refactored to avoid "Stack too deep" by assigning directly to storage.
-     */
     function createMatch(
         uint256 matchId,
         address _player1,
@@ -120,22 +131,25 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
             revert OnlyOwnerForOfficial();
         }
 
-        // Fix: Use storage reference and direct assignment to bypass the stack limit
         Match storage m = matches[matchId];
-        m.id = matchId;
-        m.player1 = _player1;
+
+        m.id          = matchId;
+        m.player1     = _player1;
         m.player1Name = _player1Name;
-        m.player2 = _player2;
+        m.player2     = _player2;
         m.player2Name = _player2Name;
+
+        m.createdAt   = block.timestamp;
+        m.isCasual    = _isCasual;
+        m.prizePool   = 0;
+
         m.player1Paid = false;
         m.player2Paid = false;
-        m.winner = address(0);
-        m.scoreline = "";
         m.isCompleted = false;
         m.isCancelled = false;
-        m.prizePool = 0;
-        m.createdAt = block.timestamp;
-        m.isCasual = _isCasual;
+
+        m.winner      = address(0);
+        m.scoreline   = "";
 
         emit MatchCreated(matchId, msg.sender, _isCasual);
     }
@@ -176,7 +190,7 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
         Match storage m = matches[matchId];
         if (m.id == 0) revert MatchInactive();
         if (m.isCompleted) revert MatchInactive();
-        if (m.isCancelled) return; // idempotent
+        if (m.isCancelled) return;
 
         bool isAuthorized = msg.sender == m.player1 || msg.sender == m.player2 || msg.sender == owner();
         if (!isAuthorized) revert NotParticipant();
@@ -218,7 +232,7 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
     }
 
     // ──────────────────────────────────────────────
-    // Result Submission (only official, time-bound)
+    // Result Submission (only official matches)
     // ──────────────────────────────────────────────
 
     function submitResult(
@@ -253,11 +267,14 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
             emit ProtocolFeeCollected(matchId, protocolFee);
         }
 
+        uint256 tokenId = IFillGameVictoryNFT(nftContract).mintVictoryNft(winnerAddr, matchId);
+
         emit ResultSubmitted(matchId, winnerAddr, scoreline, prize, protocolFee);
+        emit VictoryNFTMinted(matchId, winnerAddr, tokenId);
     }
 
     // ──────────────────────────────────────────────
-    // Emergency (safer version – only protocol fees, not player funds)
+    // Emergency withdrawal – protocol fees only
     // ──────────────────────────────────────────────
 
     function withdrawProtocolFees() external onlyOwner {
@@ -269,7 +286,7 @@ contract FillGameTournament is Ownable, ReentrancyGuard, Pausable {
     }
 
     // ──────────────────────────────────────────────
-    // Views
+    // View function
     // ──────────────────────────────────────────────
 
     function getMatch(uint256 matchId) external view returns (Match memory) {

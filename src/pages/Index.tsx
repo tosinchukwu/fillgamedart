@@ -24,6 +24,7 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI, VERIFIER_CONTRACT_ADDRESS, VERIFIER_CON
 import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import scoreVerifierSource from '../chainlink/scoreVerifier.ts?raw';
 
 // Audio assets (Local paths in public/audio/)
 const AUDIO_ASSETS = {
@@ -1323,8 +1324,8 @@ const Index = () => {
 
                   try {
                     // Fetch the source code for verification
-                    const response = await fetch('/src/chainlink/scoreVerifier.ts');
-                    const source = await response.text();
+                    // Using Vite raw import instead of fetch which fails in production
+                    const source = scoreVerifierSource;
 
                     const args = [JSON.stringify(hitHistory)];
                     const donId = stringToHex("fun-avalanche-fuji-1", { size: 32 }); // Standard for Avalanche Fuji

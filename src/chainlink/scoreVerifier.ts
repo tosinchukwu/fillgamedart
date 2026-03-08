@@ -4,6 +4,12 @@
  * Powered by Chainlink CRE for Convergence Hackathon.
  */
 
+// --- Global Declarations (Chainlink Functions) ---
+declare const args: string[];
+declare const Functions: {
+    encodeString: (val: string) => Uint8Array;
+};
+
 // --- Game Logic (Inlined for CRE Compatibility) ---
 
 const TARGET_SCORE = 221.5;
@@ -94,4 +100,5 @@ const hitHistory = JSON.parse(args[0]);
 const verificationResult = replayGame(hitHistory);
 
 // Return the result as a hex string for the smart contract
+// @ts-ignore - Chainlink Functions uses top-level return
 return Functions.encodeString(JSON.stringify(verificationResult));

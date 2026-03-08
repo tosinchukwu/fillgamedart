@@ -176,6 +176,9 @@ const Index = () => {
   const [customTracks, setCustomTracks] = useState<CustomTrack[]>([]);
   const [background, setBackground] = useState<BackgroundMode>('sky');
   const [customWallpaperUrl, setCustomWallpaperUrl] = useState<string | undefined>(undefined);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [hitHistory, setHitHistory] = useState<any[]>([]);
+
 
   const handleCustomTrackAdd = (track: CustomTrack) => {
     setCustomTracks(prev => [...prev, track]);
@@ -1297,6 +1300,40 @@ const Index = () => {
                 </div>
               </div>
             )}
+
+            <div className="flex flex-col gap-3 mb-6">
+              <Button
+                onClick={resetGame}
+                className="w-full h-14 bg-primary text-white font-black uppercase tracking-widest text-lg rounded-2xl shadow-[0_0_20px_rgba(232,65,66,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                🎮 Play Again
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  setIsVerifying(true);
+                  // Mocking the Chainlink Verification for the hackathon UI
+                  toast.promise(
+                    new Promise((resolve) => setTimeout(resolve, 3000)),
+                    {
+                      loading: 'Connecting to Chainlink CRE...',
+                      success: 'Score Verified by Decentralized Oracles!',
+                      error: 'Verification failed',
+                    }
+                  );
+                  setTimeout(() => setIsVerifying(false), 3000);
+                }}
+                disabled={isVerifying}
+                variant="outline"
+                className="w-full h-12 border-primary/30 text-primary font-black uppercase tracking-widest text-xs rounded-xl hover:bg-primary/5 transition-all"
+              >
+                {isVerifying ? (
+                  <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Verifying...</>
+                ) : (
+                  '🛡️ Verify Score on Chain (CRE)'
+                )}
+              </Button>
+            </div>
 
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">

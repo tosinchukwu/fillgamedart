@@ -819,7 +819,7 @@ export const CONTRACT_ABI = [
 ] as const;
 
 export const VERIFIER_CONTRACT_ADDRESS = '0xf3fa437B722441301c8ec041D4e2dd704869e995';
-export const CHAINLINK_SUBSCRIPTION_ID = 15790;
+export const CHAINLINK_SUBSCRIPTION_ID = 15791;
 
 export const VERIFIER_CONTRACT_ABI = [
     {

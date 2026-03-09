@@ -884,7 +884,7 @@ const Index = () => {
         abi: CONTRACT_ABI,
         functionName: 'submitResult',
         args: [
-          BigInt(matchId),
+          BigInt(matchId && /^\d+$/.test(matchId) ? matchId : '0'),
           gameState.winner === 0 ? gameState.players[0].address as `0x${string}` : gameState.players[1].address as `0x${string}`,
           `P1 (${gameState.players[0].name}): ${gameState.players[0].totalScore}, P2 (${gameState.players[1].name}): ${gameState.players[1].totalScore}`
         ],
@@ -1445,10 +1445,17 @@ const Index = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button onClick={resetGame} className="bg-white/10 text-white font-black px-8 py-6 text-lg rounded-xl flex-1 hover:bg-white/20">Play Again</Button>
-              <Button onClick={broadcastScore} disabled={!isConnected} className="bg-primary text-white font-black px-8 py-6 text-lg rounded-xl flex-1 shadow-[0_0_20px_rgba(232,65,66,0.3)]">
-                {isWaitingForTx ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wallet className="w-5 h-5 mr-2" />}
-                Broadcast Score
-              </Button>
+              {isMatchValid ? (
+                <Button onClick={broadcastScore} disabled={!isConnected || isWaitingForTx} className="bg-primary text-white font-black px-8 py-6 text-lg rounded-xl flex-1 shadow-[0_0_20px_rgba(232,65,66,0.3)]">
+                  {isWaitingForTx ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Wallet className="w-5 h-5 mr-2" />}
+                  Broadcast to Tournament
+                </Button>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-2 bg-white/5 border border-white/5 rounded-xl">
+                  <span className="text-[9px] text-white/40 uppercase tracking-widest font-black">Official Tournament Match Only</span>
+                  <span className="text-[8px] text-primary/60 italic mt-1">Use "Verify Score (CRE)" above for Hall of Fame</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -62,5 +62,19 @@ function replayGame(hits) {
 }
 
 const hitHistory = JSON.parse(args[0]);
-const verificationResult = replayGame(hitHistory);
-return Functions.encodeString(JSON.stringify(verificationResult));
+const result = replayGame(hitHistory);
+
+// Pack results into a single uint256 to save LINK and gas:
+// [248-255]: winner (8 bits: 0 or 1, or 255 if none)
+// [128-159]: score0 * 10 (32 bits)
+// [0-31]: score1 * 10 (32 bits)
+
+const winnerVal = result.winner === null ? 255 : result.winner;
+const s0 = Math.floor(result.score0 * 10);
+const s1 = Math.floor(result.score1 * 10);
+
+const packed = (BigInt(winnerVal) << BigInt(248)) |
+    (BigInt(s0) << BigInt(128)) |
+    BigInt(s1);
+
+return Functions.encodeUint256(packed);

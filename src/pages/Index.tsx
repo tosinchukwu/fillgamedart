@@ -1337,8 +1337,9 @@ const Index = () => {
                       args: [
                         source,
                         args,
+                        gameState?.players[gameState.winner!]?.name || "Anonymous",
                         BigInt(CHAINLINK_SUBSCRIPTION_ID),
-                        300000, // callbackGasLimit
+                        80000, // optimized callbackGasLimit
                         donId
                       ],
                       account: address as `0x${string}`,

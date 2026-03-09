@@ -818,7 +818,7 @@ export const CONTRACT_ABI = [
     }
 ] as const;
 
-export const VERIFIER_CONTRACT_ADDRESS = '0xCA255bC9162167160337fd1f0c12909C78855d95';
+export const VERIFIER_CONTRACT_ADDRESS = '0xf3fa437B722441301c8ec041D4e2dd704869e995';
 export const CHAINLINK_SUBSCRIPTION_ID = 15790;
 
 export const VERIFIER_CONTRACT_ABI = [
@@ -1081,6 +1081,30 @@ export const VERIFIER_CONTRACT_ABI = [
     {
         "inputs": [
             {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "name": "s_requestContexts",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "requester",
+                "type": "address"
+            },
+            {
+                "internalType": "string",
+                "name": "winnerName",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "string",
                 "name": "source",
                 "type": "string"
@@ -1089,6 +1113,11 @@ export const VERIFIER_CONTRACT_ABI = [
                 "internalType": "string[]",
                 "name": "args",
                 "type": "string[]"
+            },
+            {
+                "internalType": "string",
+                "name": "winnerName",
+                "type": "string"
             },
             {
                 "internalType": "uint64",

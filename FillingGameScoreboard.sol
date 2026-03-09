@@ -19,10 +19,18 @@ contract FillingGameScoreboard is FunctionsClient {
         bool verified;
     }
 
+    // Request context to record history on fulfillment
+    struct RequestContext {
+        address requester;
+        string winnerName;
+    }
+
     GameResult[] public history;
     bytes32 public s_lastRequestId;
     bytes public s_lastResponse;
     bytes public s_lastError;
+
+    mapping(bytes32 => RequestContext) public s_requestContexts;
 
     event ScoreRecorded(address indexed winner, string winnerName, uint256 score, uint256 timestamp, bool verified);
     event Response(bytes32 indexed requestId, bytes response, bytes err);
@@ -33,10 +41,12 @@ contract FillingGameScoreboard is FunctionsClient {
      * @dev Sends a request to verify the game score off-chain using CRE.
      * @param source The source code for the Chainlink Function.
      * @param args The arguments (hit history JSON).
+     * @param winnerName The name of the winner to record if verification succeeds.
      */
     function sendVerificationRequest(
         string memory source,
         string[] memory args,
+        string memory winnerName,
         uint64 subscriptionId,
         uint32 callbackGasLimit,
         bytes32 donId
@@ -44,13 +54,21 @@ contract FillingGameScoreboard is FunctionsClient {
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
         if (args.length > 0) req.setArgs(args);
-        s_lastRequestId = _sendRequest(
+        
+        requestId = _sendRequest(
             req.encodeCBOR(),
             subscriptionId,
             callbackGasLimit,
             donId
         );
-        return s_lastRequestId;
+
+        s_lastRequestId = requestId;
+        s_requestContexts[requestId] = RequestContext({
+            requester: msg.sender,
+            winnerName: winnerName
+        });
+
+        return requestId;
     }
 
     /**
@@ -65,9 +83,24 @@ contract FillingGameScoreboard is FunctionsClient {
         s_lastError = err;
         emit Response(requestId, response, err);
 
-        if (err.length == 0) {
-            // Logic to parse response and record the score would go here.
-            // For now, we emit the result.
+        if (err.length == 0 && response.length == 32) {
+            // Decode packed uint256 response:
+            // [248-255]: winnerIdx (8 bits)
+            // [128-159]: score0 * 10 (32 bits)
+            // [0-31]: score1 * 10 (32 bits)
+            uint256 packed = abi.decode(response, (uint256));
+            
+            uint8 winnerIdx = uint8(packed >> 248);
+            uint256 s0 = (uint256(packed >> 128) & 0xFFFFFFFF);
+            uint256 s1 = (uint256(packed) & 0xFFFFFFFF);
+
+            RequestContext memory ctx = s_requestContexts[requestId];
+            if (ctx.requester != address(0)) {
+                uint256 winningScore = (winnerIdx == 0) ? s0 : (winnerIdx == 1 ? s1 : 0);
+                // Convert back from *10 fixed point if desired, but here we store as is or divide
+                recordScoreInternal(ctx.requester, ctx.winnerName, winningScore / 10, true);
+                delete s_requestContexts[requestId];
+            }
         }
     }
 
@@ -75,8 +108,12 @@ contract FillingGameScoreboard is FunctionsClient {
      * @dev Records a new game result on the blockchain.
      */
     function recordScore(string memory _winnerName, uint256 _score, bool _verified) public {
+        recordScoreInternal(msg.sender, _winnerName, _score, _verified);
+    }
+
+    function recordScoreInternal(address _winner, string memory _winnerName, uint256 _score, bool _verified) internal {
         GameResult memory newResult = GameResult({
-            winner: msg.sender,
+            winner: _winner,
             winnerName: _winnerName,
             score: _score,
             timestamp: block.timestamp,
@@ -84,7 +121,7 @@ contract FillingGameScoreboard is FunctionsClient {
         });
 
         history.push(newResult);
-        emit ScoreRecorded(msg.sender, _winnerName, _score, block.timestamp, _verified);
+        emit ScoreRecorded(_winner, _winnerName, _score, block.timestamp, _verified);
     }
 
     function getGameCount() public view returns (uint256) {

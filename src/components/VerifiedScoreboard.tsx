@@ -58,8 +58,10 @@ const VerifiedScoreboard: React.FC = () => {
                 ) : (
                     <div className="space-y-3">
                         {gameHistory?.map((res, i) => {
-                            if (res.status !== 'success') return null;
-                            const record = res.result as [string, string, bigint, bigint, boolean];
+                            if (res.status !== 'success' || !Array.isArray(res.result)) return null;
+                            const record = (res.result as unknown) as [string, string, bigint, bigint, boolean];
+                            if (record.length < 5) return null;
+
                             const winner = record[0];
                             const winnerName = record[1];
                             const score = record[2];

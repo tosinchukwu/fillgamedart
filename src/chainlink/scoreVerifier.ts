@@ -33,32 +33,64 @@ function calculateHitPoints(state, playerIdx, n) {
 
 function replayGame(hits) {
     const state = {
-        players: [{ totalScore: 0, hits: {} }, { totalScore: 0, hits: {} }],
+        players: [{ totalScore: 0, hits: {}, completed: {} }, { totalScore: 0, hits: {}, completed: {} }],
+        closedNumbers: {},
         batch: 1, batch1Scores: null, winner: null, gameOver: false
     };
+
     hits.forEach(hit => {
         if (state.gameOver) return;
-        const player = state.players[hit.player];
+        const cp = hit.player;
+        const player = state.players[cp];
+        const other = state.players[1 - cp];
         const nums = hit.type === 'ring' ? RING_NUMBERS[hit.value] : [hit.value];
+
         nums.forEach(n => {
+            if (state.closedNumbers[n]) return;
+
             player.hits[n] = (player.hits[n] || 0) + 1;
-            const { points } = calculateHitPoints(state, hit.player, n);
+            const { points } = calculateHitPoints(state, cp, n);
             player.totalScore += points;
+
+            if (n === 1 || (player.hits[n] + (other.hits[n] || 0)) >= n) {
+                state.closedNumbers[n] = true;
+                player.completed[n] = true;
+            }
         });
+
         if (state.batch === 1) {
-            if (state.players[0].totalScore > TARGET_SCORE || state.players[1].totalScore > TARGET_SCORE) {
+            const p1S = state.players[0].totalScore;
+            const p2S = state.players[1].totalScore;
+            const allClosed = Object.keys(state.closedNumbers).length === 14;
+
+            if (p1S > TARGET_SCORE || p2S > TARGET_SCORE || allClosed) {
                 state.batch = 2;
-                state.batch1Scores = [state.players[0].totalScore, state.players[1].totalScore];
-                state.players.forEach(p => { p.totalScore = 0; p.hits = {}; });
+                state.batch1Scores = [p1S, p2S];
+                state.players.forEach(p => {
+                    p.totalScore = 0;
+                    p.hits = {};
+                    p.completed = {};
+                });
+                state.closedNumbers = {};
             }
         } else {
             const p1Target = state.batch1Scores[1];
             const p2Target = state.batch1Scores[0];
-            if (state.players[0].totalScore >= p1Target) { state.gameOver = true; state.winner = 0; }
-            else if (state.players[1].totalScore >= p2Target) { state.gameOver = true; state.winner = 1; }
+            if (state.players[0].totalScore >= p1Target) {
+                state.gameOver = true;
+                state.winner = 0;
+            } else if (state.players[1].totalScore >= p2Target) {
+                state.gameOver = true;
+                state.winner = 1;
+            }
         }
     });
-    return { winner: state.winner, score0: state.players[0].totalScore, score1: state.players[1].totalScore };
+
+    return {
+        winner: state.winner,
+        score0: state.players[0].totalScore,
+        score1: state.players[1].totalScore
+    };
 }
 
 const hitHistory = JSON.parse(args[0]);

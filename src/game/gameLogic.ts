@@ -234,9 +234,10 @@ function checkBatchConditions(state: GameState) {
   const p2Score = state.players[1].totalScore;
 
   if (state.batch === 1) {
-    if (p1Score > TARGET_SCORE || p2Score > TARGET_SCORE) {
-      const b1w = p1Score > TARGET_SCORE ? 0 : 1;
-      const benchmark = b1w === 0 ? p1Score : p2Score;
+    const allClosed = state.closedNumbers.size === TOTAL_NUMBERS;
+    if (p1Score > TARGET_SCORE || p2Score > TARGET_SCORE || allClosed) {
+      const b1w = p1Score > p2Score ? 0 : 1;
+      const benchmark = p1Score > p2Score ? p1Score : p2Score;
 
       state.batch = 2;
       state.batch1Winner = b1w;

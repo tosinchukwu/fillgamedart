@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send, Eye } from 'lucide-react';
+import { Palette, Settings, Volume2, Music as MusicIcon, Wallet, CheckCircle2, XCircle, Share2, Loader2, Twitter, Facebook, Instagram, Send, Eye, Activity, Trophy } from 'lucide-react';
 import SettingsDialog, { CustomTrack } from '../components/SettingsDialog';
 import BackgroundLayer, { BackgroundMode } from '../components/BackgroundLayer';
 import { useAccount, useDisconnect, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';

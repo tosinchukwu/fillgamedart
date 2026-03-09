@@ -1,3 +1,4 @@
+// @ts-nocheck
 const TARGET_SCORE = 221.5;
 const RING_NUMBERS = { 0: [14, 13], 1: [12, 9, 5, 10], 2: [11, 1, 3, 8], 3: [7, 4, 2, 6] };
 

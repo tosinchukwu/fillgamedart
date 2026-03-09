@@ -24,6 +24,7 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI, VERIFIER_CONTRACT_ADDRESS, VERIFIER_CON
 import { supabase } from '../lib/supabase';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import VerifiedScoreboard from '../components/VerifiedScoreboard';
 import scoreVerifierSource from '../chainlink/scoreVerifier.ts?raw';
 
 // Audio assets (Local paths in public/audio/)
@@ -158,7 +159,7 @@ const Index = () => {
   const [p2Name, setP2Name] = useState('');
   const [p1Address, setP1Address] = useState<string | null>(null);
   const [p2Address, setP2Address] = useState<string | null>(null);
-  const [setupMode, setSetupMode] = useState<'solo' | 'multi' | 'invite'>('solo');
+  const [setupMode, setSetupMode] = useState<'solo' | 'multi' | 'invite' | 'history'>('solo');
   const [isVsCPU, setIsVsCPU] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [matchId, setMatchId] = useState('');
@@ -179,6 +180,7 @@ const Index = () => {
   const [customWallpaperUrl, setCustomWallpaperUrl] = useState<string | undefined>(undefined);
   const [isVerifying, setIsVerifying] = useState(false);
   const [hitHistory, setHitHistory] = useState<any[]>([]);
+  const [rightColTab, setRightColTab] = useState<'stats' | 'history'>('stats');
 
 
   const handleCustomTrackAdd = (track: CustomTrack) => {
@@ -1203,9 +1205,19 @@ const Index = () => {
                 >
                   Invite Link
                 </button>
+                <button
+                  onClick={() => setSetupMode('history')}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${setupMode === 'history' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+                >
+                  History
+                </button>
               </div>
 
-              {renderSetupContent()}
+              {setupMode === 'history' ? (
+                <div className="h-[350px]">
+                  <VerifiedScoreboard />
+                </div>
+              ) : renderSetupContent()}
 
               {setupMode === 'solo' && (
                 <Button onClick={startSoloGame} className="w-full h-14 bg-primary text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(232,65,66,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all">
@@ -1557,7 +1569,31 @@ const Index = () => {
 
         {/* Right: Table */}
         <div className="xl:w-[620px] w-full flex-shrink-0 order-3 flex flex-col h-full shadow-2xl">
-          <MasterScoringTable gameState={gameState} />
+          {/* Tab Switcher for Right Column */}
+          <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10 mb-4 mx-2 sm:mx-0">
+            <button
+              onClick={() => setRightColTab('stats')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${rightColTab === 'stats' ? 'bg-primary text-white shadow-[0_0_15px_rgba(232,65,66,0.3)]' : 'text-white/40 hover:text-white/60 hover:bg-white/5'}`}
+            >
+              <Activity className="w-3 h-3" />
+              Live Match Stats
+            </button>
+            <button
+              onClick={() => setRightColTab('history')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${rightColTab === 'history' ? 'bg-primary text-white shadow-[0_0_15px_rgba(232,65,66,0.3)]' : 'text-white/40 hover:text-white/60 hover:bg-white/5'}`}
+            >
+              <Trophy className="w-3 h-3" />
+              Verified History
+            </button>
+          </div>
+
+          <div className="flex-1 min-h-0">
+            {rightColTab === 'stats' ? (
+              <MasterScoringTable gameState={gameState} />
+            ) : (
+              <VerifiedScoreboard />
+            )}
+          </div>
         </div>
       </div>
 
